@@ -1,7 +1,7 @@
 package org.proof_of_attendance_metagraph.shared_data.types.codecs
 
 import cats.effect.Sync
-import cats.implicits.toFunctorOps
+import cats.syntax.functor._
 import io.circe.jawn.JawnParser
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Printer}

@@ -24,21 +24,25 @@ object ApplicationConfig {
   case class ExolixDaemonConfig(
     idleTime: FiniteDuration,
     apiKey  : Option[String],
+    apiUrl  : Option[String]
   )
 
   case class SimplexDaemonConfig(
     idleTime: FiniteDuration,
     apiKey  : Option[String],
+    apiUrl  : Option[String],
   )
 
   case class TwitterDaemonConfig(
     idleTime: FiniteDuration,
     apiKey  : Option[String],
+    apiUrl  : Option[String]
   )
 
   case class IntegrationnetNodesOperatorsDaemonConfig(
     idleTime: FiniteDuration,
     apiKey  : Option[String],
+    apiUrl  : Option[String]
   )
 
   case class NodeKey(

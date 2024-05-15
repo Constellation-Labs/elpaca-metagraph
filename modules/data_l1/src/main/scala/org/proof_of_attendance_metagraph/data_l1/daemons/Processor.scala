@@ -1,7 +1,9 @@
 package org.proof_of_attendance_metagraph.data_l1.daemons
 
 import cats.effect.Async
-import cats.implicits._
+import cats.syntax.flatMap._
+import cats.syntax.foldable._
+import cats.syntax.functor._
 import org.proof_of_attendance_metagraph.data_l1.daemons.fetcher.Fetcher
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.ProofOfAttendanceUpdate
 import org.typelevel.log4cats.SelfAwareStructuredLogger

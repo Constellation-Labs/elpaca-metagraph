@@ -17,6 +17,12 @@ import java.security.KeyPair
 object Utils {
   def logger[F[_] : Async]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("Utils")
 
+  def toTokenAmountFormat(
+    balance: Long
+  ): Long = {
+    (balance * 10e7).toLong
+  }
+
   def loadKeyPair[F[_] : Async : SecurityProvider](config: ApplicationConfig): F[KeyPair] = {
     val keyStore = StorePath(config.nodeKey.keystore)
     val alias = KeyAlias(config.nodeKey.alias)

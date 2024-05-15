@@ -2,7 +2,8 @@ package org.proof_of_attendance_metagraph.data_l1.daemons
 
 import cats.Applicative
 import cats.effect.Async
-import cats.implicits.{toFlatMapOps, toFunctorOps}
+import cats.syntax.flatMap._
+import cats.syntax.functor._
 import org.http4s.Method.POST
 import org.http4s.Status
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}

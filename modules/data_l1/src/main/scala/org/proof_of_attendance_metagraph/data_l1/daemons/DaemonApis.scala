@@ -2,7 +2,7 @@ package org.proof_of_attendance_metagraph.data_l1.daemons
 
 import cats.effect.Async
 import cats.effect.std.Supervisor
-import cats.implicits.catsSyntaxFlatMapOps
+import cats.syntax.flatMap._
 import com.comcast.ip4s.{Host, Port}
 import fs2.io.net.Network
 import org.proof_of_attendance_metagraph.data_l1.daemons.fetcher.{ExolixFetcher, IntegrationnetNodesOperatorsFetcher, SimplexFetcher, TwitterFetcher}
@@ -59,7 +59,7 @@ object DaemonApis {
       config: ApplicationConfig,
       signer: Signer[F]
     ): F[Unit] = {
-      val exolixFetcher = ExolixFetcher.make[F](config.exolixDaemon)
+      val exolixFetcher = ExolixFetcher.make[F](config)
       val exolixProcessor = Processor.make[F](exolixFetcher, signer)
       logger.info("Spawning Exolix daemon") >>
         spawn(
