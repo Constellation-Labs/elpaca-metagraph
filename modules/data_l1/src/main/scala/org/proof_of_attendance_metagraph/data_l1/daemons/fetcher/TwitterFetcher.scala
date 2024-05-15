@@ -1,7 +1,8 @@
 package org.proof_of_attendance_metagraph.data_l1.daemons.fetcher
 
 import cats.effect.Async
-import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxFlatMapOps}
+import cats.syntax.flatMap._
+import cats.syntax.applicative._
 import eu.timepit.refined.auto._
 import org.proof_of_attendance_metagraph.shared_data.app.ApplicationConfig.TwitterDaemonConfig
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.{ProofOfAttendanceUpdate, TwitterUpdate}

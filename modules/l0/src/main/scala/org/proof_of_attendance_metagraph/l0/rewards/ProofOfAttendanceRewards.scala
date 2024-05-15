@@ -4,7 +4,7 @@ import cats.effect.Async
 import cats.syntax.all._
 import eu.timepit.refined.types.numeric.PosLong
 import org.proof_of_attendance_metagraph.shared_data.Utils.PosLongOps
-import org.proof_of_attendance_metagraph.shared_data.types.States.ProofOfAttendanceCalculatedState
+import org.proof_of_attendance_metagraph.shared_data.types.States.{DataSources, ProofOfAttendanceCalculatedState}
 import org.tessellation.currency.dataApplication.DataCalculatedState
 import org.tessellation.currency.schema.currency.{CurrencyIncrementalSnapshot, CurrencySnapshotStateProof}
 import org.tessellation.ext.cats.syntax.next.catsSyntaxNext
@@ -38,7 +38,6 @@ object ProofOfAttendanceRewards {
       maybeCalculatedState: Option[DataCalculatedState]
     ) => {
       val logger = Slf4jLogger.getLoggerFromName[F]("ProofOfAttendanceRewards")
-
 
       def noRewards: F[SortedSet[RewardTransaction]] = SortedSet.empty[RewardTransaction].pure[F]
 
