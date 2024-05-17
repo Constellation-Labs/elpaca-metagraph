@@ -16,7 +16,14 @@ object ExolixTypes {
     createdAt        : String,
     depositAddress   : String,
     withdrawalAddress: String
-  )
+  ) {
+    override def equals(obj: Any): Boolean = obj match {
+      case that: ExolixTransaction => this.id == that.id
+      case _ => false
+    }
+
+    override def hashCode(): Int = id.hashCode()
+  }
 
   case class ExolixApiResponse(data: List[ExolixTransaction])
 }

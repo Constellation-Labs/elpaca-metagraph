@@ -72,7 +72,7 @@ object DaemonApis {
       config: ApplicationConfig,
       signer: Signer[F]
     ): F[Unit] = {
-      val simplexFetcher = SimplexFetcher.make[F](config.simplexDaemon)
+      val simplexFetcher = SimplexFetcher.make[F](config)
       val simplexProcessor = Processor.make[F](simplexFetcher, signer)
       logger.info("Spawning Simplex daemon") >>
         spawn(

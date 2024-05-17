@@ -2,10 +2,11 @@ package org.proof_of_attendance_metagraph.shared_data.types
 
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
+import io.circe.generic.auto._
 import org.proof_of_attendance_metagraph.shared_data.types.ExolixTypes.ExolixTransaction
+import org.proof_of_attendance_metagraph.shared_data.types.SimplexTypes.SimplexEvent
 import org.tessellation.currency.dataApplication.DataUpdate
 import org.tessellation.schema.address.Address
-import io.circe.generic.auto._
 
 object DataUpdates {
   @derive(encoder, decoder)
@@ -15,13 +16,14 @@ object DataUpdates {
 
   @derive(encoder, decoder)
   case class ExolixUpdate(
-    address: Address,
-    exolixTransaction: ExolixTransaction
+    address           : Address,
+    exolixTransactions: Set[ExolixTransaction]
   ) extends ProofOfAttendanceUpdate
 
   @derive(encoder, decoder)
   case class SimplexUpdate(
-    address: Address,
+    address      : Address,
+    simplexEvents: Set[SimplexEvent]
   ) extends ProofOfAttendanceUpdate
 
   @derive(encoder, decoder)
