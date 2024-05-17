@@ -2,12 +2,13 @@ package org.proof_of_attendance_metagraph.shared_data.types
 
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
+import io.circe.generic.auto._
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.ProofOfAttendanceUpdate
 import org.proof_of_attendance_metagraph.shared_data.types.ExolixTypes.ExolixTransaction
+import org.proof_of_attendance_metagraph.shared_data.types.SimplexTypes.SimplexEvent
 import org.tessellation.currency.dataApplication.{DataCalculatedState, DataOnChainState}
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
-import io.circe.generic.auto._
 
 object States {
   @derive(encoder, decoder)
@@ -21,7 +22,8 @@ object States {
   case class ExolixDataSource(
     epochProgressToReward: EpochProgress,
     amountToReward       : Long,
-    exolixApiResponse    : ExolixTransaction
+    latestTransactions   : Set[ExolixTransaction],
+    olderTransactions    : Set[ExolixTransaction]
   ) extends DataSources {
     override val name: String = "ExolixDataSource"
 
@@ -35,9 +37,10 @@ object States {
 
   @derive(encoder, decoder)
   case class SimplexDataSource(
-    epochProgressToReward     : EpochProgress,
-    amountToReward            : Long,
-    simplexApiResponseAsString: String
+    epochProgressToReward: EpochProgress,
+    amountToReward       : Long,
+    latestEvents         : Set[SimplexEvent],
+    olderEvents          : Set[SimplexEvent]
   ) extends DataSources {
     override val name: String = "SimplexDataSource"
 

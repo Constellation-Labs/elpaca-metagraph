@@ -59,10 +59,13 @@ object ExolixFetcher {
           _ <- logger.info(s"Found ${exolixApiResponse.data.length} transactions")
           transactionsToDAG = exolixApiResponse.data.filter(transaction => transaction.coinTo.coinCode == "DAG")
           _ <- logger.info(s"Found ${transactionsToDAG.length} to DAG token transactions")
-          dataUpdates = transactionsToDAG.foldLeft(List.empty[ProofOfAttendanceUpdate]) { (acc, transaction) =>
-            applyRef[DAGAddress](transaction.withdrawalAddress) match {
+
+          transactionsGroupedByAddress = transactionsToDAG.groupBy(event => event.withdrawalAddress)
+          dataUpdates = transactionsGroupedByAddress.foldLeft(List.empty[ProofOfAttendanceUpdate]) { (acc, info) =>
+            val (address, transactions) = info
+            applyRef[DAGAddress](address) match {
               case Left(_) => acc
-              case Right(dagAddress) => acc :+ ExolixUpdate(Address(dagAddress), transaction)
+              case Right(dagAddress) => acc :+ ExolixUpdate(Address(dagAddress), transactions.toSet)
             }
           }
           _ <- logger.info(s"Exolix Updates: $dataUpdates")

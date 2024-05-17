@@ -33,11 +33,13 @@ object LifecycleSharedFunctions {
                 val message = "Could not get the epochProgress from currency snapshot. lastCurrencySnapshot not found"
                 logger.error(message) >> new Exception(message).raiseError[F, EpochProgress]
             }
-          } yield combineProofOfAttendance(
-            acc,
-            epochProgress,
-            signedUpdate
-          )
+
+            updatedState <- combineProofOfAttendance(
+              acc,
+              epochProgress,
+              signedUpdate
+            )
+          } yield updatedState
         }
     }
   }
