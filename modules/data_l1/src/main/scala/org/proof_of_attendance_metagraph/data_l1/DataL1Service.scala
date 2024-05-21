@@ -4,14 +4,15 @@ import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.syntax.functor._
 import cats.syntax.applicative.catsSyntaxApplicativeId
-import cats.syntax.validated._
 import io.circe.{Decoder, Encoder}
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.{EntityDecoder, HttpRoutes}
+import org.proof_of_attendance_metagraph.shared_data.LifecycleSharedFunctions
 import org.proof_of_attendance_metagraph.shared_data.calculated_state.CalculatedStateService
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates._
 import org.proof_of_attendance_metagraph.shared_data.types.States._
 import org.proof_of_attendance_metagraph.shared_data.types.codecs.DataUpdateCodec._
+import org.proof_of_attendance_metagraph.shared_data.validations.Errors.valid
 import org.tessellation.currency.dataApplication._
 import org.tessellation.currency.dataApplication.dataApplication.{DataApplicationBlock, DataApplicationValidationErrorOr}
 import org.tessellation.json.JsonSerializer
@@ -37,18 +38,18 @@ object DataL1Service {
         state  : DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState],
         updates: NonEmptyList[Signed[ProofOfAttendanceUpdate]]
       )(implicit context: L1NodeContext[F]): F[DataApplicationValidationErrorOr[Unit]] =
-        ().validNec[DataApplicationValidationError].pure[F]
+        valid.pure
 
       override def validateUpdate(
         update: ProofOfAttendanceUpdate
       )(implicit context: L1NodeContext[F]): F[DataApplicationValidationErrorOr[Unit]] =
-        ().validNec[DataApplicationValidationError].pure[F]
+        LifecycleSharedFunctions.validateUpdate(update)
 
       override def combine(
         state  : DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState],
         updates: List[Signed[ProofOfAttendanceUpdate]]
       )(implicit context: L1NodeContext[F]): F[DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState]] =
-        state.pure[F]
+        state.pure
 
       override def routes(implicit context: L1NodeContext[F]): HttpRoutes[F] =
         HttpRoutes.empty

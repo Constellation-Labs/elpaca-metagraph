@@ -56,8 +56,7 @@ object ProofOfAttendanceRewards {
               .sum
 
             if (amountToReward == 0) {
-              logger.info(s"Address $address doesn't have rewards at epoch progress: ${currentEpochProgress.value.value}")
-                .as(rewardTransactions)
+              rewardTransactions.pure
             } else {
               val rewardTransaction = (address, amountToReward.toPosLongUnsafe).toRewardTransaction
               logger.info(s"Address $address will be rewarded with $amountToReward in this snapshot")

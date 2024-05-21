@@ -2,6 +2,7 @@ package org.proof_of_attendance_metagraph.data_l1.daemons
 
 import cats.data.NonEmptySet
 import cats.effect.Async
+import cats.syntax.applicativeError.catsSyntaxApplicativeError
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.ProofOfAttendanceUpdate
@@ -29,9 +30,11 @@ object Signer {
       private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(Publisher.getClass)
 
       override def signAndPublish(update: ProofOfAttendanceUpdate): F[Boolean] = for {
-        _ <- logger.info(s"Signing the update: ${update}")
         signedUpdate <- signUpdate(update)
-        result <- publisher.submitToTarget(signedUpdate)
+        result <- publisher.submitToTarget(signedUpdate).handleErrorWith(err => {
+          logger.error(s"Error when submitting update: ${err.getMessage}")
+            .as(false)
+        })
       } yield result
 
       private def signUpdate(update: ProofOfAttendanceUpdate): F[Signed[ProofOfAttendanceUpdate]] = {

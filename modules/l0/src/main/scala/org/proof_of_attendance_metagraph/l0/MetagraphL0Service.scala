@@ -2,9 +2,8 @@ package org.proof_of_attendance_metagraph.l0
 
 import cats.data.NonEmptyList
 import cats.effect.Async
-import cats.syntax.functor._
 import cats.syntax.applicative.catsSyntaxApplicativeId
-import cats.syntax.validated._
+import cats.syntax.functor._
 import io.circe.{Decoder, Encoder}
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.{EntityDecoder, HttpRoutes}
@@ -14,6 +13,7 @@ import org.proof_of_attendance_metagraph.shared_data.calculated_state.Calculated
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates._
 import org.proof_of_attendance_metagraph.shared_data.types.States._
 import org.proof_of_attendance_metagraph.shared_data.types.codecs.DataUpdateCodec._
+import org.proof_of_attendance_metagraph.shared_data.validations.Errors.valid
 import org.tessellation.currency.dataApplication._
 import org.tessellation.currency.dataApplication.dataApplication.{DataApplicationBlock, DataApplicationValidationErrorOr}
 import org.tessellation.json.JsonSerializer
@@ -42,13 +42,13 @@ object MetagraphL0Service {
         override def validateUpdate(
           update: ProofOfAttendanceUpdate
         )(implicit context: L0NodeContext[F]): F[DataApplicationValidationErrorOr[Unit]] =
-          ().validNec[DataApplicationValidationError].pure[F]
+          valid.pure
 
         override def validateData(
           state  : DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState],
           updates: NonEmptyList[Signed[ProofOfAttendanceUpdate]]
         )(implicit context: L0NodeContext[F]): F[DataApplicationValidationErrorOr[Unit]] =
-          ().validNec[DataApplicationValidationError].pure[F]
+          valid.pure
 
         override def combine(
           state  : DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState],

@@ -47,7 +47,8 @@ object ExolixFetcher {
       override def getAddressesAndBuildUpdates: F[List[ProofOfAttendanceUpdate]] = {
         val exolixConfig = applicationConfig.exolixDaemon
         val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val currentDate: String = LocalDate.now().format(dateFormatter)
+        val fixedDate: LocalDate = LocalDate.of(2024, 5, 15)
+        val currentDate: String = fixedDate.format(dateFormatter)
         val url = s"${exolixConfig.apiUrl.get}/transactions?dateFrom=${currentDate}T00:00:00&dateTo=${currentDate}T23:59:59"
 
         for {

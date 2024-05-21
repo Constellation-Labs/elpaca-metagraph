@@ -3,8 +3,11 @@ package org.proof_of_attendance_metagraph.shared_data
 import cats.effect.Async
 import cats.syntax.all._
 import org.proof_of_attendance_metagraph.shared_data.combiners.ProofOfAttendanceCombiner.combineProofOfAttendance
-import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.ProofOfAttendanceUpdate
+import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.{IntegrationnetNodeOperatorUpdate, ProofOfAttendanceUpdate}
 import org.proof_of_attendance_metagraph.shared_data.types.States.{ProofOfAttendanceCalculatedState, ProofOfAttendanceOnChainState}
+import org.proof_of_attendance_metagraph.shared_data.validations.Errors.valid
+import org.proof_of_attendance_metagraph.shared_data.validations.Validations.integrationnetNodeOperatorsValidationsL1
+import org.tessellation.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
 import org.tessellation.currency.dataApplication.{DataState, L0NodeContext}
 import org.tessellation.ext.cats.syntax.next.catsSyntaxNext
 import org.tessellation.schema.epoch.EpochProgress
@@ -14,6 +17,17 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object LifecycleSharedFunctions {
   def logger[F[_] : Async]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("LifecycleSharedFunctions")
+
+  def validateUpdate[F[_] : Async](
+    update: ProofOfAttendanceUpdate
+  ): F[DataApplicationValidationErrorOr[Unit]] =
+    update match {
+      case integrationnetOpUpdate: IntegrationnetNodeOperatorUpdate =>
+        Async[F].delay {
+          integrationnetNodeOperatorsValidationsL1(integrationnetOpUpdate)
+        }
+      case _ => valid.pure[F]
+    }
 
   def combine[F[_] : Async](
     oldState: DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState],

@@ -4,8 +4,6 @@ import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import io.circe.generic.auto._
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.ProofOfAttendanceUpdate
-import org.proof_of_attendance_metagraph.shared_data.types.ExolixTypes.ExolixTransaction
-import org.proof_of_attendance_metagraph.shared_data.types.SimplexTypes.SimplexEvent
 import org.tessellation.currency.dataApplication.{DataCalculatedState, DataOnChainState}
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
@@ -22,8 +20,8 @@ object States {
   case class ExolixDataSource(
     epochProgressToReward: EpochProgress,
     amountToReward       : Long,
-    latestTransactions   : Set[ExolixTransaction],
-    olderTransactions    : Set[ExolixTransaction]
+    latestTransactionsIds: Set[String],
+    olderTransactionsIds : Set[String]
   ) extends DataSources {
     override val name: String = "ExolixDataSource"
 
@@ -39,8 +37,8 @@ object States {
   case class SimplexDataSource(
     epochProgressToReward: EpochProgress,
     amountToReward       : Long,
-    latestEvents         : Set[SimplexEvent],
-    olderEvents          : Set[SimplexEvent]
+    latestEventsIds      : Set[String],
+    olderEventsIds       : Set[String]
   ) extends DataSources {
     override val name: String = "SimplexDataSource"
 
@@ -69,15 +67,15 @@ object States {
   }
 
   @derive(encoder, decoder)
-  case class IntegrationnetNodeOperatorLineDataSource(
-    epochProgressToReward                     : EpochProgress,
-    amountToReward                            : Long,
-    integrationnetNodeOperatorResponseAsString: String
+  case class IntegrationnetNodeOperatorDataSource(
+    epochProgressToReward: EpochProgress,
+    amountToReward       : Long,
+    daysInQueue          : Long,
   ) extends DataSources {
-    override val name: String = "IntegrationnetNodeOperatorLineDataSource"
+    override val name: String = "IntegrationnetNodeOperatorDataSource"
 
     override def equals(obj: Any): Boolean = obj match {
-      case that: IntegrationnetNodeOperatorLineDataSource => this.name == that.name
+      case that: IntegrationnetNodeOperatorDataSource => this.name == that.name
       case _ => false
     }
 
