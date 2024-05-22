@@ -5,7 +5,6 @@ import cats.syntax.applicative._
 import cats.syntax.functor._
 import org.proof_of_attendance_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates._
-import org.proof_of_attendance_metagraph.shared_data.types.SimplexTypes.SimplexEvent
 import org.proof_of_attendance_metagraph.shared_data.types.States._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
@@ -22,24 +21,26 @@ object SimplexCombiner {
     currentDataSources  : Set[DataSources],
     logger              : SelfAwareStructuredLogger[F]
   ): F[Set[DataSources]] = {
-    val existingTxnsIds = existing.latestEvents.map(_.eventId) ++ existing.olderEvents.map(_.eventId)
-    val newTxns = simplexUpdate.simplexEvents.filter(txn => !existingTxnsIds.contains(txn.eventId))
+    val existingTxnsIds = existing.latestEventsIds ++ existing.olderEventsIds
+    val newTxnsIds = simplexUpdate.simplexEvents
+      .filter(txn => !existingTxnsIds.contains(txn.eventId))
+      .map(_.eventId)
 
-    if (newTxns.isEmpty) {
+    if (newTxnsIds.isEmpty) {
       currentDataSources.pure[F]
     } else {
       // This scenario is when we receive new transactions before pay the rewards
       val rewardsAmount = if (currentEpochProgress.value.value < existing.epochProgressToReward.value.value) {
-        (simplex_reward_amount * newTxns.size) + existing.amountToReward
+        (simplex_reward_amount * newTxnsIds.size) + existing.amountToReward
       } else {
-        simplex_reward_amount * newTxns.size
+        simplex_reward_amount * newTxnsIds.size
       }
 
       val updatedSimplexDataSource = SimplexDataSource(
         currentEpochProgress,
         toTokenAmountFormat(rewardsAmount),
-        newTxns,
-        existing.latestEvents ++ existing.olderEvents
+        newTxnsIds,
+        existing.latestEventsIds ++ existing.olderEventsIds
       )
 
       logger.info(s"Updated SimplexDataSource for address ${simplexUpdate.address}").as(
@@ -58,8 +59,8 @@ object SimplexCombiner {
     val newSimplexDataSource = SimplexDataSource(
       currentEpochProgress,
       toTokenAmountFormat(simplex_reward_amount * simplexUpdate.simplexEvents.size),
-      simplexUpdate.simplexEvents,
-      Set.empty[SimplexEvent]
+      simplexUpdate.simplexEvents.map(_.eventId),
+      Set.empty[String]
     )
 
     val updatedDataSourcesF: F[Set[DataSources]] = currentCalculatedState.get(simplexUpdate.address) match {

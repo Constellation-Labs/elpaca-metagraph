@@ -99,7 +99,7 @@ object DaemonApis {
       config: ApplicationConfig,
       signer: Signer[F]
     ): F[Unit] = {
-      val integrationnetNodesOperatorsFetcher = IntegrationnetNodesOperatorsFetcher.make[F](config.integrationnetNodesOperatorsDaemon)
+      val integrationnetNodesOperatorsFetcher = IntegrationnetNodesOperatorsFetcher.make[F](config)
       val integrationnetNodesOperatorsProcessor = Processor.make[F](integrationnetNodesOperatorsFetcher, signer)
 
       logger.info("Spawning IntegrationnetNodeOperators daemon") >>
