@@ -2,8 +2,8 @@ package org.proof_of_attendance_metagraph.data_l1
 
 import cats.data.NonEmptyList
 import cats.effect.Async
-import cats.syntax.functor._
 import cats.syntax.applicative.catsSyntaxApplicativeId
+import cats.syntax.functor._
 import io.circe.{Decoder, Encoder}
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.{EntityDecoder, HttpRoutes}

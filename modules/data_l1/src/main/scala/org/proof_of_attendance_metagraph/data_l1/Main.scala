@@ -3,9 +3,9 @@ package org.proof_of_attendance_metagraph.data_l1
 import cats.effect.std.Supervisor
 import cats.effect.{IO, Resource}
 import cats.syntax.option._
-import org.proof_of_attendance_metagraph.data_l1.daemons.DaemonApis
 import org.proof_of_attendance_metagraph.shared_data.Utils.loadKeyPair
 import org.proof_of_attendance_metagraph.shared_data.app.ApplicationConfigOps
+import org.proof_of_attendance_metagraph.shared_data.daemons.DaemonApis
 import org.proof_of_attendance_metagraph.shared_data.types.codecs.JsonBinaryCodec
 import org.tessellation.currency.dataApplication._
 import org.tessellation.currency.l1.CurrencyL1App
@@ -32,7 +32,7 @@ object Main extends CurrencyL1App(
 
     config <- ApplicationConfigOps.readDefault[IO].asResource
     keyPair <- loadKeyPair[IO](config).asResource
-    _ <- DaemonApis.make[IO](config, keyPair).spawnDaemons.asResource
+    _ <- DaemonApis.make[IO](config, keyPair).spawnL1Daemons.asResource
     l1Service <- DataL1Service.make[IO]().asResource
   } yield l1Service).some
 }

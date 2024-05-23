@@ -1,90 +1,102 @@
 package org.proof_of_attendance_metagraph.shared_data.combiners
 
 import cats.effect.Async
+import cats.syntax.applicativeError.catsSyntaxApplicativeErrorId
 import cats.syntax.applicative._
 import cats.syntax.functor._
 import org.proof_of_attendance_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates._
+import org.proof_of_attendance_metagraph.shared_data.types.States.DataSourceType.DataSourceType
 import org.proof_of_attendance_metagraph.shared_data.types.States._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
-import org.typelevel.log4cats.SelfAwareStructuredLogger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
 
 object SimplexCombiner {
-  private val simplex_reward_amount: Long = 35L
+  private val simplexRewardAmount: Long = 35L
 
-  private def updateSimplexDataSourceState[F[_] : Async](
-    existing            : SimplexDataSource,
-    simplexUpdate       : SimplexUpdate,
-    currentEpochProgress: EpochProgress,
-    currentDataSources  : Set[DataSources],
-    logger              : SelfAwareStructuredLogger[F]
-  ): F[Set[DataSources]] = {
-    val existingTxnsIds = existing.latestEventsIds ++ existing.olderEventsIds
-    val newTxnsIds = simplexUpdate.simplexEvents
-      .filter(txn => !existingTxnsIds.contains(txn.eventId))
-      .map(_.eventId)
+  private def getNewEventIds(
+    existing     : SimplexDataSourceAddress,
+    simplexUpdate: SimplexUpdate
+  ): Set[String] = {
+    val existingEventsIds = existing.latestTransactionsIds ++ existing.olderTransactionsIds
+    simplexUpdate.simplexEvents.filterNot(evt => existingEventsIds.contains(evt.eventId)).map(_.eventId)
+  }
 
-    if (newTxnsIds.isEmpty) {
-      currentDataSources.pure[F]
+  private def calculateRewardsAmount(
+    existing             : SimplexDataSourceAddress,
+    newEventsIds         : Set[String],
+    epochProgressToReward: EpochProgress
+  ): Long = {
+    if (epochProgressToReward.value.value < existing.epochProgressToReward.value.value) {
+      (simplexRewardAmount * newEventsIds.size) + existing.amountToReward
     } else {
-      // This scenario is when we receive new transactions before pay the rewards
-      val rewardsAmount = if (currentEpochProgress.value.value < existing.epochProgressToReward.value.value) {
-        (simplex_reward_amount * newTxnsIds.size) + existing.amountToReward
-      } else {
-        simplex_reward_amount * newTxnsIds.size
-      }
+      simplexRewardAmount * newEventsIds.size
+    }
+  }
 
-      val updatedSimplexDataSource = SimplexDataSource(
-        currentEpochProgress,
+  private def updateSimplexDataSourceState[F[_] : Async : Logger](
+    existing                : SimplexDataSourceAddress,
+    simplexUpdate           : SimplexUpdate,
+    currentSimplexDataSource: SimplexDataSource,
+    epochProgressToReward   : EpochProgress,
+  ): F[Map[Address, SimplexDataSourceAddress]] = {
+    val newEventsIds = getNewEventIds(existing, simplexUpdate)
+
+    if (newEventsIds.isEmpty) {
+      currentSimplexDataSource.addresses.pure[F]
+    } else {
+      val rewardsAmount = calculateRewardsAmount(existing, newEventsIds, epochProgressToReward)
+
+      val updatedSimplexDataSource = SimplexDataSourceAddress(
+        epochProgressToReward,
         toTokenAmountFormat(rewardsAmount),
-        newTxnsIds,
-        existing.latestEventsIds ++ existing.olderEventsIds
+        newEventsIds,
+        existing.latestTransactionsIds ++ existing.olderTransactionsIds
       )
 
-      logger.info(s"Updated SimplexDataSource for address ${simplexUpdate.address}").as(
-        currentDataSources - existing + updatedSimplexDataSource
+      Logger[F].info(s"Updated SimplexDataSource for address ${simplexUpdate.address}").as(
+        currentSimplexDataSource.addresses.updated(simplexUpdate.address, updatedSimplexDataSource)
       )
     }
   }
 
-  def updateStateSimplexResponse[F[_] : Async](
-    currentCalculatedState: Map[Address, Set[DataSources]],
-    currentEpochProgress  : EpochProgress,
-    simplexUpdate         : SimplexUpdate
-  ): F[Map[Address, Set[DataSources]]] = {
-    def logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("SimplexCombiner")
-
-    val newSimplexDataSource = SimplexDataSource(
-      currentEpochProgress,
-      toTokenAmountFormat(simplex_reward_amount * simplexUpdate.simplexEvents.size),
+  private def getSimplexDataSourceUpdatedAddresses[F[_] : Async : Logger](
+    state        : Map[DataSourceType, DataSource],
+    simplexUpdate: SimplexUpdate,
+    epochProgress: EpochProgress
+  ): F[Map[Address, SimplexDataSourceAddress]] = {
+    val simplexDataSourceAddress = SimplexDataSourceAddress(
+      epochProgress,
+      toTokenAmountFormat(simplexRewardAmount * simplexUpdate.simplexEvents.size),
       simplexUpdate.simplexEvents.map(_.eventId),
       Set.empty[String]
     )
 
-    val updatedDataSourcesF: F[Set[DataSources]] = currentCalculatedState.get(simplexUpdate.address) match {
-      case None =>
-        logger.info(s"Could not find any DataSource to the address ${simplexUpdate.address}, creating a new one").as(
-          Set[DataSources](newSimplexDataSource)
-        )
-      case Some(dataSources) =>
-        dataSources.collectFirst {
-          case ex: SimplexDataSource => ex
-        }.fold(
-          logger.info(s"Could not find SimplexDataSource to address ${simplexUpdate.address}, creating a new one").as(
-            dataSources + newSimplexDataSource
-          )
-        ) { existing =>
-          updateSimplexDataSourceState(
-            existing,
-            simplexUpdate,
-            currentEpochProgress,
-            dataSources,
-            logger
-          )
-        }
+    state
+      .get(DataSourceType.Simplex)
+      .fold(Map(simplexUpdate.address -> simplexDataSourceAddress).pure[F]) {
+        case simplexDataSource: SimplexDataSource =>
+          simplexDataSource.addresses
+            .get(simplexUpdate.address)
+            .fold(simplexDataSource.addresses.updated(simplexUpdate.address, simplexDataSourceAddress).pure[F]) { existing =>
+              updateSimplexDataSourceState(existing, simplexUpdate, simplexDataSource, epochProgress)
+            }
+        case _ => new IllegalStateException("DataSource is not from type SimplexDataSource").raiseError[F, Map[Address, SimplexDataSourceAddress]]
+      }
+  }
+
+  def updateStateSimplexResponse[F[_] : Async : Logger](
+    currentCalculatedState: Map[DataSourceType, DataSource],
+    epochProgressToReward : EpochProgress,
+    simplexUpdate         : SimplexUpdate
+  ): F[Map[DataSourceType, DataSource]] = {
+
+    getSimplexDataSourceUpdatedAddresses(currentCalculatedState, simplexUpdate, epochProgressToReward).map { updatedAddresses =>
+      currentCalculatedState.updated(
+        DataSourceType.Simplex,
+        SimplexDataSource(updatedAddresses)
+      )
     }
-    updatedDataSourcesF.map(updatedDataSources => currentCalculatedState + (simplexUpdate.address -> updatedDataSources))
   }
 }

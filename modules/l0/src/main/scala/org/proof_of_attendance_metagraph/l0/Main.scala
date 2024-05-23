@@ -1,8 +1,13 @@
 package org.proof_of_attendance_metagraph.l0
 
+import cats.effect.std.Supervisor
 import cats.effect.{IO, Resource}
 import cats.syntax.option._
 import org.proof_of_attendance_metagraph.l0.rewards.ProofOfAttendanceRewards
+import org.proof_of_attendance_metagraph.shared_data.Utils.loadKeyPair
+import org.proof_of_attendance_metagraph.shared_data.app.ApplicationConfigOps
+import org.proof_of_attendance_metagraph.shared_data.calculated_state.CalculatedStateService
+import org.proof_of_attendance_metagraph.shared_data.daemons.DaemonApis
 import org.proof_of_attendance_metagraph.shared_data.types.codecs.JsonBinaryCodec
 import org.tessellation.currency.dataApplication._
 import org.tessellation.currency.l0.CurrencyL0App
@@ -26,10 +31,17 @@ object Main extends CurrencyL0App(
 ) {
 
   override def dataApplication: Option[Resource[IO, BaseDataApplicationL0Service[IO]]] = (for {
+    implicit0(supervisor: Supervisor[IO]) <- Supervisor[IO]
+    implicit0(sp: SecurityProvider[IO]) <- SecurityProvider.forAsync[IO]
     implicit0(json2bin: JsonSerializer[IO]) <- JsonBinaryCodec.forSync[IO].asResource
 
-    l1Service <- MetagraphL0Service.make[IO]().asResource
-  } yield l1Service).some
+    config <- ApplicationConfigOps.readDefault[IO].asResource
+    keyPair <- loadKeyPair[IO](config).asResource
+    calculatedStateService <- CalculatedStateService.make[IO].asResource
+    _ <- DaemonApis.make[IO](config, keyPair).spawnL0Daemons(calculatedStateService).asResource
+    l0Service <- MetagraphL0Service.make[IO](calculatedStateService).asResource
+  } yield l0Service).some
+
 
   override def rewards(implicit sp: SecurityProvider[IO]): Option[Rewards[IO, CurrencySnapshotStateProof, CurrencyIncrementalSnapshot, CurrencySnapshotEvent]] =
     ProofOfAttendanceRewards.make[IO]().some

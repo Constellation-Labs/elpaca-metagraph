@@ -4,6 +4,8 @@ import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.syntax.applicative.catsSyntaxApplicativeId
 import cats.syntax.functor._
+import eu.timepit.refined.refineV
+import io.circe.generic.auto._
 import io.circe.{Decoder, Encoder}
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.{EntityDecoder, HttpRoutes}
@@ -18,26 +20,53 @@ import org.tessellation.currency.dataApplication._
 import org.tessellation.currency.dataApplication.dataApplication.{DataApplicationBlock, DataApplicationValidationErrorOr}
 import org.tessellation.json.JsonSerializer
 import org.tessellation.schema.SnapshotOrdinal
+import org.tessellation.schema.address.{Address, DAGAddressRefined}
 import org.tessellation.security.hash.Hash
 import org.tessellation.security.signature.Signed
 
+import scala.io.Source
+
 object MetagraphL0Service {
 
-  def make[F[+_] : Async : JsonSerializer](): F[BaseDataApplicationL0Service[F]] =
-    for {
-      calculatedStateService <- CalculatedStateService.make[F]
-      dataApplicationL1Service = makeBaseDataApplicationL0Service(
-        calculatedStateService
-      )
-    } yield dataApplicationL1Service
+  def make[F[+_] : Async : JsonSerializer](
+    calculatedStateService: CalculatedStateService[F]
+  ): F[BaseDataApplicationL0Service[F]] = Async[F].delay {
+    makeBaseDataApplicationL0Service(
+      calculatedStateService
+    )
+  }
+
 
   private def makeBaseDataApplicationL0Service[F[+_] : Async : JsonSerializer](
     calculatedStateService: CalculatedStateService[F]
   ): BaseDataApplicationL0Service[F] =
     BaseDataApplicationL0Service(
       new DataApplicationL0Service[F, ProofOfAttendanceUpdate, ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState] {
-        override def genesis: DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState] =
-          DataState(ProofOfAttendanceOnChainState(List.empty), ProofOfAttendanceCalculatedState(Map.empty))
+        def readLinesFromFile(fileName: String): List[String] = {
+          val source = Source.fromResource(fileName)
+          try {
+            source.getLines().toList
+          } finally {
+            source.close()
+          }
+        }
+
+        override def genesis: DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState] = {
+          val rewardedAddressesAsString = readLinesFromFile("initial_rewarded_wallets.txt")
+          val rewardedAddresses = rewardedAddressesAsString.flatMap { addressAsString =>
+            refineV[DAGAddressRefined](addressAsString).toOption.map(Address(_))
+          }.toSet
+
+          DataState(
+            ProofOfAttendanceOnChainState(List.empty),
+            ProofOfAttendanceCalculatedState(Map(
+              DataSourceType.Exolix -> ExolixDataSource(Map.empty),
+              DataSourceType.Simplex -> SimplexDataSource(Map.empty),
+              DataSourceType.IntegrationnetNodeOperator -> IntegrationnetNodeOperatorDataSource(Map.empty),
+              DataSourceType.WalletCreation -> WalletCreationDataSource(Map.empty, rewardedAddresses)
+            ))
+          )
+        }
 
         override def validateUpdate(
           update: ProofOfAttendanceUpdate

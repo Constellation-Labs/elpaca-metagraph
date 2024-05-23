@@ -1,4 +1,4 @@
-package org.proof_of_attendance_metagraph.data_l1.daemons.fetcher
+package org.proof_of_attendance_metagraph.shared_data.daemons.fetcher
 
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.ProofOfAttendanceUpdate
 

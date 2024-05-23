@@ -1,90 +1,100 @@
 package org.proof_of_attendance_metagraph.shared_data.combiners
 
 import cats.effect.Async
+import cats.syntax.applicativeError.catsSyntaxApplicativeErrorId
 import cats.syntax.applicative._
 import cats.syntax.functor._
 import org.proof_of_attendance_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates._
+import org.proof_of_attendance_metagraph.shared_data.types.States.DataSourceType.DataSourceType
 import org.proof_of_attendance_metagraph.shared_data.types.States._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
-import org.typelevel.log4cats.SelfAwareStructuredLogger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
 
 object ExolixCombiner {
-  private val exolix_reward_amount: Long = 35L
+  private val exolixRewardAmount: Long = 35L
 
-  private def updateExolixDataSourceState[F[_] : Async](
-    existing            : ExolixDataSource,
-    exolixUpdate        : ExolixUpdate,
-    currentEpochProgress: EpochProgress,
-    currentDataSources  : Set[DataSources],
-    logger              : SelfAwareStructuredLogger[F]
-  ): F[Set[DataSources]] = {
+  private def getNewTransactionsIds(
+    existing    : ExolixDataSourceAddress,
+    exolixUpdate: ExolixUpdate
+  ): Set[String] = {
     val existingTxnsIds = existing.latestTransactionsIds ++ existing.olderTransactionsIds
-    val newTxnsIds = exolixUpdate.exolixTransactions
-      .filter(txn => !existingTxnsIds.contains(txn.id))
-      .map(_.id)
+    exolixUpdate.exolixTransactions.filterNot(txn => existingTxnsIds.contains(txn.id)).map(_.id)
+  }
+
+  private def calculateRewardsAmount(
+    existing             : ExolixDataSourceAddress,
+    newTxnsIds           : Set[String],
+    epochProgressToReward: EpochProgress): Long = {
+    if (epochProgressToReward.value.value < existing.epochProgressToReward.value.value) {
+      (exolixRewardAmount * newTxnsIds.size) + existing.amountToReward
+    } else {
+      exolixRewardAmount * newTxnsIds.size
+    }
+  }
+
+  private def updateExolixDataSourceState[F[_] : Async : Logger](
+    existing               : ExolixDataSourceAddress,
+    exolixUpdate           : ExolixUpdate,
+    currentExolixDataSource: ExolixDataSource,
+    epochProgressToReward  : EpochProgress
+  ): F[Map[Address, ExolixDataSourceAddress]] = {
+    val newTxnsIds = getNewTransactionsIds(existing, exolixUpdate)
 
     if (newTxnsIds.isEmpty) {
-      currentDataSources.pure[F]
+      currentExolixDataSource.addresses.pure[F]
     } else {
-      // This scenario is when we receive new transactions before pay the rewards
-      val rewardsAmount = if (currentEpochProgress.value.value < existing.epochProgressToReward.value.value) {
-        (exolix_reward_amount * newTxnsIds.size) + existing.amountToReward
-      } else {
-        exolix_reward_amount * newTxnsIds.size
-      }
+      val rewardsAmount = calculateRewardsAmount(existing, newTxnsIds, epochProgressToReward)
 
-      val updatedExolixDataSource = ExolixDataSource(
-        currentEpochProgress,
+      val updatedExolixDataSource = ExolixDataSourceAddress(
+        epochProgressToReward,
         toTokenAmountFormat(rewardsAmount),
         newTxnsIds,
         existing.latestTransactionsIds ++ existing.olderTransactionsIds
       )
 
-      logger.info(s"Updated ExolixDataSource for address ${exolixUpdate.address}").as(
-        currentDataSources - existing + updatedExolixDataSource
+      Logger[F].info(s"Updated ExolixDataSource for address ${exolixUpdate.address}").as(
+        currentExolixDataSource.addresses.updated(exolixUpdate.address, updatedExolixDataSource)
       )
     }
   }
 
-  def updateStateExolixResponse[F[_] : Async](
-    currentCalculatedState: Map[Address, Set[DataSources]],
-    currentEpochProgress  : EpochProgress,
-    exolixUpdate          : ExolixUpdate
-  ): F[Map[Address, Set[DataSources]]] = {
-    def logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("ExolixCombiner")
-
-    val newExolixDataSource = ExolixDataSource(
-      currentEpochProgress,
-      toTokenAmountFormat(exolix_reward_amount * exolixUpdate.exolixTransactions.size),
+  private def getExolixDataSourceUpdatedAddresses[F[_] : Async : Logger](
+    state        : Map[DataSourceType, DataSource],
+    exolixUpdate : ExolixUpdate,
+    epochProgress: EpochProgress
+  ): F[Map[Address, ExolixDataSourceAddress]] = {
+    val exolixDataSourceAddress = ExolixDataSourceAddress(
+      epochProgress,
+      toTokenAmountFormat(exolixRewardAmount * exolixUpdate.exolixTransactions.size),
       exolixUpdate.exolixTransactions.map(_.id),
       Set.empty[String]
     )
 
-    val updatedDataSourcesF: F[Set[DataSources]] = currentCalculatedState.get(exolixUpdate.address) match {
-      case None =>
-        logger.info(s"Could not find any DataSource to the address ${exolixUpdate.address}, creating a new one").as(
-          Set[DataSources](newExolixDataSource)
-        )
-      case Some(dataSources) =>
-        dataSources.collectFirst {
-          case ex: ExolixDataSource => ex
-        }.fold(
-          logger.info(s"Could not find ExolixDataSource to address ${exolixUpdate.address}, creating a new one").as(
-            dataSources + newExolixDataSource
-          )
-        ) { existing =>
-          updateExolixDataSourceState(
-            existing,
-            exolixUpdate,
-            currentEpochProgress,
-            dataSources,
-            logger
-          )
-        }
+    state
+      .get(DataSourceType.Exolix)
+      .fold(Map(exolixUpdate.address -> exolixDataSourceAddress).pure[F]) {
+        case exolixDataSource: ExolixDataSource =>
+          exolixDataSource.addresses
+            .get(exolixUpdate.address)
+            .fold(exolixDataSource.addresses.updated(exolixUpdate.address, exolixDataSourceAddress).pure[F]) { existing =>
+              updateExolixDataSourceState(existing, exolixUpdate, exolixDataSource, epochProgress)
+            }
+        case _ => new IllegalStateException("DataSource is not from type ExolixDataSource").raiseError[F, Map[Address, ExolixDataSourceAddress]]
+      }
+  }
+
+  def updateStateExolixResponse[F[_] : Async : Logger](
+    currentCalculatedState: Map[DataSourceType, DataSource],
+    epochProgressToReward : EpochProgress,
+    exolixUpdate          : ExolixUpdate
+  ): F[Map[DataSourceType, DataSource]] = {
+    getExolixDataSourceUpdatedAddresses(currentCalculatedState, exolixUpdate, epochProgressToReward).map { updatedAddresses =>
+      currentCalculatedState.updated(
+        DataSourceType.Exolix,
+        ExolixDataSource(updatedAddresses)
+      )
     }
-    updatedDataSourcesF.map(updatedDataSources => currentCalculatedState + (exolixUpdate.address -> updatedDataSources))
   }
 }

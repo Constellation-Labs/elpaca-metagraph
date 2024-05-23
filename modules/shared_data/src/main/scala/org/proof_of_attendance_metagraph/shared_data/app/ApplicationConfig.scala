@@ -10,8 +10,8 @@ case class ApplicationConfig(
   http4s                            : ApplicationConfig.Http4sConfig,
   exolixDaemon                      : ApplicationConfig.ExolixDaemonConfig,
   simplexDaemon                     : ApplicationConfig.SimplexDaemonConfig,
-  twitterDaemon                     : ApplicationConfig.TwitterDaemonConfig,
   integrationnetNodesOperatorsDaemon: ApplicationConfig.IntegrationnetNodesOperatorsDaemonConfig,
+  walletCreationDaemon              : ApplicationConfig.WalletCreationDaemonConfig,
   nodeKey                           : ApplicationConfig.NodeKey
 )
 
@@ -33,15 +33,14 @@ object ApplicationConfig {
     apiUrl  : Option[String],
   )
 
-  case class TwitterDaemonConfig(
+  case class IntegrationnetNodesOperatorsDaemonConfig(
     idleTime: FiniteDuration,
     apiKey  : Option[String],
     apiUrl  : Option[String]
   )
 
-  case class IntegrationnetNodesOperatorsDaemonConfig(
+  case class WalletCreationDaemonConfig(
     idleTime: FiniteDuration,
-    apiKey  : Option[String],
     apiUrl  : Option[String]
   )
 

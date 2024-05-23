@@ -1,22 +1,21 @@
-package org.proof_of_attendance_metagraph.data_l1.daemons.fetcher
+package org.proof_of_attendance_metagraph.shared_data.daemons.fetcher
 
 import cats.effect.{Async, Resource}
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import fs2.io.net.Network
-import org.http4s.Request
+import io.circe.generic.auto._
+import org.http4s.{Request, _}
+import org.http4s.circe._
 import org.http4s.client.Client
 import org.proof_of_attendance_metagraph.shared_data.app.ApplicationConfig
-import io.circe.generic.auto._
-import org.http4s._
-import org.http4s.circe._
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.{IntegrationnetNodeOperatorUpdate, ProofOfAttendanceUpdate}
+import org.proof_of_attendance_metagraph.shared_data.types.IntegrationnetOperatorsTypes.{IntegrationnetOperatorsApiResponse, OperatorInQueue}
 import org.tessellation.node.shared.resources.MkHttpClient
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import org.proof_of_attendance_metagraph.shared_data.types.IntegrationnetOperatorsTypes.{IntegrationnetOperatorsApiResponse, OperatorInQueue}
 
 object IntegrationnetNodesOperatorsFetcher {
 
@@ -54,8 +53,6 @@ object IntegrationnetNodesOperatorsFetcher {
           dataUpdates = integrationnetOperatorsApiResponse.data.foldLeft(List.empty[ProofOfAttendanceUpdate]) { (acc, operatorInQueue) =>
             acc :+ IntegrationnetNodeOperatorUpdate(operatorInQueue.walletAddress, operatorInQueue)
           }
-
-          _ <- logger.info(s"Integrationnet Operators Updates: $dataUpdates")
         } yield dataUpdates
       }
     }
