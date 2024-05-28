@@ -1,80 +1,82 @@
 package org.proof_of_attendance_metagraph.shared_data.combiners
 
 import cats.effect.Async
-import cats.syntax.applicative.catsSyntaxApplicativeId
-import cats.syntax.functor.toFunctorOps
+import cats.syntax.applicativeError.catsSyntaxApplicativeErrorId
+import cats.syntax.applicative._
+import cats.syntax.functor._
 import org.proof_of_attendance_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates._
+import org.proof_of_attendance_metagraph.shared_data.types.States.DataSourceType.DataSourceType
 import org.proof_of_attendance_metagraph.shared_data.types.States._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
-import org.typelevel.log4cats.SelfAwareStructuredLogger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
 
 object IntegrationnetOperatorsCombiner {
-  private val integrationnet_reward_amount: Long = 1L
 
-  private def updateIntegrationnetOpDataSourceState[F[_] : Async](
-    existing                        : IntegrationnetNodeOperatorDataSource,
-    integrationnetNodeOperatorUpdate: IntegrationnetNodeOperatorUpdate,
-    currentEpochProgress            : EpochProgress,
-    currentDataSources              : Set[DataSources],
-    logger                          : SelfAwareStructuredLogger[F]
-  ): F[Set[DataSources]] = {
-    val daysInQueue = integrationnetNodeOperatorUpdate.operatorInQueue.daysInQueue - existing.daysInQueue
+  private val integrationnetRewardAmount: Long = 1L
+
+  private def calculateDaysInQueue(existing: IntegrationnetNodeOperatorDataSourceAddress, update: IntegrationnetNodeOperatorUpdate): Long =
+    update.operatorInQueue.daysInQueue - existing.daysInQueue
+
+  private def updateIntegrationnetOpDataSourceState[F[_] : Async : Logger](
+    existing     : IntegrationnetNodeOperatorDataSourceAddress,
+    update       : IntegrationnetNodeOperatorUpdate,
+    dataSource   : IntegrationnetNodeOperatorDataSource,
+    epochProgress: EpochProgress
+  ): F[Map[Address, IntegrationnetNodeOperatorDataSourceAddress]] = {
+
+    val daysInQueue = calculateDaysInQueue(existing, update)
+
     if (daysInQueue <= 0L) {
-      currentDataSources.pure
+      dataSource.addresses.pure[F]
     } else {
-      val updatedExolixDataSource = IntegrationnetNodeOperatorDataSource(
-        currentEpochProgress,
-        toTokenAmountFormat(
-          integrationnet_reward_amount * daysInQueue
-        ),
-        integrationnetNodeOperatorUpdate.operatorInQueue.daysInQueue
+      val updatedAddress = IntegrationnetNodeOperatorDataSourceAddress(
+        epochProgress,
+        toTokenAmountFormat(integrationnetRewardAmount),
+        update.operatorInQueue.daysInQueue
       )
 
-      logger.info(s"Updated IntegrationnetNodeOperatorDataSource for address ${integrationnetNodeOperatorUpdate.address}").as(
-        currentDataSources - existing + updatedExolixDataSource
-      )
+      Logger[F].info(s"Updated IntegrationnetNodeOperatorDataSource for address ${update.address}")
+        .as(dataSource.addresses.updated(update.address, updatedAddress))
     }
   }
 
-  def updateStateIntegrationnetOperatorsResponse[F[_] : Async](
-    currentCalculatedState          : Map[Address, Set[DataSources]],
-    currentEpochProgress            : EpochProgress,
-    integrationnetNodeOperatorUpdate: IntegrationnetNodeOperatorUpdate
-  ): F[Map[Address, Set[DataSources]]] = {
-    def logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("IntegrationnetOperatorsCombiner")
+  private def getIntegrationnetOperatorsUpdatedAddresses[F[_] : Async : Logger](
+    state        : Map[DataSourceType, DataSource],
+    update       : IntegrationnetNodeOperatorUpdate,
+    epochProgress: EpochProgress,
+  ): F[Map[Address, IntegrationnetNodeOperatorDataSourceAddress]] = {
 
-    val newIntegrationnetDataSource = IntegrationnetNodeOperatorDataSource(
-      currentEpochProgress,
-      toTokenAmountFormat(integrationnet_reward_amount * integrationnetNodeOperatorUpdate.operatorInQueue.daysInQueue),
-      integrationnetNodeOperatorUpdate.operatorInQueue.daysInQueue
+    val integrationnetNodeOperatorDataSourceAddress = IntegrationnetNodeOperatorDataSourceAddress(
+      epochProgress,
+      toTokenAmountFormat(integrationnetRewardAmount),
+      update.operatorInQueue.daysInQueue
     )
 
-    val updatedDataSourcesF: F[Set[DataSources]] = currentCalculatedState.get(integrationnetNodeOperatorUpdate.address) match {
-      case None =>
-        logger.info(s"Could not find any DataSource to the address ${integrationnetNodeOperatorUpdate.address}, creating a new one").as(
-          Set[DataSources](newIntegrationnetDataSource)
-        )
-      case Some(dataSources) =>
-        dataSources.collectFirst {
-          case ex: IntegrationnetNodeOperatorDataSource => ex
-        }.fold(
-          logger.info(s"Could not find IntegrationnetNodeOperatorDataSource to address ${integrationnetNodeOperatorUpdate.address}, creating a new one").as(
-            dataSources + newIntegrationnetDataSource
-          )
-        ) { existing =>
-          updateIntegrationnetOpDataSourceState(
-            existing,
-            integrationnetNodeOperatorUpdate,
-            currentEpochProgress,
-            dataSources,
-            logger
-          )
-        }
-    }
+    state.get(DataSourceType.IntegrationnetNodeOperator)
+      .fold(Map(update.address -> integrationnetNodeOperatorDataSourceAddress).pure[F]) {
+        case integrationnetDataSource: IntegrationnetNodeOperatorDataSource =>
+          integrationnetDataSource.addresses
+            .get(update.address)
+            .fold(integrationnetDataSource.addresses.updated(update.address, integrationnetNodeOperatorDataSourceAddress).pure[F]) { existing =>
+              updateIntegrationnetOpDataSourceState(existing, update, integrationnetDataSource, epochProgress)
+            }
+        case _ => new IllegalStateException("DataSource is not from type IntegrationnetNodeOperatorDataSource").raiseError[F, Map[Address, IntegrationnetNodeOperatorDataSourceAddress]]
+      }
+  }
 
-    updatedDataSourcesF.map(updatedDataSources => currentCalculatedState + (integrationnetNodeOperatorUpdate.address -> updatedDataSources))
+  def updateStateIntegrationnetOperatorsResponse[F[_] : Async : Logger](
+    currentState : Map[DataSourceType, DataSource],
+    epochProgress: EpochProgress,
+    update       : IntegrationnetNodeOperatorUpdate
+  ): F[Map[DataSourceType, DataSource]] = {
+
+    getIntegrationnetOperatorsUpdatedAddresses(currentState, update, epochProgress).map { updatedAddresses =>
+      currentState.updated(
+        DataSourceType.IntegrationnetNodeOperator,
+        IntegrationnetNodeOperatorDataSource(updatedAddresses)
+      )
+    }
   }
 }

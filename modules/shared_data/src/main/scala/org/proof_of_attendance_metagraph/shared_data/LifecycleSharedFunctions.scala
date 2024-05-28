@@ -2,7 +2,7 @@ package org.proof_of_attendance_metagraph.shared_data
 
 import cats.effect.Async
 import cats.syntax.all._
-import org.proof_of_attendance_metagraph.shared_data.combiners.ProofOfAttendanceCombiner.combineProofOfAttendance
+import org.proof_of_attendance_metagraph.shared_data.combiners.Combiner.combineProofOfAttendance
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.{IntegrationnetNodeOperatorUpdate, ProofOfAttendanceUpdate}
 import org.proof_of_attendance_metagraph.shared_data.types.States.{ProofOfAttendanceCalculatedState, ProofOfAttendanceOnChainState}
 import org.proof_of_attendance_metagraph.shared_data.validations.Errors.valid
@@ -33,10 +33,10 @@ object LifecycleSharedFunctions {
     oldState: DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState],
     updates : List[Signed[ProofOfAttendanceUpdate]]
   )(implicit context: L0NodeContext[F]): F[DataState[ProofOfAttendanceOnChainState, ProofOfAttendanceCalculatedState]] = {
-    val newState = DataState(ProofOfAttendanceOnChainState(List.empty), ProofOfAttendanceCalculatedState(oldState.calculated.addresses))
+    val newState = DataState(ProofOfAttendanceOnChainState(List.empty), ProofOfAttendanceCalculatedState(oldState.calculated.dataSources))
 
     if (updates.isEmpty) {
-      logger.info("Snapshot without any check-ins, updating the state to empty updates").as(newState)
+      logger.info("Snapshot without any updates, updating the state to empty updates").as(newState)
     } else {
       logger.info(s"Incoming updates: ${updates.length}") >>
         updates.foldLeftM(newState) { (acc, signedUpdate) =>

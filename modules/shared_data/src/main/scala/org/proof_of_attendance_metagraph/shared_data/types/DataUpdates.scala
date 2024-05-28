@@ -27,14 +27,16 @@ object DataUpdates {
     simplexEvents: Set[SimplexEvent]
   ) extends ProofOfAttendanceUpdate
 
-  @derive(encoder, decoder)
-  case class TwitterUpdate(
-    address: Address,
-  ) extends ProofOfAttendanceUpdate
 
   @derive(encoder, decoder)
   case class IntegrationnetNodeOperatorUpdate(
     address        : Address,
     operatorInQueue: OperatorInQueue
+  ) extends ProofOfAttendanceUpdate
+
+  @derive(encoder, decoder)
+  case class WalletCreationUpdate(
+    address: Address,
+    balance: Long
   ) extends ProofOfAttendanceUpdate
 }

@@ -1,5 +1,4 @@
 package org.proof_of_attendance_metagraph.shared_data.types
-import io.circe.generic.auto._
 
 object ExolixTypes {
   case class CoinInfo(

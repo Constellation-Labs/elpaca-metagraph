@@ -1,4 +1,4 @@
-package org.proof_of_attendance_metagraph.data_l1.daemons.fetcher
+package org.proof_of_attendance_metagraph.shared_data.daemons.fetcher
 
 import cats.effect.{Async, Resource}
 import cats.syntax.applicativeError._
@@ -46,7 +46,7 @@ object SimplexFetcher {
         val simplexConfig = applicationConfig.simplexDaemon
         val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val currentDate: String = LocalDate.now().format(dateFormatter)
-        val url = s"${simplexConfig.apiUrl.get}/proof-of-attendance-metagraph/simplex-events?eventDate=${currentDate}"
+        val url = s"${simplexConfig.apiUrl.get}/proof-of-attendance-metagraph/simplex-events?eventDate=$currentDate"
 
         for {
           _ <- logger.info(s"Fetching from Simplex using URL: $url")
@@ -60,8 +60,6 @@ object SimplexFetcher {
             val (address, events) = transaction
             acc :+ SimplexUpdate(address, events.toSet)
           }
-
-          _ <- logger.info(s"Simplex Updates: $dataUpdates")
         } yield dataUpdates
       }
     }

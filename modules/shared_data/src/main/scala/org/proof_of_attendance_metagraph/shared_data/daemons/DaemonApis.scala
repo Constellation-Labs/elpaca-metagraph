@@ -1,12 +1,14 @@
-package org.proof_of_attendance_metagraph.data_l1.daemons
+package org.proof_of_attendance_metagraph.shared_data.daemons
 
 import cats.effect.Async
 import cats.effect.std.Supervisor
 import cats.syntax.flatMap._
 import com.comcast.ip4s.{Host, Port}
 import fs2.io.net.Network
-import org.proof_of_attendance_metagraph.data_l1.daemons.fetcher.{ExolixFetcher, IntegrationnetNodesOperatorsFetcher, SimplexFetcher, TwitterFetcher}
+import org.http4s.client.Client
 import org.proof_of_attendance_metagraph.shared_data.app.ApplicationConfig
+import org.proof_of_attendance_metagraph.shared_data.calculated_state.CalculatedStateService
+import org.proof_of_attendance_metagraph.shared_data.daemons.fetcher._
 import org.tessellation.json.JsonSerializer
 import org.tessellation.node.shared.domain.Daemon
 import org.tessellation.node.shared.resources.MkHttpClient
@@ -20,7 +22,9 @@ import java.security.KeyPair
 import scala.concurrent.duration.FiniteDuration
 
 trait DaemonApis[F[_]] {
-  def spawnDaemons: F[Unit]
+  def spawnL1Daemons: F[Unit]
+
+  def spawnL0Daemons(calculatedStateService: CalculatedStateService[F]): F[Unit]
 }
 
 object DaemonApis {
@@ -28,32 +32,44 @@ object DaemonApis {
     config : ApplicationConfig,
     keypair: KeyPair
   ): DaemonApis[F] = new DaemonApis[F] {
-
     private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(DaemonApis.getClass)
 
-    override def spawnDaemons: F[Unit] = {
+    private def withHttpClient[A](useClient: Client[F] => F[A]): F[A] = {
       val httpClient = MkHttpClient.forAsync[F].newEmber(config.http4s.client)
-      val selfTarget = P2PContext(Host.fromString("127.0.0.1").get, Port.fromInt(9400).get, keypair.getPublic.toId.toPeerId)
+      httpClient.use(useClient)
+    }
 
-      httpClient.use { client =>
-        val publisher = Publisher.make[F](client, selfTarget)
+    private def createP2PContext(keypair: KeyPair): P2PContext =
+      P2PContext(Host.fromString("127.0.0.1").get, Port.fromInt(9400).get, keypair.getPublic.toId.toPeerId)
+
+    override def spawnL1Daemons: F[Unit] =
+      withHttpClient { client =>
+        val publisher = Publisher.make[F](client, createP2PContext(keypair))
         val signer = Signer.make[F](keypair, publisher)
-        spawnExolixDaemon(config, signer) >>
+
+        logger.info("Spawning L1 daemons") >>
+          spawnExolixDaemon(config, signer) >>
           spawnSimplexDaemon(config, signer) >>
-          spawnTwitterDaemon(config, signer) >>
           spawnIntegrationnetNodesOperatorsDaemon(config, signer)
       }
-    }
+
+    override def spawnL0Daemons(calculatedStateService: CalculatedStateService[F]): F[Unit] =
+      withHttpClient { client =>
+        val publisher = Publisher.make[F](client, createP2PContext(keypair))
+        val signer = Signer.make[F](keypair, publisher)
+
+        logger.info("Spawning L0 daemons") >>
+          spawnWalletCreationDaemon(config, signer, calculatedStateService)
+      }
 
     private def spawn(
       processor: Processor[F],
       idleTime : FiniteDuration
     ): Daemon[F] =
-      Daemon
-        .periodic[F](
-          processor.execute,
-          idleTime
-        )
+      Daemon.periodic[F](
+        processor.execute,
+        idleTime
+      )
 
     private def spawnExolixDaemon(
       config: ApplicationConfig,
@@ -62,10 +78,7 @@ object DaemonApis {
       val exolixFetcher = ExolixFetcher.make[F](config)
       val exolixProcessor = Processor.make[F](exolixFetcher, signer)
       logger.info("Spawning Exolix daemon") >>
-        spawn(
-          exolixProcessor,
-          config.exolixDaemon.idleTime
-        ).start
+        spawn(exolixProcessor, config.exolixDaemon.idleTime).start
     }
 
     private def spawnSimplexDaemon(
@@ -75,24 +88,7 @@ object DaemonApis {
       val simplexFetcher = SimplexFetcher.make[F](config)
       val simplexProcessor = Processor.make[F](simplexFetcher, signer)
       logger.info("Spawning Simplex daemon") >>
-        spawn(
-          simplexProcessor,
-          config.simplexDaemon.idleTime
-        ).start
-    }
-
-    private def spawnTwitterDaemon(
-      config: ApplicationConfig,
-      signer: Signer[F]
-    ): F[Unit] = {
-      val twitterFetcher = TwitterFetcher.make[F](config.twitterDaemon)
-      val twitterProcessor = Processor.make[F](twitterFetcher, signer)
-
-      logger.info("Spawning Twitter daemon") >>
-        spawn(
-          twitterProcessor,
-          config.twitterDaemon.idleTime
-        ).start
+        spawn(simplexProcessor, config.simplexDaemon.idleTime).start
     }
 
     private def spawnIntegrationnetNodesOperatorsDaemon(
@@ -101,12 +97,19 @@ object DaemonApis {
     ): F[Unit] = {
       val integrationnetNodesOperatorsFetcher = IntegrationnetNodesOperatorsFetcher.make[F](config)
       val integrationnetNodesOperatorsProcessor = Processor.make[F](integrationnetNodesOperatorsFetcher, signer)
-
       logger.info("Spawning IntegrationnetNodeOperators daemon") >>
-        spawn(
-          integrationnetNodesOperatorsProcessor,
-          config.integrationnetNodesOperatorsDaemon.idleTime
-        ).start
+        spawn(integrationnetNodesOperatorsProcessor, config.integrationnetNodesOperatorsDaemon.idleTime).start
+    }
+
+    private def spawnWalletCreationDaemon(
+      config                : ApplicationConfig,
+      signer                : Signer[F],
+      calculatedStateService: CalculatedStateService[F]
+    ): F[Unit] = {
+      val newWalletsFetcher = WalletCreationFetcher.make[F](config, calculatedStateService)
+      val newWalletsProcessor = Processor.make[F](newWalletsFetcher, signer)
+      logger.info("Spawning WalletCreation daemon") >>
+        spawn(newWalletsProcessor, config.walletCreationDaemon.idleTime).start
     }
   }
 }

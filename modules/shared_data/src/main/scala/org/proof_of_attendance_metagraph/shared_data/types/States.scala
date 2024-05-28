@@ -3,110 +3,92 @@ package org.proof_of_attendance_metagraph.shared_data.types
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import io.circe.generic.auto._
+import io.circe.generic.extras.Configuration
+import io.circe.{KeyDecoder, KeyEncoder}
 import org.proof_of_attendance_metagraph.shared_data.types.DataUpdates.ProofOfAttendanceUpdate
+import org.proof_of_attendance_metagraph.shared_data.types.States.DataSourceType.DataSourceType
 import org.tessellation.currency.dataApplication.{DataCalculatedState, DataOnChainState}
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
 
 object States {
+  implicit val config: Configuration = Configuration.default.withDefaults
+
   @derive(encoder, decoder)
-  sealed trait DataSources {
-    val name: String
-    val epochProgressToReward: EpochProgress
-    val amountToReward: Long
+  object DataSourceType extends Enumeration {
+    type DataSourceType = Value
+    val Exolix, Simplex, IntegrationnetNodeOperator, WalletCreation = Value
+    implicit val dataSourceTypeKeyEncoder: KeyEncoder[DataSourceType] = KeyEncoder.encodeKeyString.contramap(_.toString)
+    implicit val dataSourceTypeKeyDecoder: KeyDecoder[DataSourceType] = KeyDecoder.decodeKeyString.map {
+      case "Exolix" => Exolix
+      case "Simplex" => Simplex
+      case "IntegrationnetNodeOperator" => IntegrationnetNodeOperator
+      case "WalletCreation" => WalletCreation
+    }
   }
 
   @derive(encoder, decoder)
-  case class ExolixDataSource(
+  sealed trait DataSource
+
+  @derive(encoder, decoder)
+  case class ExolixDataSourceAddress(
     epochProgressToReward: EpochProgress,
     amountToReward       : Long,
     latestTransactionsIds: Set[String],
     olderTransactionsIds : Set[String]
-  ) extends DataSources {
-    override val name: String = "ExolixDataSource"
+  )
 
-    override def equals(obj: Any): Boolean = obj match {
-      case that: ExolixDataSource => this.name == that.name
-      case _ => false
-    }
+  @derive(encoder, decoder)
+  case class ExolixDataSource(
+    addresses: Map[Address, ExolixDataSourceAddress]
+  ) extends DataSource
 
-    override def hashCode(): Int = name.hashCode()
-  }
+  @derive(encoder, decoder)
+  case class SimplexDataSourceAddress(
+    epochProgressToReward: EpochProgress,
+    amountToReward       : Long,
+    latestTransactionsIds: Set[String],
+    olderTransactionsIds : Set[String]
+  )
 
   @derive(encoder, decoder)
   case class SimplexDataSource(
-    epochProgressToReward: EpochProgress,
-    amountToReward       : Long,
-    latestEventsIds      : Set[String],
-    olderEventsIds       : Set[String]
-  ) extends DataSources {
-    override val name: String = "SimplexDataSource"
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: SimplexDataSource => this.name == that.name
-      case _ => false
-    }
-
-    override def hashCode(): Int = name.hashCode()
-  }
+    addresses: Map[Address, SimplexDataSourceAddress]
+  ) extends DataSource
 
   @derive(encoder, decoder)
-  case class TwitterDataSource(
-    epochProgressToReward     : EpochProgress,
-    amountToReward            : Long,
-    twitterApiResponseAsString: String
-  ) extends DataSources {
-    override val name: String = "TwitterDataSource"
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: TwitterDataSource => this.name == that.name
-      case _ => false
-    }
-
-    override def hashCode(): Int = name.hashCode()
-  }
+  case class IntegrationnetNodeOperatorDataSourceAddress(
+    epochProgressToReward: EpochProgress,
+    amountToReward       : Long,
+    daysInQueue          : Long
+  )
 
   @derive(encoder, decoder)
   case class IntegrationnetNodeOperatorDataSource(
-    epochProgressToReward: EpochProgress,
-    amountToReward       : Long,
-    daysInQueue          : Long,
-  ) extends DataSources {
-    override val name: String = "IntegrationnetNodeOperatorDataSource"
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: IntegrationnetNodeOperatorDataSource => this.name == that.name
-      case _ => false
-    }
-
-    override def hashCode(): Int = name.hashCode()
-  }
+    addresses: Map[Address, IntegrationnetNodeOperatorDataSourceAddress]
+  ) extends DataSource
 
   @derive(encoder, decoder)
-  case class NewWalletCreationDataSource(
-    epochProgressToReward            : EpochProgress,
-    amountToReward                   : Long,
-    newWalletCreationResponseAsString: String
-  ) extends DataSources {
-    override val name: String = "NewWalletCreationDataSource"
+  case class WalletCreationDataSourceAddress(
+    epochProgressToReward  : Option[EpochProgress],
+    amountToReward         : Long,
+    registeredEpochProgress: EpochProgress,
+    balance                : Long
+  )
 
-    override def equals(obj: Any): Boolean = obj match {
-      case that: NewWalletCreationDataSource => this.name == that.name
-      case _ => false
-    }
-
-    override def hashCode(): Int = name.hashCode()
-  }
+  @derive(encoder, decoder)
+  case class WalletCreationDataSource(
+    addressesToReward: Map[Address, WalletCreationDataSourceAddress],
+    addressesRewarded: Set[Address]
+  ) extends DataSource
 
   @derive(encoder, decoder)
   case class ProofOfAttendanceOnChainState(
     updates: List[ProofOfAttendanceUpdate]
   ) extends DataOnChainState
 
-
   @derive(encoder, decoder)
   case class ProofOfAttendanceCalculatedState(
-    addresses: Map[Address, Set[DataSources]]
+    dataSources: Map[DataSourceType, DataSource]
   ) extends DataCalculatedState
-
 }
