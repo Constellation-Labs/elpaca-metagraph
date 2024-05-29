@@ -19,7 +19,7 @@ import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.time.LocalDate
+import java.time.{LocalDate, ZoneOffset}
 import java.time.format.DateTimeFormatter
 
 object ExolixFetcher {
@@ -47,7 +47,7 @@ object ExolixFetcher {
       override def getAddressesAndBuildUpdates: F[List[ProofOfAttendanceUpdate]] = {
         val exolixConfig = applicationConfig.exolixDaemon
         val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val currentDate: String = LocalDate.now().format(dateFormatter)
+        val currentDate: String = LocalDate.now(ZoneOffset.UTC).format(dateFormatter)
         val url = s"${exolixConfig.apiUrl.get}/transactions?dateFrom=${currentDate}T00:00:00&dateTo=${currentDate}T23:59:59"
 
         for {

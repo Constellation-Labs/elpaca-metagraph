@@ -17,7 +17,7 @@ import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.time.LocalDate
+import java.time.{LocalDate, ZoneOffset}
 import java.time.format.DateTimeFormatter
 
 object SimplexFetcher {
@@ -45,7 +45,7 @@ object SimplexFetcher {
       override def getAddressesAndBuildUpdates: F[List[ProofOfAttendanceUpdate]] = {
         val simplexConfig = applicationConfig.simplexDaemon
         val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val currentDate: String = LocalDate.now().format(dateFormatter)
+        val currentDate: String = LocalDate.now(ZoneOffset.UTC).format(dateFormatter)
         val url = s"${simplexConfig.apiUrl.get}/proof-of-attendance-metagraph/simplex-events?eventDate=$currentDate"
 
         for {
