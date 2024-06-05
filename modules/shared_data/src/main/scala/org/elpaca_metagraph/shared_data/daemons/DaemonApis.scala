@@ -40,7 +40,7 @@ object DaemonApis {
     }
 
     private def createP2PContext(keypair: KeyPair): P2PContext =
-      P2PContext(Host.fromString("127.0.0.1").get, Port.fromInt(9400).get, keypair.getPublic.toId.toPeerId)
+      P2PContext(Host.fromString("127.0.0.1").get, Port.fromInt(9300).get, keypair.getPublic.toId.toPeerId)
 
     override def spawnL1Daemons: F[Unit] =
       withHttpClient { client =>
