@@ -1,22 +1,22 @@
-# Proof of Attendance Metagraph (PoAM)
+# Elpaca Metagraph
 
 ## Overview
 
-Proof of Attendance Metagraph (PoAM) is a social credit metagraph designed to track community activity within the ecosystem and reward positive behaviors with tokens.
+The Elpaca Metagraph is a social credit metagraph designed to track community activity within the ecosystem and reward positive behaviors with tokens.
 
 ## Metagraph
 
-The PoAM metagraph is a straightforward, currency-based metagraph that periodically fetches data about network participation and applies minting logic based on this data.
+The Elpaca Metagraph is a straightforward, currency-based metagraph that periodically fetches data about network participation and applies minting logic based on this data.
 
 ## Data Sources
 
-1. **Exolix Swaps:** All wallets that have swapped into DAG should get credit based on the number of swaps.
-2. **Simplex Purchases:** All wallets that have purchased DAG through Simplex should get credit based on the number of purchases.
-3. **IntegrationNet Node Operator Line:** Should get credit while their balance is over 250k DAG and the operator is in the queue.
-4. **New Wallet Creation:** Create a new wallet with at least 1,500 DAG and hold it for 7 days.
+1. **Exolix Swaps:** All wallets that have swapped into DAG will receive credit based on the number of swaps.
+2. **Simplex Purchases:** All wallets that have purchased DAG through Simplex will receive credit based on the number of purchases.
+3. **IntegrationNet Node Operator Line:** Wallets with a balance over 250k DAG and whose operators are in the queue will receive credit.
+4. **New Wallet Creation:** Wallets created with at least 1,500 DAG and held for 7 days will receive credit.
 
 ## Token Minting Rates
 
-- **Simplex/Exolix:** 35 per transaction/purchase
-- **Lattice Node Operator Queue Wallets:** 1 per day in the queue
-- **New Wallet Creation:** 10
+- **Simplex/Exolix Transactions:** 35 tokens per transaction or purchase.
+- **Lattice Node Operator Queue Wallets:** 1 token per day in the queue.
+- **New Wallet Creation:** 10 tokens.
