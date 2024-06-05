@@ -30,6 +30,7 @@ object ConfigReaders {
   implicit val portReader: ConfigReader[Port] =
     ConfigReader[Int].emap(i => Port.fromInt(i).toRight(CannotConvert(i.toString, "Port", "Parse resulted in None")))
 
+  implicit val dataApiConfigReader: ConfigReader[ApplicationConfig.DataApiConfig] = deriveReader
   implicit val simplexDaemonConfigReader: ConfigReader[ApplicationConfig.SimplexDaemonConfig] = deriveReader
   implicit val exolixDaemonConfigReader: ConfigReader[ApplicationConfig.ExolixDaemonConfig] = deriveReader
   implicit val integrationnetNodesOperatorsDaemonConfigReader: ConfigReader[ApplicationConfig.IntegrationnetNodesOperatorsDaemonConfig] = deriveReader

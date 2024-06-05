@@ -8,6 +8,7 @@ import scala.concurrent.duration._
 
 case class ApplicationConfig(
   http4s                            : ApplicationConfig.Http4sConfig,
+  dataApi                           : ApplicationConfig.DataApiConfig,
   exolixDaemon                      : ApplicationConfig.ExolixDaemonConfig,
   simplexDaemon                     : ApplicationConfig.SimplexDaemonConfig,
   integrationnetNodesOperatorsDaemon: ApplicationConfig.IntegrationnetNodesOperatorsDaemonConfig,
@@ -19,6 +20,11 @@ object ApplicationConfig {
 
   case class Http4sConfig(
     client: HttpClientConfig,
+  )
+
+  case class DataApiConfig(
+    ip  : String,
+    port: Int,
   )
 
   case class ExolixDaemonConfig(
