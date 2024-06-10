@@ -4,7 +4,7 @@ import cats.effect.Ref
 import cats.effect.kernel.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.types.States.ElpacaCalculatedState
-import org.tessellation.json.JsonSerializer
+import org.tessellation.json.JsonHashSerializer
 import org.tessellation.schema.SnapshotOrdinal
 import org.tessellation.security.hash.Hash
 
@@ -22,7 +22,7 @@ trait CalculatedStateService[F[_]] {
 }
 
 object CalculatedStateService {
-  def make[F[_] : Async : JsonSerializer]: F[CalculatedStateService[F]] = {
+  def make[F[_] : Async : JsonHashSerializer]: F[CalculatedStateService[F]] = {
     Ref.of[F, CalculatedState](CalculatedState.empty).map { stateRef =>
       new CalculatedStateService[F] {
         override def get: F[CalculatedState] = stateRef.get
@@ -43,7 +43,7 @@ object CalculatedStateService {
 
         override def hash(
           state: ElpacaCalculatedState
-        ): F[Hash] = JsonSerializer[F].serialize[ElpacaCalculatedState](state).map(Hash.fromBytes)
+        ): F[Hash] = JsonHashSerializer[F].serialize[ElpacaCalculatedState](state).map(Hash.fromBytes)
       }
     }
   }

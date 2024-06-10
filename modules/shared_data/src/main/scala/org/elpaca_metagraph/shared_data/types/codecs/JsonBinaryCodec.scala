@@ -4,21 +4,21 @@ import cats.effect.Sync
 import io.circe.jawn.JawnParser
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Printer}
-import org.tessellation.json.JsonSerializer
+import org.tessellation.json.JsonHashSerializer
 
 object JsonBinaryCodec {
 
-  def apply[F[_] : JsonSerializer]: JsonSerializer[F] = implicitly
+  def apply[F[_] : JsonHashSerializer]: JsonHashSerializer[F] = implicitly
 
-  def forSync[F[_] : Sync]: F[JsonSerializer[F]] = {
+  def forSync[F[_] : Sync]: F[JsonHashSerializer[F]] = {
     def printer = Printer(dropNullValues = true, indent = "", sortKeys = true)
 
     forSync[F](printer)
   }
 
-  def forSync[F[_] : Sync](printer: Printer): F[JsonSerializer[F]] =
+  def forSync[F[_] : Sync](printer: Printer): F[JsonHashSerializer[F]] =
     Sync[F].delay {
-      new JsonSerializer[F] {
+      new JsonHashSerializer[F] {
         override def serialize[A: Encoder](content: A): F[Array[Byte]] =
           Sync[F].delay(content.asJson.printWith(printer).getBytes("UTF-8"))
 

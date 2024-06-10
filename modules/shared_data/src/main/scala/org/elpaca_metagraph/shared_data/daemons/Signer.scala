@@ -5,7 +5,7 @@ import cats.effect.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.types.DataUpdates.ElpacaUpdate
 import org.elpaca_metagraph.shared_data.types.codecs.JsonBinaryCodec
-import org.tessellation.json.JsonSerializer
+import org.tessellation.json.JsonHashSerializer
 import org.tessellation.security.SecurityProvider
 import org.tessellation.security.hash.Hash
 import org.tessellation.security.signature.Signed
@@ -20,7 +20,7 @@ trait Signer[F[_]] {
 }
 
 object Signer {
-  def make[F[_] : Async : SecurityProvider : JsonSerializer](
+  def make[F[_] : Async : SecurityProvider : JsonHashSerializer](
     keypair  : KeyPair,
     publisher: Publisher[F]
   ): Signer[F] =

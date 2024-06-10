@@ -3,8 +3,9 @@ import sbt.*
 object Dependencies {
 
   object V {
-    val tessellation = "2.6.2"
+    val tessellation = "2.3.5"
     val decline = "2.4.1"
+    val pureconfig = "0.17.5"
   }
 
   def tessellation(artifact: String): ModuleID = "org.constellation" %% s"tessellation-$artifact" % V.tessellation
@@ -27,6 +28,15 @@ object Dependencies {
     val weaverCats = "com.disneystreaming" %% "weaver-cats" % "0.8.1"
     val weaverDiscipline = "com.disneystreaming" %% "weaver-discipline" % "0.8.1"
     val weaverScalaCheck = "com.disneystreaming" %% "weaver-scalacheck" % "0.8.1"
+
+    def pureconfig(artifact: String): ModuleID = "com.github.pureconfig" %% s"pureconfig-$artifact" % V.pureconfig
+
+    val pureconfigCore = "com.github.pureconfig" %% "pureconfig" % V.pureconfig
+    val pureconfigCats = pureconfig("cats")
+    val pureconfigCatsEffect = pureconfig("cats-effect")
+    val pureconfigEnumeratum = pureconfig("enumeratum")
+    val pureconfigHttp4s = pureconfig("http4s")
+    val pureconfigIp4s = pureconfig("ip4s")
   }
 
 

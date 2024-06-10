@@ -49,7 +49,13 @@ lazy val sharedData = (project in file("modules/shared_data"))
       CompilerPlugin.semanticDB,
       Libraries.tessellationNodeShared,
       Libraries.requests,
-      Libraries.upickle
+      Libraries.upickle,
+      Libraries.pureconfigCore,
+      Libraries.pureconfigCats,
+      Libraries.pureconfigEnumeratum,
+      Libraries.pureconfigHttp4s,
+      Libraries.pureconfigIp4s,
+      Libraries.pureconfigCatsEffect,
     )
   )
 lazy val currencyL1 = (project in file("modules/l1"))

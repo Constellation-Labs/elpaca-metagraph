@@ -13,7 +13,7 @@ import org.tessellation.currency.dataApplication._
 import org.tessellation.currency.l0.CurrencyL0App
 import org.tessellation.currency.schema.currency.{CurrencyIncrementalSnapshot, CurrencySnapshotStateProof}
 import org.tessellation.ext.cats.effect.ResourceIO
-import org.tessellation.json.JsonSerializer
+import org.tessellation.json.JsonHashSerializer
 import org.tessellation.node.shared.domain.rewards.Rewards
 import org.tessellation.node.shared.snapshot.currency.CurrencySnapshotEvent
 import org.tessellation.schema.cluster.ClusterId
@@ -33,7 +33,7 @@ object Main extends CurrencyL0App(
   override def dataApplication: Option[Resource[IO, BaseDataApplicationL0Service[IO]]] = (for {
     implicit0(supervisor: Supervisor[IO]) <- Supervisor[IO]
     implicit0(sp: SecurityProvider[IO]) <- SecurityProvider.forAsync[IO]
-    implicit0(json2bin: JsonSerializer[IO]) <- JsonBinaryCodec.forSync[IO].asResource
+    implicit0(json2bin: JsonHashSerializer[IO]) <- JsonBinaryCodec.forSync[IO].asResource
 
     config <- ApplicationConfigOps.readDefault[IO].asResource
     keyPair <- loadKeyPair[IO](config).asResource

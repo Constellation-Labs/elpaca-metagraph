@@ -14,14 +14,14 @@ import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.{EntityDecoder, HttpRoutes}
 import org.tessellation.currency.dataApplication._
 import org.tessellation.currency.dataApplication.dataApplication.{DataApplicationBlock, DataApplicationValidationErrorOr}
-import org.tessellation.json.JsonSerializer
+import org.tessellation.json.JsonHashSerializer
 import org.tessellation.schema.SnapshotOrdinal
 import org.tessellation.security.hash.Hash
 import org.tessellation.security.signature.Signed
 
 object DataL1Service {
 
-  def make[F[+_] : Async : JsonSerializer](): F[BaseDataApplicationL1Service[F]] =
+  def make[F[+_] : Async : JsonHashSerializer](): F[BaseDataApplicationL1Service[F]] =
     for {
       calculatedStateService <- CalculatedStateService.make[F]
       dataApplicationL1Service = makeBaseDataApplicationL1Service(
@@ -29,7 +29,7 @@ object DataL1Service {
       )
     } yield dataApplicationL1Service
 
-  private def makeBaseDataApplicationL1Service[F[+_] : Async : JsonSerializer](
+  private def makeBaseDataApplicationL1Service[F[+_] : Async : JsonHashSerializer](
     calculatedStateService: CalculatedStateService[F]
   ): BaseDataApplicationL1Service[F] = BaseDataApplicationL1Service(
     new DataApplicationL1Service[F, ElpacaUpdate, ElpacaOnChainState, ElpacaCalculatedState] {
@@ -71,32 +71,32 @@ object DataL1Service {
       override def serializeBlock(
         block: Signed[DataApplicationBlock]
       ): F[Array[Byte]] =
-        JsonSerializer[F].serialize[Signed[DataApplicationBlock]](block)
+        JsonHashSerializer[F].serialize[Signed[DataApplicationBlock]](block)
 
       override def deserializeBlock(
         bytes: Array[Byte]
       ): F[Either[Throwable, Signed[DataApplicationBlock]]] =
-        JsonSerializer[F].deserialize[Signed[DataApplicationBlock]](bytes)
+        JsonHashSerializer[F].deserialize[Signed[DataApplicationBlock]](bytes)
 
       override def serializeState(
         state: ElpacaOnChainState
       ): F[Array[Byte]] =
-        JsonSerializer[F].serialize[ElpacaOnChainState](state)
+        JsonHashSerializer[F].serialize[ElpacaOnChainState](state)
 
       override def deserializeState(
         bytes: Array[Byte]
       ): F[Either[Throwable, ElpacaOnChainState]] =
-        JsonSerializer[F].deserialize[ElpacaOnChainState](bytes)
+        JsonHashSerializer[F].deserialize[ElpacaOnChainState](bytes)
 
       override def serializeUpdate(
         update: ElpacaUpdate
       ): F[Array[Byte]] =
-        JsonSerializer[F].serialize[ElpacaUpdate](update)
+        JsonHashSerializer[F].serialize[ElpacaUpdate](update)
 
       override def deserializeUpdate(
         bytes: Array[Byte]
       ): F[Either[Throwable, ElpacaUpdate]] =
-        JsonSerializer[F].deserialize[ElpacaUpdate](bytes)
+        JsonHashSerializer[F].deserialize[ElpacaUpdate](bytes)
 
       override def getCalculatedState(implicit context: L1NodeContext[F]): F[(SnapshotOrdinal, ElpacaCalculatedState)] =
         calculatedStateService.get.map(calculatedState => (calculatedState.ordinal, calculatedState.state))
@@ -115,12 +115,12 @@ object DataL1Service {
       override def serializeCalculatedState(
         state: ElpacaCalculatedState
       ): F[Array[Byte]] =
-        JsonSerializer[F].serialize[ElpacaCalculatedState](state)
+        JsonHashSerializer[F].serialize[ElpacaCalculatedState](state)
 
       override def deserializeCalculatedState(
         bytes: Array[Byte]
       ): F[Either[Throwable, ElpacaCalculatedState]] =
-        JsonSerializer[F].deserialize[ElpacaCalculatedState](bytes)
+        JsonHashSerializer[F].deserialize[ElpacaCalculatedState](bytes)
     }
   )
 }

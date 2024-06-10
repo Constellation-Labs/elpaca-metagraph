@@ -10,7 +10,7 @@ import org.elpaca_metagraph.shared_data.types.codecs.JsonBinaryCodec
 import org.tessellation.currency.dataApplication._
 import org.tessellation.currency.l1.CurrencyL1App
 import org.tessellation.ext.cats.effect.ResourceIO
-import org.tessellation.json.JsonSerializer
+import org.tessellation.json.JsonHashSerializer
 import org.tessellation.schema.cluster.ClusterId
 import org.tessellation.schema.semver.{MetagraphVersion, TessellationVersion}
 import org.tessellation.security.SecurityProvider
@@ -28,7 +28,7 @@ object Main extends CurrencyL1App(
   override def dataApplication: Option[Resource[IO, BaseDataApplicationL1Service[IO]]] = (for {
     implicit0(supervisor: Supervisor[IO]) <- Supervisor[IO]
     implicit0(sp: SecurityProvider[IO]) <- SecurityProvider.forAsync[IO]
-    implicit0(json2bin: JsonSerializer[IO]) <- JsonBinaryCodec.forSync[IO].asResource
+    implicit0(json2bin: JsonHashSerializer[IO]) <- JsonBinaryCodec.forSync[IO].asResource
 
     config <- ApplicationConfigOps.readDefault[IO].asResource
     keyPair <- loadKeyPair[IO](config).asResource

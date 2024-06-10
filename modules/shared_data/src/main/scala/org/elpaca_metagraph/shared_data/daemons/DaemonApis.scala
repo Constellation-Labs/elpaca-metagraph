@@ -9,7 +9,7 @@ import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
 import org.elpaca_metagraph.shared_data.daemons.fetcher.{ExolixFetcher, IntegrationnetNodesOperatorsFetcher, SimplexFetcher, WalletCreationHoldingDAGFetcher}
 import org.http4s.client.Client
-import org.tessellation.json.JsonSerializer
+import org.tessellation.json.JsonHashSerializer
 import org.tessellation.node.shared.domain.Daemon
 import org.tessellation.node.shared.resources.MkHttpClient
 import org.tessellation.schema.peer.P2PContext
@@ -28,7 +28,7 @@ trait DaemonApis[F[_]] {
 }
 
 object DaemonApis {
-  def make[F[_] : Async : SecurityProvider : Supervisor : Network : JsonSerializer](
+  def make[F[_] : Async : SecurityProvider : Supervisor : Network : JsonHashSerializer](
     config : ApplicationConfig,
     keypair: KeyPair
   ): DaemonApis[F] = new DaemonApis[F] {
