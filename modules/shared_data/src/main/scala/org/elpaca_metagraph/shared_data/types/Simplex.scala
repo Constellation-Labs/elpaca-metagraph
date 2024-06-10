@@ -1,14 +1,25 @@
 package org.elpaca_metagraph.shared_data.types
 
+import derevo.circe.magnolia.{decoder, encoder}
+import derevo.derive
 import io.circe.generic.auto._
 import org.tessellation.schema.address.Address
+import org.tessellation.schema.epoch.EpochProgress
 
-object SimplexTypes {
+object Simplex {
   case class Payment(
     id            : String,
     status        : String,
     createdAt     : String,
     cryptoCurrency: String,
+  )
+
+  @derive(encoder, decoder)
+  case class SimplexDataSourceAddress(
+    epochProgressToReward: EpochProgress,
+    amountToReward       : Long,
+    latestTransactionsIds: Set[String],
+    olderTransactionsIds : Set[String]
   )
 
   case class SimplexEvent(

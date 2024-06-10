@@ -10,6 +10,7 @@ import org.elpaca_metagraph.l0.custom_routes.CustomRoutes
 import org.elpaca_metagraph.shared_data.LifecycleSharedFunctions
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
+import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.codecs.DataUpdateCodec._
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
@@ -50,19 +51,26 @@ object MetagraphL0Service {
           }
         }
 
-        override def genesis: DataState[ElpacaOnChainState, ElpacaCalculatedState] = {
-          val rewardedAddressesAsString = readLinesFromFile("initial_rewarded_wallets.txt")
-          val rewardedAddresses = rewardedAddressesAsString.flatMap { addressAsString =>
-            refineV[DAGAddressRefined](addressAsString).toOption.map(Address(_))
-          }.toSet
+        def buildExistingWallets(existingWallets: List[Address]): Map[Address, ExistingWalletsDataSourceAddress] =
+          existingWallets.foldLeft(Map.empty[Address, ExistingWalletsDataSourceAddress]) { (acc, address) =>
+            acc.updated(address, ExistingWalletsDataSourceAddress(freshWalletRewarded = true, holdingDAGRewarded = true))
+          }
 
+        override def genesis: DataState[ElpacaOnChainState, ElpacaCalculatedState] = {
+          val existingWalletsAsString = readLinesFromFile("existing_wallets.txt")
+          val existingWalletsList = existingWalletsAsString.flatMap { addressAsString =>
+            refineV[DAGAddressRefined](addressAsString).toOption.map(Address(_))
+          }
+          val existingWallets = buildExistingWallets(existingWalletsList)
           DataState(
             ElpacaOnChainState(List.empty),
             ElpacaCalculatedState(Map(
               DataSourceType.Exolix -> ExolixDataSource(Map.empty),
               DataSourceType.Simplex -> SimplexDataSource(Map.empty),
               DataSourceType.IntegrationnetNodeOperator -> IntegrationnetNodeOperatorDataSource(Map.empty),
-              DataSourceType.WalletCreation -> WalletCreationDataSource(Map.empty, rewardedAddresses)
+              DataSourceType.WalletCreationHoldingDAG -> WalletCreationHoldingDAGDataSource(Map.empty),
+              DataSourceType.FreshWallet -> FreshWalletDataSource(Map.empty),
+              DataSourceType.ExistingWallets -> ExistingWalletsDataSource(existingWallets)
             ))
           )
         }

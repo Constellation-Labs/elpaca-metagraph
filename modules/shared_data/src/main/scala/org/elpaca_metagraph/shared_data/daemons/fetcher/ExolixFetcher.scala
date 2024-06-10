@@ -7,7 +7,7 @@ import fs2.io.net.Network
 import io.circe.generic.auto._
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, ExolixUpdate}
-import org.elpaca_metagraph.shared_data.types.ExolixTypes.{ExolixApiResponse, ExolixTransaction}
+import org.elpaca_metagraph.shared_data.types.Exolix.{ExolixApiResponse, ExolixTransaction}
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.client.Client

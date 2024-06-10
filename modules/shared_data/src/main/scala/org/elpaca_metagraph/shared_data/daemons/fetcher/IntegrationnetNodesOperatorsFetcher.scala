@@ -6,7 +6,7 @@ import fs2.io.net.Network
 import io.circe.generic.auto._
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate}
-import org.elpaca_metagraph.shared_data.types.IntegrationnetOperatorsTypes.{IntegrationnetOperatorsApiResponse, OperatorInQueue}
+import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators.{IntegrationnetOperatorsApiResponse, OperatorInQueue}
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.client.Client

@@ -4,7 +4,8 @@ import cats.effect.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.types.DataUpdates.SimplexUpdate
-import org.elpaca_metagraph.shared_data.types.States.{DataSource, DataSourceType, SimplexDataSource, SimplexDataSourceAddress}
+import org.elpaca_metagraph.shared_data.types.States._
+import org.elpaca_metagraph.shared_data.types.Simplex._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
 import org.typelevel.log4cats.Logger
@@ -21,11 +22,11 @@ object SimplexCombiner {
   }
 
   private def calculateRewardsAmount(
-    existing             : SimplexDataSourceAddress,
-    newEventsIds         : Set[String],
-    epochProgressToReward: EpochProgress
+    existing            : SimplexDataSourceAddress,
+    newEventsIds        : Set[String],
+    currentEpochProgress: EpochProgress
   ): Long = {
-    if (epochProgressToReward.value.value < existing.epochProgressToReward.value.value) {
+    if (currentEpochProgress.value.value < existing.epochProgressToReward.value.value) {
       (simplexRewardAmount * newEventsIds.size) + existing.amountToReward
     } else {
       simplexRewardAmount * newEventsIds.size
@@ -36,17 +37,17 @@ object SimplexCombiner {
     existing                : SimplexDataSourceAddress,
     simplexUpdate           : SimplexUpdate,
     currentSimplexDataSource: SimplexDataSource,
-    epochProgressToReward   : EpochProgress,
+    currentEpochProgress    : EpochProgress,
   ): F[Map[Address, SimplexDataSourceAddress]] = {
     val newEventsIds = getNewEventIds(existing, simplexUpdate)
 
     if (newEventsIds.isEmpty) {
       currentSimplexDataSource.addresses.pure[F]
     } else {
-      val rewardsAmount = calculateRewardsAmount(existing, newEventsIds, epochProgressToReward)
+      val rewardsAmount = calculateRewardsAmount(existing, newEventsIds, currentEpochProgress)
 
       val updatedSimplexDataSource = SimplexDataSourceAddress(
-        epochProgressToReward,
+        currentEpochProgress,
         toTokenAmountFormat(rewardsAmount),
         newEventsIds,
         existing.latestTransactionsIds ++ existing.olderTransactionsIds
@@ -85,11 +86,11 @@ object SimplexCombiner {
 
   def updateStateSimplexResponse[F[_] : Async : Logger](
     currentCalculatedState: Map[DataSourceType, DataSource],
-    epochProgressToReward : EpochProgress,
+    currentEpochProgress  : EpochProgress,
     simplexUpdate         : SimplexUpdate
   ): F[Map[DataSourceType, DataSource]] = {
 
-    getSimplexDataSourceUpdatedAddresses(currentCalculatedState, simplexUpdate, epochProgressToReward).map { updatedAddresses =>
+    getSimplexDataSourceUpdatedAddresses(currentCalculatedState, simplexUpdate, currentEpochProgress).map { updatedAddresses =>
       currentCalculatedState.updated(
         DataSourceType.Simplex,
         SimplexDataSource(updatedAddresses)

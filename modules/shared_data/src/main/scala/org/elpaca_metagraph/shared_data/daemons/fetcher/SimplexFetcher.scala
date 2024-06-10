@@ -6,7 +6,7 @@ import fs2.io.net.Network
 import io.circe.generic.auto._
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, SimplexUpdate}
-import org.elpaca_metagraph.shared_data.types.SimplexTypes.{SimplexApiResponse, SimplexEvent}
+import org.elpaca_metagraph.shared_data.types.Simplex.{SimplexApiResponse, SimplexEvent}
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.client.Client

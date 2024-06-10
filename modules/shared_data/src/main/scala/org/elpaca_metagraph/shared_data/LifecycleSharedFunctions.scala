@@ -3,6 +3,8 @@ package org.elpaca_metagraph.shared_data
 import cats.effect.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.combiners.Combiner.combineElpacaUpdate
+import org.elpaca_metagraph.shared_data.combiners.FreshWalletCombiner.cleanFreshWalletsAlreadyRewarded
+import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.cleanWalletCreationHoldingDAGAlreadyRewardedWallets
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate}
 import org.elpaca_metagraph.shared_data.types.States.{ElpacaCalculatedState, ElpacaOnChainState}
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
@@ -34,27 +36,35 @@ object LifecycleSharedFunctions {
     updates : List[Signed[ElpacaUpdate]]
   )(implicit context: L0NodeContext[F]): F[DataState[ElpacaOnChainState, ElpacaCalculatedState]] = {
     val newState = DataState(ElpacaOnChainState(List.empty), ElpacaCalculatedState(oldState.calculated.dataSources))
-
-    if (updates.isEmpty) {
-      logger.info("Snapshot without any updates, updating the state to empty updates").as(newState)
-    } else {
-      logger.info(s"Incoming updates: ${updates.length}") >>
-        updates.foldLeftM(newState) { (acc, signedUpdate) =>
-          for {
-            epochProgress <- context.getLastCurrencySnapshot.flatMap {
-              case Some(value) => value.epochProgress.next.pure[F]
-              case None =>
-                val message = "Could not get the epochProgress from currency snapshot. lastCurrencySnapshot not found"
-                logger.error(message) >> new Exception(message).raiseError[F, EpochProgress]
-            }
-
-            updatedState <- combineElpacaUpdate(
+    for {
+      epochProgress <- context.getLastCurrencySnapshot.flatMap {
+        case Some(value) => value.epochProgress.next.pure[F]
+        case None =>
+          val message = "Could not get the epochProgress from currency snapshot. lastCurrencySnapshot not found"
+          logger.error(message) >> new Exception(message).raiseError[F, EpochProgress]
+      }
+      response <- if (updates.isEmpty) {
+        logger.info("Snapshot without any updates, updating the state to empty updates").as(
+          newState
+        )
+      } else {
+        for {
+          _ <- logger.info(s"Incoming updates: ${updates.length}")
+          combined <- updates.foldLeftM(newState) { (acc, signedUpdate) =>
+            combineElpacaUpdate(
               acc,
               epochProgress,
               signedUpdate
             )
-          } yield updatedState
-        }
-    }
+          }
+        } yield combined
+      }
+
+      cleanedWalletCreationHoldingDAG = cleanWalletCreationHoldingDAGAlreadyRewardedWallets(response.calculated.dataSources, epochProgress)
+      cleanedResponse = cleanFreshWalletsAlreadyRewarded(cleanedWalletCreationHoldingDAG, epochProgress)
+    } yield DataState(
+      response.onChain,
+      ElpacaCalculatedState(cleanedResponse)
+    )
   }
 }
