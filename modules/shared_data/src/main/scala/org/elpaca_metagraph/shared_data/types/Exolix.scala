@@ -1,6 +1,18 @@
 package org.elpaca_metagraph.shared_data.types
 
-object ExolixTypes {
+import derevo.circe.magnolia.{decoder, encoder}
+import derevo.derive
+import org.tessellation.schema.epoch.EpochProgress
+
+object Exolix {
+  @derive(encoder, decoder)
+  case class ExolixDataSourceAddress(
+    epochProgressToReward: EpochProgress,
+    amountToReward       : Long,
+    latestTransactionsIds: Set[String],
+    olderTransactionsIds : Set[String]
+  )
+
   case class CoinInfo(
     coinCode: String,
     coinName: String,

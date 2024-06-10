@@ -6,9 +6,14 @@ import enumeratum.values.{StringCirceEnum, StringEnum, StringEnumEntry}
 import io.circe.generic.auto._
 import io.circe.generic.extras.Configuration
 import org.elpaca_metagraph.shared_data.types.DataUpdates.ElpacaUpdate
+import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.Exolix.ExolixDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.FreshWallet.FreshWalletDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators.IntegrationnetNodeOperatorDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.Simplex.SimplexDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.WalletCreationHoldingDAG.WalletCreationHoldingDAGDataSourceAddress
 import org.tessellation.currency.dataApplication.{DataCalculatedState, DataOnChainState}
 import org.tessellation.schema.address.Address
-import org.tessellation.schema.epoch.EpochProgress
 
 object States {
   implicit val config: Configuration = Configuration.default.withDefaults
@@ -25,7 +30,11 @@ object States {
 
     case object IntegrationnetNodeOperator extends DataSourceType("IntegrationnetNodeOperator")
 
-    case object WalletCreation extends DataSourceType("WalletCreation")
+    case object ExistingWallets extends DataSourceType("ExistingWallets")
+
+    case object WalletCreationHoldingDAG extends DataSourceType("WalletCreationHoldingDAG")
+
+    case object FreshWallet extends DataSourceType("FreshWallet")
   }
 
 
@@ -33,25 +42,9 @@ object States {
   sealed trait DataSource
 
   @derive(encoder, decoder)
-  case class ExolixDataSourceAddress(
-    epochProgressToReward: EpochProgress,
-    amountToReward       : Long,
-    latestTransactionsIds: Set[String],
-    olderTransactionsIds : Set[String]
-  )
-
-  @derive(encoder, decoder)
   case class ExolixDataSource(
     addresses: Map[Address, ExolixDataSourceAddress]
   ) extends DataSource
-
-  @derive(encoder, decoder)
-  case class SimplexDataSourceAddress(
-    epochProgressToReward: EpochProgress,
-    amountToReward       : Long,
-    latestTransactionsIds: Set[String],
-    olderTransactionsIds : Set[String]
-  )
 
   @derive(encoder, decoder)
   case class SimplexDataSource(
@@ -59,29 +52,23 @@ object States {
   ) extends DataSource
 
   @derive(encoder, decoder)
-  case class IntegrationnetNodeOperatorDataSourceAddress(
-    epochProgressToReward: EpochProgress,
-    amountToReward       : Long,
-    daysInQueue          : Long
-  )
-
-  @derive(encoder, decoder)
   case class IntegrationnetNodeOperatorDataSource(
     addresses: Map[Address, IntegrationnetNodeOperatorDataSourceAddress]
   ) extends DataSource
 
   @derive(encoder, decoder)
-  case class WalletCreationDataSourceAddress(
-    epochProgressToReward  : Option[EpochProgress],
-    amountToReward         : Long,
-    registeredEpochProgress: EpochProgress,
-    balance                : Long
-  )
+  case class WalletCreationHoldingDAGDataSource(
+    addressesToReward: Map[Address, WalletCreationHoldingDAGDataSourceAddress]
+  ) extends DataSource
 
   @derive(encoder, decoder)
-  case class WalletCreationDataSource(
-    addressesToReward: Map[Address, WalletCreationDataSourceAddress],
-    addressesRewarded: Set[Address]
+  case class FreshWalletDataSource(
+    addressesToReward: Map[Address, FreshWalletDataSourceAddress]
+  ) extends DataSource
+
+  @derive(encoder, decoder)
+  case class ExistingWalletsDataSource(
+    existingWallets: Map[Address, ExistingWalletsDataSourceAddress]
   ) extends DataSource
 
   @derive(encoder, decoder)

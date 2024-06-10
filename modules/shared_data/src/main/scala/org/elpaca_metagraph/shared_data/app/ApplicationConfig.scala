@@ -12,7 +12,7 @@ case class ApplicationConfig(
   exolixDaemon                      : ApplicationConfig.ExolixDaemonConfig,
   simplexDaemon                     : ApplicationConfig.SimplexDaemonConfig,
   integrationnetNodesOperatorsDaemon: ApplicationConfig.IntegrationnetNodesOperatorsDaemonConfig,
-  walletCreationDaemon              : ApplicationConfig.WalletCreationDaemonConfig,
+  walletCreationHoldingDagDaemon    : ApplicationConfig.WalletCreationHoldingDagDaemonConfig,
   nodeKey                           : ApplicationConfig.NodeKey
 )
 
@@ -45,7 +45,7 @@ object ApplicationConfig {
     apiUrl  : Option[String]
   )
 
-  case class WalletCreationDaemonConfig(
+  case class WalletCreationHoldingDagDaemonConfig(
     idleTime: FiniteDuration,
     apiUrl  : Option[String]
   )

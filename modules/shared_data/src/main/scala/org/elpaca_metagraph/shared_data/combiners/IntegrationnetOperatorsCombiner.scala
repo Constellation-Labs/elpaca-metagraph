@@ -4,7 +4,8 @@ import cats.effect.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.types.DataUpdates.IntegrationnetNodeOperatorUpdate
-import org.elpaca_metagraph.shared_data.types.States.{DataSource, DataSourceType, IntegrationnetNodeOperatorDataSource, IntegrationnetNodeOperatorDataSourceAddress}
+import org.elpaca_metagraph.shared_data.types.States._
+import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
 import org.typelevel.log4cats.Logger

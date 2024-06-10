@@ -4,7 +4,8 @@ import cats.effect.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.types.DataUpdates.ExolixUpdate
-import org.elpaca_metagraph.shared_data.types.States.{DataSource, DataSourceType, ExolixDataSource, ExolixDataSourceAddress}
+import org.elpaca_metagraph.shared_data.types.States._
+import org.elpaca_metagraph.shared_data.types.Exolix._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
 import org.typelevel.log4cats.Logger
@@ -23,8 +24,8 @@ object ExolixCombiner {
   private def calculateRewardsAmount(
     existing             : ExolixDataSourceAddress,
     newTxnsIds           : Set[String],
-    epochProgressToReward: EpochProgress): Long = {
-    if (epochProgressToReward.value.value < existing.epochProgressToReward.value.value) {
+    currentEpochProgress: EpochProgress): Long = {
+    if (currentEpochProgress.value.value < existing.epochProgressToReward.value.value) {
       (exolixRewardAmount * newTxnsIds.size) + existing.amountToReward
     } else {
       exolixRewardAmount * newTxnsIds.size
@@ -35,17 +36,17 @@ object ExolixCombiner {
     existing               : ExolixDataSourceAddress,
     exolixUpdate           : ExolixUpdate,
     currentExolixDataSource: ExolixDataSource,
-    epochProgressToReward  : EpochProgress
+    currentEpochProgress  : EpochProgress
   ): F[Map[Address, ExolixDataSourceAddress]] = {
     val newTxnsIds = getNewTransactionsIds(existing, exolixUpdate)
 
     if (newTxnsIds.isEmpty) {
       currentExolixDataSource.addresses.pure[F]
     } else {
-      val rewardsAmount = calculateRewardsAmount(existing, newTxnsIds, epochProgressToReward)
+      val rewardsAmount = calculateRewardsAmount(existing, newTxnsIds, currentEpochProgress)
 
       val updatedExolixDataSource = ExolixDataSourceAddress(
-        epochProgressToReward,
+        currentEpochProgress,
         toTokenAmountFormat(rewardsAmount),
         newTxnsIds,
         existing.latestTransactionsIds ++ existing.olderTransactionsIds
@@ -84,10 +85,10 @@ object ExolixCombiner {
 
   def updateStateExolixResponse[F[_] : Async : Logger](
     currentCalculatedState: Map[DataSourceType, DataSource],
-    epochProgressToReward : EpochProgress,
+    currentEpochProgress : EpochProgress,
     exolixUpdate          : ExolixUpdate
   ): F[Map[DataSourceType, DataSource]] = {
-    getExolixDataSourceUpdatedAddresses(currentCalculatedState, exolixUpdate, epochProgressToReward).map { updatedAddresses =>
+    getExolixDataSourceUpdatedAddresses(currentCalculatedState, exolixUpdate, currentEpochProgress).map { updatedAddresses =>
       currentCalculatedState.updated(
         DataSourceType.Exolix,
         ExolixDataSource(updatedAddresses)

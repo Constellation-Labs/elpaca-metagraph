@@ -3,9 +3,10 @@ package org.elpaca_metagraph.shared_data.combiners
 import cats.effect.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.combiners.ExolixCombiner.updateStateExolixResponse
+import org.elpaca_metagraph.shared_data.combiners.FreshWalletCombiner.updateStateFreshWallet
 import org.elpaca_metagraph.shared_data.combiners.IntegrationnetOperatorsCombiner.updateStateIntegrationnetOperatorsResponse
 import org.elpaca_metagraph.shared_data.combiners.SimplexCombiner.updateStateSimplexResponse
-import org.elpaca_metagraph.shared_data.combiners.WalletCreationCombiner.updateStateWalletCreation
+import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.updateStateWalletCreationHoldingDAG
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.States._
 import org.tessellation.currency.dataApplication.DataState
@@ -22,7 +23,7 @@ object Combiner {
   ): F[DataState[ElpacaOnChainState, ElpacaCalculatedState]] = {
     val updatedCalculatedStateF = update.value match {
       case update: ExolixUpdate =>
-        implicit val logger = Slf4jLogger.getLoggerFromName[F]("ExolixCombiner")
+        implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("ExolixCombiner")
         updateStateExolixResponse(
           oldState.calculated.dataSources,
           currentEpochProgress,
@@ -44,13 +45,20 @@ object Combiner {
           update
         )
 
-      case update: WalletCreationUpdate =>
-        implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("WalletCreationCombiner")
-        updateStateWalletCreation(
+      case update: WalletCreationHoldingDAGUpdate =>
+        Async[F].delay(updateStateWalletCreationHoldingDAG(
           oldState.calculated.dataSources,
           currentEpochProgress,
           update
-        )
+        ))
+
+      case update: FreshWalletUpdate =>
+        Async[F].delay(
+          updateStateFreshWallet(
+            oldState.calculated.dataSources,
+            currentEpochProgress,
+            update
+          ))
     }
 
     val updates: List[ElpacaUpdate] = update.value :: oldState.onChain.updates

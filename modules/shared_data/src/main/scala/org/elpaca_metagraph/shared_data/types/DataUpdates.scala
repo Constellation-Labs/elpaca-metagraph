@@ -3,9 +3,9 @@ package org.elpaca_metagraph.shared_data.types
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import io.circe.generic.auto._
-import org.elpaca_metagraph.shared_data.types.ExolixTypes.ExolixTransaction
-import org.elpaca_metagraph.shared_data.types.IntegrationnetOperatorsTypes.OperatorInQueue
-import org.elpaca_metagraph.shared_data.types.SimplexTypes.SimplexEvent
+import org.elpaca_metagraph.shared_data.types.Exolix.ExolixTransaction
+import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators.OperatorInQueue
+import org.elpaca_metagraph.shared_data.types.Simplex.SimplexEvent
 import org.tessellation.currency.dataApplication.DataUpdate
 import org.tessellation.schema.address.Address
 
@@ -27,7 +27,6 @@ object DataUpdates {
     simplexEvents: Set[SimplexEvent]
   ) extends ElpacaUpdate
 
-
   @derive(encoder, decoder)
   case class IntegrationnetNodeOperatorUpdate(
     address        : Address,
@@ -35,8 +34,13 @@ object DataUpdates {
   ) extends ElpacaUpdate
 
   @derive(encoder, decoder)
-  case class WalletCreationUpdate(
+  case class WalletCreationHoldingDAGUpdate(
     address: Address,
     balance: Long
+  ) extends ElpacaUpdate
+
+  @derive(encoder, decoder)
+  case class FreshWalletUpdate(
+    address: Address
   ) extends ElpacaUpdate
 }

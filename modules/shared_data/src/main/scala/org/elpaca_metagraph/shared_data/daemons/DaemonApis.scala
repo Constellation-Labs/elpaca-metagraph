@@ -7,7 +7,7 @@ import com.comcast.ip4s.{Host, Port}
 import fs2.io.net.Network
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
-import org.elpaca_metagraph.shared_data.daemons.fetcher.{ExolixFetcher, IntegrationnetNodesOperatorsFetcher, SimplexFetcher, WalletCreationFetcher}
+import org.elpaca_metagraph.shared_data.daemons.fetcher.{ExolixFetcher, IntegrationnetNodesOperatorsFetcher, SimplexFetcher, WalletCreationHoldingDAGFetcher}
 import org.http4s.client.Client
 import org.tessellation.json.JsonSerializer
 import org.tessellation.node.shared.domain.Daemon
@@ -106,10 +106,10 @@ object DaemonApis {
       signer                : Signer[F],
       calculatedStateService: CalculatedStateService[F]
     ): F[Unit] = {
-      val newWalletsFetcher = WalletCreationFetcher.make[F](config, calculatedStateService)
+      val newWalletsFetcher = WalletCreationHoldingDAGFetcher.make[F](config, calculatedStateService)
       val newWalletsProcessor = Processor.make[F](newWalletsFetcher, signer)
-      logger.info("Spawning WalletCreation daemon") >>
-        spawn(newWalletsProcessor, config.walletCreationDaemon.idleTime).start
+      logger.info("Spawning WalletCreationHoldingDAG daemon") >>
+        spawn(newWalletsProcessor, config.walletCreationHoldingDagDaemon.idleTime).start
     }
   }
 }
