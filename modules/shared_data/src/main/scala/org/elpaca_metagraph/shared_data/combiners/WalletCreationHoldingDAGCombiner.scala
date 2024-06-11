@@ -11,7 +11,7 @@ import org.tessellation.schema.epoch.EpochProgress
 
 object WalletCreationHoldingDAGCombiner {
   private val walletCreationRewardAmount: Long = 10L
-  private val fiveDaysEpochProgress: Long = 2L
+  private val fiveDaysEpochProgress: Long = 1440L * 5L
 
   private def addressHoldsDAGForAtLeast5Days(
     existing            : WalletCreationHoldingDAGDataSourceAddress,
