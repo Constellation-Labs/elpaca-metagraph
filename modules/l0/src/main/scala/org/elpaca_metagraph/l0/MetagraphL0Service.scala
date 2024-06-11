@@ -4,13 +4,16 @@ import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.syntax.all._
 import eu.timepit.refined.refineV
+import eu.timepit.refined.types.numeric.NonNegLong
 import io.circe.generic.auto._
 import io.circe.{Decoder, Encoder}
 import org.elpaca_metagraph.l0.custom_routes.CustomRoutes
 import org.elpaca_metagraph.shared_data.LifecycleSharedFunctions
+import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.FreshWallet.FreshWalletDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.codecs.DataUpdateCodec._
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
@@ -21,6 +24,7 @@ import org.tessellation.currency.dataApplication.dataApplication.{DataApplicatio
 import org.tessellation.json.JsonSerializer
 import org.tessellation.schema.SnapshotOrdinal
 import org.tessellation.schema.address.{Address, DAGAddressRefined}
+import org.tessellation.schema.epoch.EpochProgress
 import org.tessellation.security.hash.Hash
 import org.tessellation.security.signature.Signed
 
@@ -53,15 +57,27 @@ object MetagraphL0Service {
 
         def buildExistingWallets(existingWallets: List[Address]): Map[Address, ExistingWalletsDataSourceAddress] =
           existingWallets.foldLeft(Map.empty[Address, ExistingWalletsDataSourceAddress]) { (acc, address) =>
-            acc.updated(address, ExistingWalletsDataSourceAddress(freshWalletRewarded = true, holdingDAGRewarded = true))
+            acc.updated(address, ExistingWalletsDataSourceAddress(freshWalletRewarded = false, holdingDAGRewarded = true))
           }
+
+        def buildFreshWalletDataSourceAddresses(existingWallets: List[Address]): Map[Address, FreshWalletDataSourceAddress] = {
+          existingWallets.grouped(5000).zipWithIndex.foldLeft(Map.empty[Address, FreshWalletDataSourceAddress]) { (acc, grouped) =>
+            val (current, outerIndex) = grouped
+            current.foldLeft(acc) { (innerAcc, address) =>
+              innerAcc.updated(address, FreshWalletDataSourceAddress(EpochProgress(NonNegLong.unsafeFrom((outerIndex + 1).toLong)), toTokenAmountFormat(1L)))
+            }
+          }
+        }
 
         override def genesis: DataState[ElpacaOnChainState, ElpacaCalculatedState] = {
           val existingWalletsAsString = readLinesFromFile("existing_wallets.txt")
           val existingWalletsList = existingWalletsAsString.flatMap { addressAsString =>
             refineV[DAGAddressRefined](addressAsString).toOption.map(Address(_))
           }
+
           val existingWallets = buildExistingWallets(existingWalletsList)
+          val freshWalletDataSourceAddresses = buildFreshWalletDataSourceAddresses(existingWalletsList)
+
           DataState(
             ElpacaOnChainState(List.empty),
             ElpacaCalculatedState(Map(
@@ -69,7 +85,7 @@ object MetagraphL0Service {
               DataSourceType.Simplex -> SimplexDataSource(Map.empty),
               DataSourceType.IntegrationnetNodeOperator -> IntegrationnetNodeOperatorDataSource(Map.empty),
               DataSourceType.WalletCreationHoldingDAG -> WalletCreationHoldingDAGDataSource(Map.empty),
-              DataSourceType.FreshWallet -> FreshWalletDataSource(Map.empty),
+              DataSourceType.FreshWallet -> FreshWalletDataSource(freshWalletDataSourceAddresses),
               DataSourceType.ExistingWallets -> ExistingWalletsDataSource(existingWallets)
             ))
           )
