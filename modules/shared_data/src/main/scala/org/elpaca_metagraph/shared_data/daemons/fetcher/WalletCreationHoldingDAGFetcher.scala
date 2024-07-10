@@ -18,6 +18,8 @@ import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.time.LocalDateTime
+
 object WalletCreationHoldingDAGFetcher {
 
   def make[F[_] : Async : Network](
@@ -43,7 +45,7 @@ object WalletCreationHoldingDAGFetcher {
         }
       }
 
-      override def getAddressesAndBuildUpdates: F[List[ElpacaUpdate]] =
+      override def getAddressesAndBuildUpdates(currentDate: LocalDateTime): F[List[ElpacaUpdate]] =
         for {
           _ <- logger.info(s"Fetching wallets from global snapshots")
           integrationnetOperatorsApiResponse <- fetchLatestSnapshotBalances().handleErrorWith { err =>

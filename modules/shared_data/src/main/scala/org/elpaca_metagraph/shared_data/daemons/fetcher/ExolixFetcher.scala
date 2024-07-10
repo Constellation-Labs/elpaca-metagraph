@@ -17,8 +17,8 @@ import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, ZoneOffset}
 
 object ExolixFetcher {
 
@@ -42,13 +42,14 @@ object ExolixFetcher {
         }
       }
 
-      override def getAddressesAndBuildUpdates: F[List[ElpacaUpdate]] = {
+      override def getAddressesAndBuildUpdates(currentDate: LocalDateTime): F[List[ElpacaUpdate]] = {
         val exolixConfig = applicationConfig.exolixDaemon
         val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val currentDate: String = LocalDate.now(ZoneOffset.UTC).format(dateFormatter)
-        val url = s"${exolixConfig.apiUrl.get}/transactions?dateFrom=${currentDate}T00:00:00&dateTo=${currentDate}T23:59:59"
+        val currentDateFormatted: String = currentDate.format(dateFormatter)
+        val url = s"${exolixConfig.apiUrl.get}/transactions?dateFrom=${currentDateFormatted}T00:00:00&dateTo=${currentDateFormatted}T23:59:59"
 
         for {
+          _ <- logger.info(s"Incoming datetime: ${currentDate}. Formatted to date: ${currentDateFormatted}")
           _ <- logger.info(s"Fetching from Exolix using URL: $url")
           exolixApiResponse <- fetchTransactions(url).handleErrorWith { err =>
             logger.error(s"Error when fetching from exolix API: ${err.getMessage}")
@@ -57,6 +58,7 @@ object ExolixFetcher {
           _ <- logger.info(s"Found ${exolixApiResponse.data.length} transactions")
           transactionsToDAG = exolixApiResponse.data.filter(transaction => transaction.coinTo.coinCode == "DAG")
           _ <- logger.info(s"Found ${transactionsToDAG.length} to DAG token transactions")
+          _ <- logger.info(s"To DAG transactions: ${transactionsToDAG}")
 
           transactionsGroupedByAddress = transactionsToDAG.groupBy(event => event.withdrawalAddress)
           dataUpdates = transactionsGroupedByAddress.foldLeft(List.empty[ElpacaUpdate]) { (acc, info) =>

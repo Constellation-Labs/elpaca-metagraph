@@ -15,6 +15,8 @@ import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.time.LocalDateTime
+
 object IntegrationnetNodesOperatorsFetcher {
 
   def make[F[_] : Async : Network](applicationConfig: ApplicationConfig): Fetcher[F] =
@@ -37,7 +39,7 @@ object IntegrationnetNodesOperatorsFetcher {
         }
       }
 
-      override def getAddressesAndBuildUpdates: F[List[ElpacaUpdate]] = {
+      override def getAddressesAndBuildUpdates(currentDate: LocalDateTime): F[List[ElpacaUpdate]] = {
         val integrationnetOperatorsConfig = applicationConfig.integrationnetNodesOperatorsDaemon
         val url = s"${integrationnetOperatorsConfig.apiUrl.get}/proof-of-attendance-metagraph/integrationnet-nodes-in-queue"
 

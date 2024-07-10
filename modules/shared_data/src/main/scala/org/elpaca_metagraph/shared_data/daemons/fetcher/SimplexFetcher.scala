@@ -16,7 +16,7 @@ import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, ZoneOffset}
+import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 
 object SimplexFetcher {
 
@@ -40,13 +40,14 @@ object SimplexFetcher {
         }
       }
 
-      override def getAddressesAndBuildUpdates: F[List[ElpacaUpdate]] = {
+      override def getAddressesAndBuildUpdates(currentDate: LocalDateTime): F[List[ElpacaUpdate]] = {
         val simplexConfig = applicationConfig.simplexDaemon
         val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val currentDate: String = LocalDate.now(ZoneOffset.UTC).format(dateFormatter)
-        val url = s"${simplexConfig.apiUrl.get}/proof-of-attendance-metagraph/simplex-events?eventDate=$currentDate"
+        val currentDateFormatted: String = currentDate.format(dateFormatter)
+        val url = s"${simplexConfig.apiUrl.get}/proof-of-attendance-metagraph/simplex-events?eventDate=$currentDateFormatted"
 
         for {
+          _ <- logger.info(s"Incoming datetime: ${currentDate}. Formatted to date: ${currentDateFormatted}")
           _ <- logger.info(s"Fetching from Simplex using URL: $url")
           simplexApiResponse <- fetchTransactions(url).handleErrorWith { err =>
             logger.error(s"Error when fetching from Lattice Simplex API: ${err.getMessage}")
@@ -60,5 +61,6 @@ object SimplexFetcher {
           }
         } yield dataUpdates
       }
+
     }
 }

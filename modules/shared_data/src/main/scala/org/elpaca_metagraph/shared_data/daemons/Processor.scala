@@ -7,6 +7,8 @@ import org.elpaca_metagraph.shared_data.types.DataUpdates.ElpacaUpdate
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneOffset}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 trait Processor[F[_]] {
@@ -35,7 +37,8 @@ object Processor {
           }
 
       private def process: F[(List[ElpacaUpdate], List[ElpacaUpdate])] = for {
-        updates <- fetcher.getAddressesAndBuildUpdates
+        _ <- logger.info(s"Starting getAddressesAndBuildUpdates with date: ${LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}")
+        updates <- fetcher.getAddressesAndBuildUpdates(LocalDateTime.now(ZoneOffset.UTC))
         subArrays = updates.sliding(batch_size, batch_size).toList.zipWithIndex
 
         _ <- logger.info(s"${updates.length} updates were split into ${subArrays.length} batches of $batch_size updates")
