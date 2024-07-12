@@ -43,4 +43,20 @@ object DataUpdates {
   case class FreshWalletUpdate(
     address: Address
   ) extends ElpacaUpdate
+
+  @derive(encoder, decoder)
+  case class InflowTransactionsUpdate(
+    address      : Address,
+    txnHash      : String,
+    rewardAddress: Address,
+    rewardAmount : Long
+  ) extends ElpacaUpdate
+
+  @derive(encoder, decoder)
+  case class OutflowTransactionsUpdate(
+    address      : Address,
+    txnHash      : String,
+    rewardAddress: Address,
+    rewardAmount : Long
+  ) extends ElpacaUpdate
 }

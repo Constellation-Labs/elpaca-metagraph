@@ -32,6 +32,14 @@ Additionally, there are manual data sources that require a `DataUpdate` to be se
     - **Description:** Wallets created with at least 1,500 DAG and held for 7 days will receive credit.
     - **Worker Function:** The New Wallet worker checks for new wallet creations and their holding status every hour and updates the metagraph accordingly.
 
+5. **Inflow Transactions:**
+   - **Description:** Provided wallets that received transactions great os equal an specific amount of DAG, greater than starting date
+   - **Worker Function:** The worker checks if the provided wallets received any transactions greater than the specified amount of DAG every 30 minutes and updates the metagraph accordingly.
+
+6. **Outflow Transactions:**
+   - **Description:** Provided wallets that sent transactions great os equal an specific amount of DAG, greater than starting date.
+   - **Worker Function:** The worker checks if the provided wallets received any transactions greater than the specified amount of DAG every 30 minutes and updates the metagraph accordingly.
+
 ### Manual Data Sources
 
 1. **All Wallets:**
@@ -62,6 +70,8 @@ Additionally, there are manual data sources that require a `DataUpdate` to be se
 - **IntegrationNet Node Operator Queue Wallets:** 1 token per day in the queue.
 - **New Wallet Creation:** 10 tokens.
 - **All Wallets:** 1 token per wallet.
+- **Inflow Transactions:** Defined in configuration.
+- **Outflow Transactions:** Defined in configuration.
 
 ## Worker/Daemon Functionality
 

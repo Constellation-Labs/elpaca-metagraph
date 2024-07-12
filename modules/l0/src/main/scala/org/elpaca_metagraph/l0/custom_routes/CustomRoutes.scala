@@ -6,7 +6,7 @@ import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import eu.timepit.refined.auto._
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
-import org.elpaca_metagraph.shared_data.types.States.DataSourceType.{ExistingWallets, Exolix, FreshWallet, IntegrationnetNodeOperator, Simplex, WalletCreationHoldingDAG}
+import org.elpaca_metagraph.shared_data.types.States.DataSourceType._
 import org.elpaca_metagraph.shared_data.types.States.ElpacaCalculatedState
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.dsl.Http4sDsl
@@ -42,6 +42,8 @@ case class CustomRoutes[F[_] : Async](calculatedStateService: CalculatedStateSer
           case "walletsholdingdag" => Ok(dataSources.get(WalletCreationHoldingDAG))
           case "freshwallets" => Ok(dataSources.get(FreshWallet))
           case "existingwallets" => Ok(dataSources.get(ExistingWallets))
+          case "inflowtransactions" => Ok(dataSources.get(InflowTransactions))
+          case "outflowtransactions" => Ok(dataSources.get(OutflowTransactions))
           case _ =>
             NotFound()
         }

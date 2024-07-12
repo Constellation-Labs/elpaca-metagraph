@@ -15,12 +15,12 @@ import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 
 object SimplexFetcher {
 
-  def make[F[_] : Async : Network](applicationConfig: ApplicationConfig): Fetcher[F] =
+  def make[F[_] : Async: Network](applicationConfig: ApplicationConfig): Fetcher[F] =
     new Fetcher[F] {
       private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(SimplexFetcher.getClass)
 

@@ -68,6 +68,29 @@ object ElpacaRewards {
             dataSource.addressesToReward.collect {
               case (address, ds) if ds.epochProgressToReward.value == currentEpochProgress.value => address -> ds.amountToReward
             }
+
+          case dataSource: InflowTransactionsDataSource =>
+            dataSource.existingWallets.foldLeft(Map.empty[Address, Long]) { (acc, dsInfo) =>
+              val (_, ds) = dsInfo
+              ds.addressesToReward.collect {
+                case inflowAddressInfo if inflowAddressInfo.epochProgressToReward.value == currentEpochProgress.value =>
+                  inflowAddressInfo.addressToReward -> inflowAddressInfo.amountToReward
+              }.foldLeft(acc) { case (innerAcc, (addressToReward, rewardAmount)) =>
+                innerAcc.updated(addressToReward, innerAcc.getOrElse(addressToReward, 0L) + rewardAmount)
+              }
+            }
+
+          case dataSource: OutflowTransactionsDataSource =>
+            dataSource.existingWallets.foldLeft(Map.empty[Address, Long]) { (acc, dsInfo) =>
+              val (_, ds) = dsInfo
+              ds.addressesToReward.collect {
+                case outflowAddressInfo if outflowAddressInfo.epochProgressToReward.value == currentEpochProgress.value =>
+                  outflowAddressInfo.addressToReward -> outflowAddressInfo.amountToReward
+              }.foldLeft(acc) { case (innerAcc, (addressToReward, rewardAmount)) =>
+                innerAcc.updated(addressToReward, innerAcc.getOrElse(addressToReward, 0L) + rewardAmount)
+              }
+            }
+
           case _ => Map.empty[Address, Long]
         }
       }
@@ -77,7 +100,7 @@ object ElpacaRewards {
         currentEpochProgress            : EpochProgress
       ): F[SortedSet[RewardTransaction]] = for {
         _ <- logger.info("Starting to build the rewards")
-        combinedAddressesAndAmounts = Seq(Exolix, Simplex, IntegrationnetNodeOperator, WalletCreationHoldingDAG, FreshWallet)
+        combinedAddressesAndAmounts = Seq(Exolix, Simplex, IntegrationnetNodeOperator, WalletCreationHoldingDAG, FreshWallet, InflowTransactions, OutflowTransactions)
           .flatMap(getAddressAndAmounts(proofOfAttendanceCalculatedState, currentEpochProgress, _))
           .groupBy(_._1)
           .view
