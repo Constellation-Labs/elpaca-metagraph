@@ -13,7 +13,7 @@ import org.tessellation.node.shared.domain.rewards.Rewards
 import org.tessellation.node.shared.infrastructure.consensus.trigger.{ConsensusTrigger, EventTrigger, TimeTrigger}
 import org.tessellation.node.shared.snapshot.currency.CurrencySnapshotEvent
 import org.tessellation.schema.address.Address
-import org.tessellation.schema.balance.Balance
+import org.tessellation.schema.balance.{Amount, Balance}
 import org.tessellation.schema.epoch.EpochProgress
 import org.tessellation.schema.transaction.{RewardTransaction, Transaction, TransactionAmount}
 import org.tessellation.security.signature.Signed
@@ -46,52 +46,52 @@ object ElpacaRewards {
         state               : ElpacaCalculatedState,
         currentEpochProgress: EpochProgress,
         dataSourceType      : DataSourceType
-      ): Map[Address, Long] = {
-        state.dataSources.get(dataSourceType).fold(Map.empty[Address, Long]) {
+      ): Map[Address, Amount] = {
+        state.dataSources.get(dataSourceType).fold(Map.empty[Address, Amount]) {
           case dataSource: ExolixDataSource =>
             dataSource.addresses.collect {
-              case (address, ds) if ds.epochProgressToReward.value == currentEpochProgress.value => address -> ds.amountToReward
+              case (address, ds) if ds.epochProgressToReward === currentEpochProgress => address -> ds.amountToReward
             }
           case dataSource: SimplexDataSource =>
             dataSource.addresses.collect {
-              case (address, ds) if ds.epochProgressToReward.value == currentEpochProgress.value => address -> ds.amountToReward
+              case (address, ds) if ds.epochProgressToReward === currentEpochProgress => address -> ds.amountToReward
             }
           case dataSource: IntegrationnetNodeOperatorDataSource =>
             dataSource.addresses.collect {
-              case (address, ds) if ds.epochProgressToReward.value == currentEpochProgress.value => address -> ds.amountToReward
+              case (address, ds) if ds.epochProgressToReward === currentEpochProgress => address -> ds.amountToReward
             }
           case dataSource: WalletCreationHoldingDAGDataSource =>
             dataSource.addressesToReward.collect {
-              case (address, ds) if ds.epochProgressToReward.exists(_.value == currentEpochProgress.value) => address -> ds.amountToReward
+              case (address, ds) if ds.epochProgressToReward.contains(currentEpochProgress) => address -> ds.amountToReward
             }
           case dataSource: FreshWalletDataSource =>
             dataSource.addressesToReward.collect {
-              case (address, ds) if ds.epochProgressToReward.value == currentEpochProgress.value => address -> ds.amountToReward
+              case (address, ds) if ds.epochProgressToReward === currentEpochProgress => address -> ds.amountToReward
             }
 
           case dataSource: InflowTransactionsDataSource =>
-            dataSource.existingWallets.foldLeft(Map.empty[Address, Long]) { (acc, dsInfo) =>
+            dataSource.existingWallets.foldLeft(Map.empty[Address, Amount]) { (acc, dsInfo) =>
               val (_, ds) = dsInfo
               ds.addressesToReward.collect {
-                case inflowAddressInfo if inflowAddressInfo.epochProgressToReward.value == currentEpochProgress.value =>
+                case inflowAddressInfo if inflowAddressInfo.epochProgressToReward === currentEpochProgress =>
                   inflowAddressInfo.addressToReward -> inflowAddressInfo.amountToReward
               }.foldLeft(acc) { case (innerAcc, (addressToReward, rewardAmount)) =>
-                innerAcc.updated(addressToReward, innerAcc.getOrElse(addressToReward, 0L) + rewardAmount)
+                innerAcc.updated(addressToReward, innerAcc.getOrElse(addressToReward, Amount.empty).plus(rewardAmount).getOrElse(Amount.empty))
               }
             }
 
           case dataSource: OutflowTransactionsDataSource =>
-            dataSource.existingWallets.foldLeft(Map.empty[Address, Long]) { (acc, dsInfo) =>
+            dataSource.existingWallets.foldLeft(Map.empty[Address, Amount]) { (acc, dsInfo) =>
               val (_, ds) = dsInfo
               ds.addressesToReward.collect {
-                case outflowAddressInfo if outflowAddressInfo.epochProgressToReward.value == currentEpochProgress.value =>
+                case outflowAddressInfo if outflowAddressInfo.epochProgressToReward === currentEpochProgress =>
                   outflowAddressInfo.addressToReward -> outflowAddressInfo.amountToReward
               }.foldLeft(acc) { case (innerAcc, (addressToReward, rewardAmount)) =>
-                innerAcc.updated(addressToReward, innerAcc.getOrElse(addressToReward, 0L) + rewardAmount)
+                innerAcc.updated(addressToReward, innerAcc.getOrElse(addressToReward, Amount.empty).plus(rewardAmount).getOrElse(Amount.empty))
               }
             }
 
-          case _ => Map.empty[Address, Long]
+          case _ => Map.empty[Address, Amount]
         }
       }
 
@@ -104,7 +104,7 @@ object ElpacaRewards {
           .flatMap(getAddressAndAmounts(proofOfAttendanceCalculatedState, currentEpochProgress, _))
           .groupBy(_._1)
           .view
-          .mapValues(_.map(_._2).sum)
+          .mapValues(_.map(_._2.value.value).sum)
           .toMap
 
         transactions <- combinedAddressesAndAmounts.foldLeft(SortedSet.empty[RewardTransaction].pure[F]) {

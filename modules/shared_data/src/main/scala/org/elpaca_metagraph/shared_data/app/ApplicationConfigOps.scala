@@ -3,14 +3,17 @@ package org.elpaca_metagraph.shared_data.app
 import cats.effect.kernel.Sync
 import ciris.Secret
 import com.comcast.ip4s.{Host, Port}
+import eu.timepit.refined.refineV
+import eu.timepit.refined.types.numeric.NonNegLong
 import fs2.io.file.Path
+import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
 import org.tessellation.node.shared.config.types.HttpClientConfig
 import org.tessellation.schema.address.{Address, DAGAddressRefined}
+import org.tessellation.schema.balance.Amount
 import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.generic.semiauto.deriveReader
 import pureconfig.module.catseffect.syntax._
-import eu.timepit.refined.refineV
 
 import java.time.LocalDate
 
@@ -33,6 +36,14 @@ object ConfigReaders {
 
   implicit val portReader: ConfigReader[Port] =
     ConfigReader[Int].emap(i => Port.fromInt(i).toRight(CannotConvert(i.toString, "Port", "Parse resulted in None")))
+
+  implicit val amountReader: ConfigReader[Amount] = {
+    import eu.timepit.refined.pureconfig._
+    ConfigReader[NonNegLong].map(Amount(_))
+  }
+
+  implicit val apiUrlReader: ConfigReader[ApiUrl] = ConfigReader[String].map(ApiUrl.unsafeFrom)
+
 
   implicit val localDateReader: ConfigReader[LocalDate] = ConfigReader[String].map(LocalDate.parse)
   implicit val addressReader: ConfigReader[Address] = ConfigReader[String].map(refineV[DAGAddressRefined](_).toOption.map(Address(_)).get)

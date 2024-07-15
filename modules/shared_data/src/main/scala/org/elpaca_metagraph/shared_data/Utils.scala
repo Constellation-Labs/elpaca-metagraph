@@ -2,10 +2,12 @@ package org.elpaca_metagraph.shared_data
 
 import cats.effect.Async
 import eu.timepit.refined.types.all.PosLong
+import eu.timepit.refined.types.numeric.NonNegLong
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.tessellation.env.env.{KeyAlias, Password, StorePath}
 import org.tessellation.keytool.KeyStoreUtils
 import org.tessellation.schema.address.Address
+import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.transaction.{RewardTransaction, TransactionAmount}
 import org.tessellation.security.SecurityProvider
 import org.typelevel.log4cats.SelfAwareStructuredLogger
@@ -17,10 +19,28 @@ import java.security.KeyPair
 object Utils {
   def logger[F[_] : Async]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("Utils")
 
-  def toTokenAmountFormat(
+  def toTokenFormat(
     balance: Long
   ): Long = {
     (balance * 10e7).toLong
+  }
+
+  def toTokenFormat(
+    amount: Amount
+  ): Long = {
+    toTokenFormat(amount.value.value)
+  }
+
+  def toTokenAmountFormat(
+    balance: Long
+  ): Amount = {
+    Amount(NonNegLong.unsafeFrom(toTokenFormat(balance)))
+  }
+
+  def toTokenAmountFormat(
+    amount: Amount
+  ): Amount = {
+    Amount(NonNegLong.unsafeFrom(toTokenFormat(amount)))
   }
 
   def loadKeyPair[F[_] : Async : SecurityProvider](config: ApplicationConfig): F[KeyPair] = {

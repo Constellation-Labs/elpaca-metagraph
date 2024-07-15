@@ -1,5 +1,7 @@
 package org.elpaca_metagraph.shared_data.types
 
+import cats.Eq
+import cats.syntax.all._
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import org.tessellation.schema.address.Address
@@ -14,12 +16,9 @@ object ConstellationBlockExplorer {
     amount     : Long,
     timestamp  : String
   ) {
-    override def equals(obj: Any): Boolean = obj match {
-      case that: BlockExplorerTransaction => this.hash == that.hash
-      case _ => false
+    implicit val eqInstance: Eq[BlockExplorerTransaction] = Eq.instance { (a, b) =>
+      a.hash === b.hash
     }
-
-    override def hashCode(): Int = hash.hashCode()
   }
 
   case class BlockExplorerApiResponse(data: List[BlockExplorerTransaction])

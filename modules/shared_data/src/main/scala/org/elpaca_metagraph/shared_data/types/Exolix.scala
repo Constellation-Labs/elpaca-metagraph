@@ -1,14 +1,17 @@
 package org.elpaca_metagraph.shared_data.types
 
+import cats.Eq
+import cats.syntax.all._
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
+import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
 
 object Exolix {
   @derive(encoder, decoder)
   case class ExolixDataSourceAddress(
     epochProgressToReward: EpochProgress,
-    amountToReward       : Long,
+    amountToReward       : Amount,
     latestTransactionsIds: Set[String],
     olderTransactionsIds : Set[String]
   )
@@ -28,12 +31,9 @@ object Exolix {
     depositAddress   : String,
     withdrawalAddress: String
   ) {
-    override def equals(obj: Any): Boolean = obj match {
-      case that: ExolixTransaction => this.id == that.id
-      case _ => false
+    implicit val eqInstance: Eq[ExolixTransaction] = Eq.instance { (a, b) =>
+      a.id === b.id
     }
-
-    override def hashCode(): Int = id.hashCode()
   }
 
   case class ExolixApiResponse(data: List[ExolixTransaction])

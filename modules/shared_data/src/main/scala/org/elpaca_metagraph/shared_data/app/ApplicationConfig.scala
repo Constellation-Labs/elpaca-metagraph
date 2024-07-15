@@ -2,8 +2,10 @@ package org.elpaca_metagraph.shared_data.app
 
 import ciris.Secret
 import fs2.io.file.Path
+import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
 import org.tessellation.node.shared.config.types.HttpClientConfig
 import org.tessellation.schema.address.Address
+import org.tessellation.schema.balance.Amount
 
 import java.time.LocalDate
 import scala.concurrent.duration._
@@ -34,42 +36,42 @@ object ApplicationConfig {
   case class ExolixDaemonConfig(
     idleTime: FiniteDuration,
     apiKey  : Option[String],
-    apiUrl  : Option[String]
+    apiUrl  : Option[ApiUrl]
   )
 
   case class SimplexDaemonConfig(
     idleTime: FiniteDuration,
     apiKey  : Option[String],
-    apiUrl  : Option[String],
+    apiUrl  : Option[ApiUrl],
   )
 
   case class IntegrationnetNodesOperatorsDaemonConfig(
     idleTime: FiniteDuration,
     apiKey  : Option[String],
-    apiUrl  : Option[String]
+    apiUrl  : Option[ApiUrl]
   )
 
   case class WalletCreationHoldingDagDaemonConfig(
     idleTime: FiniteDuration,
-    apiUrl  : Option[String]
+    apiUrl  : Option[ApiUrl]
   )
 
   case class WalletsInfo(
     address      : Address,
-    minimumAmount: Long,
-    rewardAmount : Long,
+    minimumAmount: Amount,
+    rewardAmount : Amount,
     afterDate    : LocalDate
   )
 
   case class InflowTransactionsDaemonConfig(
     idleTime   : FiniteDuration,
-    apiUrl     : Option[String],
+    apiUrl     : Option[ApiUrl],
     walletsInfo: List[WalletsInfo]
   )
 
   case class OutflowTransactionsDaemonConfig(
     idleTime   : FiniteDuration,
-    apiUrl     : Option[String],
+    apiUrl     : Option[ApiUrl],
     walletsInfo: List[WalletsInfo]
   )
 

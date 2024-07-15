@@ -1,5 +1,7 @@
 package org.elpaca_metagraph.shared_data.combiners
 
+import cats.syntax.all._
+import monocle.Monocle.toAppliedFocusOps
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
@@ -18,7 +20,7 @@ object FreshWalletCombiner {
     currentEpochProgress        : EpochProgress,
   ): Boolean = {
     existingWalletsDataSource.existingWallets.get(address).exists(_.freshWalletRewarded) ||
-      freshWalletDataSourceAddress.epochProgressToReward.value.value < currentEpochProgress.value.value
+      freshWalletDataSourceAddress.epochProgressToReward < currentEpochProgress
   }
 
   private def createFreshWalletDataSourceAddress(
@@ -50,13 +52,13 @@ object FreshWalletCombiner {
       if (!shouldRemoveAddress) {
         (acc._1, acc._2.updated(address, existingWallet))
       } else {
-        (acc._1 - address, acc._2.updated(address, existingWallet.copy(freshWalletRewarded = true)))
+        (acc._1 - address, acc._2.updated(address, existingWallet.focus(_.freshWalletRewarded).replace(true)))
       }
     }
 
     (
-      freshWalletDataSource.copy(addressesToReward = addressesToRewardUpdated),
-      existingWalletsDataSource.copy(existingWallets = existingWalletsUpdated)
+      freshWalletDataSource.focus(_.addressesToReward).replace(addressesToRewardUpdated),
+      existingWalletsDataSource.focus(_.existingWallets).replace(existingWalletsUpdated)
     )
   }
 
@@ -98,7 +100,7 @@ object FreshWalletCombiner {
     currentCalculatedState: Map[DataSourceType, DataSource],
     currentEpochProgress  : EpochProgress,
     freshWalletUpdate     : FreshWalletUpdate
-  ): Map[DataSourceType, DataSource] = {
+  ): FreshWalletDataSource = {
     val freshWalletDataSourceAddress = createFreshWalletDataSourceAddress(currentEpochProgress)
     val freshWalletDataSource = getCurrentFreshWalletDataSource(currentCalculatedState)
 
@@ -108,8 +110,6 @@ object FreshWalletCombiner {
       case None => freshWalletDataSource.addressesToReward.updated(freshWalletUpdate.address, freshWalletDataSourceAddress)
     }
 
-    val freshWalletDataSourceUpdated = freshWalletDataSource.copy(addressesToReward = freshWalletDataSourceAddressesUpdated)
-    currentCalculatedState
-      .updated(DataSourceType.FreshWallet, freshWalletDataSourceUpdated)
+    freshWalletDataSource.focus(_.addressesToReward).replace(freshWalletDataSourceAddressesUpdated)
   }
 }
