@@ -1,0 +1,24 @@
+name: Setup Java and Scala
+
+inputs:
+  JAVA_VERSION:
+    required: true
+  GITHUB_TOKEN:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Java and scala
+      uses: olafurpg/setup-scala@v13
+      with:
+        java-version: ${{ inputs.JAVA_VERSION }}
+
+    - name: Cache for sbt & coursier ♨️
+      uses: coursier/cache-action@v6
+      id: coursier-cache
+
+    - name: Build tessellation dependencies
+      with:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      uses: "./.github/templates/build_tessellation"
