@@ -1,0 +1,29 @@
+name: Build tessellation dependencies
+
+inputs:
+  GITHUB_TOKEN:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get tessellation version to build
+      shell: bash
+      run: |
+        echo "TESSELLATION_VERSION=v$(cat metagraph/project/Dependencies.scala | grep -E "tessellation = \"(.*)" | grep -o "\".*\"" | grep -Eo "[^\"]*")" >> $GITHUB_ENV
+
+    - name: Clone and generate Tessellation dependencies
+      env:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      shell: bash
+      run: |
+        echo "TESSELLATION_VERSION=$TESSELLATION_VERSION"
+        
+        mkdir .github/dependencies
+        cd .github/dependencies
+        git clone https://github.com/Constellation-Labs/tessellation.git
+        cd tessellation
+        git checkout $TESSELLATION_VERSION
+        
+        sbt clean 
+        sbt kernel/publishM2 dagL1/publishM2 keytool/publishM2 shared/publishM2 nodeShared/publishM2 currencyL0/publishM2 currencyL1/publishM2
