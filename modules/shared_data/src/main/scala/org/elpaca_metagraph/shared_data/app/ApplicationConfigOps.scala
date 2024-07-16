@@ -5,10 +5,14 @@ import ciris.Secret
 import com.comcast.ip4s.{Host, Port}
 import fs2.io.file.Path
 import org.tessellation.node.shared.config.types.HttpClientConfig
+import org.tessellation.schema.address.{Address, DAGAddressRefined}
 import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.generic.semiauto.deriveReader
 import pureconfig.module.catseffect.syntax._
+import eu.timepit.refined.refineV
+
+import java.time.LocalDate
 
 object ApplicationConfigOps {
 
@@ -30,11 +34,17 @@ object ConfigReaders {
   implicit val portReader: ConfigReader[Port] =
     ConfigReader[Int].emap(i => Port.fromInt(i).toRight(CannotConvert(i.toString, "Port", "Parse resulted in None")))
 
+  implicit val localDateReader: ConfigReader[LocalDate] = ConfigReader[String].map(LocalDate.parse)
+  implicit val addressReader: ConfigReader[Address] = ConfigReader[String].map(refineV[DAGAddressRefined](_).toOption.map(Address(_)).get)
+
   implicit val dataApiConfigReader: ConfigReader[ApplicationConfig.DataApiConfig] = deriveReader
   implicit val simplexDaemonConfigReader: ConfigReader[ApplicationConfig.SimplexDaemonConfig] = deriveReader
   implicit val exolixDaemonConfigReader: ConfigReader[ApplicationConfig.ExolixDaemonConfig] = deriveReader
   implicit val integrationnetNodesOperatorsDaemonConfigReader: ConfigReader[ApplicationConfig.IntegrationnetNodesOperatorsDaemonConfig] = deriveReader
   implicit val walletCreationHoldingDagDaemonConfigReader: ConfigReader[ApplicationConfig.WalletCreationHoldingDagDaemonConfig] = deriveReader
+  implicit val walletsInfoReader: ConfigReader[ApplicationConfig.WalletsInfo] = deriveReader
+  implicit val inflowTransactionsDaemonConfigReader: ConfigReader[ApplicationConfig.InflowTransactionsDaemonConfig] = deriveReader
+  implicit val outflowTransactionsDaemonConfigReader: ConfigReader[ApplicationConfig.OutflowTransactionsDaemonConfig] = deriveReader
   implicit val nodeKeyReader: ConfigReader[ApplicationConfig.NodeKey] = deriveReader
   implicit val clientConfigReader: ConfigReader[HttpClientConfig] = deriveReader
   implicit val http4sConfigReader: ConfigReader[ApplicationConfig.Http4sConfig] = deriveReader

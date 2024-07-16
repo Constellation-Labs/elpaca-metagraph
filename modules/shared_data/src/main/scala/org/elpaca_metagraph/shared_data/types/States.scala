@@ -9,7 +9,9 @@ import org.elpaca_metagraph.shared_data.types.DataUpdates.ElpacaUpdate
 import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.Exolix.ExolixDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.FreshWallet.FreshWalletDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.InflowTransactions.InflowTransactionsDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators.IntegrationnetNodeOperatorDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.OutflowTransactions.OutflowTransactionsDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.Simplex.SimplexDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.WalletCreationHoldingDAG.WalletCreationHoldingDAGDataSourceAddress
 import org.tessellation.currency.dataApplication.{DataCalculatedState, DataOnChainState}
@@ -35,6 +37,10 @@ object States {
     case object WalletCreationHoldingDAG extends DataSourceType("WalletCreationHoldingDAG")
 
     case object FreshWallet extends DataSourceType("FreshWallet")
+
+    case object InflowTransactions extends DataSourceType("InflowTransactions")
+
+    case object OutflowTransactions extends DataSourceType("OutflowTransactions")
   }
 
 
@@ -69,6 +75,16 @@ object States {
   @derive(encoder, decoder)
   case class ExistingWalletsDataSource(
     existingWallets: Map[Address, ExistingWalletsDataSourceAddress]
+  ) extends DataSource
+
+  @derive(encoder, decoder)
+  case class InflowTransactionsDataSource(
+    existingWallets: Map[Address, InflowTransactionsDataSourceAddress]
+  ) extends DataSource
+
+  @derive(encoder, decoder)
+  case class OutflowTransactionsDataSource(
+    existingWallets: Map[Address, OutflowTransactionsDataSourceAddress]
   ) extends DataSource
 
   @derive(encoder, decoder)

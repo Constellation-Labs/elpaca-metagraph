@@ -4,7 +4,9 @@ import cats.effect.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.combiners.ExolixCombiner.updateStateExolixResponse
 import org.elpaca_metagraph.shared_data.combiners.FreshWalletCombiner.updateStateFreshWallet
+import org.elpaca_metagraph.shared_data.combiners.InflowTransactionsCombiner.updateStateInflowTransactions
 import org.elpaca_metagraph.shared_data.combiners.IntegrationnetOperatorsCombiner.updateStateIntegrationnetOperatorsResponse
+import org.elpaca_metagraph.shared_data.combiners.OutflowTransactionsCombiner.updateStateOutflowTransactions
 import org.elpaca_metagraph.shared_data.combiners.SimplexCombiner.updateStateSimplexResponse
 import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.updateStateWalletCreationHoldingDAG
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
@@ -55,6 +57,22 @@ object Combiner {
       case update: FreshWalletUpdate =>
         Async[F].delay(
           updateStateFreshWallet(
+            oldState.calculated.dataSources,
+            currentEpochProgress,
+            update
+          ))
+
+      case update: InflowTransactionsUpdate =>
+        Async[F].delay(
+          updateStateInflowTransactions(
+            oldState.calculated.dataSources,
+            currentEpochProgress,
+            update
+          ))
+
+      case update: OutflowTransactionsUpdate =>
+        Async[F].delay(
+          updateStateOutflowTransactions(
             oldState.calculated.dataSources,
             currentEpochProgress,
             update

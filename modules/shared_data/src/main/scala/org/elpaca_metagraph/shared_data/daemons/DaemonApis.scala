@@ -7,7 +7,7 @@ import com.comcast.ip4s.{Host, Port}
 import fs2.io.net.Network
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
-import org.elpaca_metagraph.shared_data.daemons.fetcher.{ExolixFetcher, IntegrationnetNodesOperatorsFetcher, SimplexFetcher, WalletCreationHoldingDAGFetcher}
+import org.elpaca_metagraph.shared_data.daemons.fetcher._
 import org.http4s.client.Client
 import org.tessellation.json.JsonSerializer
 import org.tessellation.node.shared.domain.Daemon
@@ -59,7 +59,9 @@ object DaemonApis {
         val signer = Signer.make[F](keypair, publisher)
 
         logger.info("Spawning L0 daemons") >>
-          spawnWalletCreationDaemon(config, signer, calculatedStateService)
+          spawnWalletCreationDaemon(config, signer, calculatedStateService) >>
+          spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
+          spawnOutflowTransactionsDaemon(config, signer, calculatedStateService)
       }
 
     private def spawn(
@@ -110,6 +112,28 @@ object DaemonApis {
       val newWalletsProcessor = Processor.make[F](newWalletsFetcher, signer)
       logger.info("Spawning WalletCreationHoldingDAG daemon") >>
         spawn(newWalletsProcessor, config.walletCreationHoldingDagDaemon.idleTime).start
+    }
+
+    private def spawnInflowTransactionsDaemon(
+      config                : ApplicationConfig,
+      signer                : Signer[F],
+      calculatedStateService: CalculatedStateService[F]
+    ): F[Unit] = {
+      val inflowTransactionsFetcher = InflowTransactionsFetcher.make[F](config, calculatedStateService)
+      val inflowTransactionsProcessor = Processor.make[F](inflowTransactionsFetcher, signer)
+      logger.info("Spawning Inflow Transactions daemon") >>
+        spawn(inflowTransactionsProcessor, config.inflowTransactionsDaemon.idleTime).start
+    }
+
+    private def spawnOutflowTransactionsDaemon(
+      config                : ApplicationConfig,
+      signer                : Signer[F],
+      calculatedStateService: CalculatedStateService[F]
+    ): F[Unit] = {
+      val outflowTransactionsFetcher = OutflowTransactionsFetcher.make[F](config, calculatedStateService)
+      val outflowTransactionsProcessor = Processor.make[F](outflowTransactionsFetcher, signer)
+      logger.info("Spawning Outflow Transactions daemon") >>
+        spawn(outflowTransactionsProcessor, config.inflowTransactionsDaemon.idleTime).start
     }
   }
 }
