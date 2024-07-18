@@ -1,0 +1,201 @@
+name: Deploy
+
+inputs:
+  SSH_NODE_1_HOST:
+    required: true
+  SSH_NODE_2_HOST:
+    required: true
+  SSH_NODE_3_HOST:
+    required: true
+  SSH_NODE_1_USER:
+    required: true
+  SSH_NODE_2_USER:
+    required: true
+  SSH_NODE_3_USER:
+    required: true
+  SSH_HOST_MONITORING:
+    required: true
+  SSH_USER_MONITORING:
+    required: true
+  MONITORING_PROJECT_DIRECTORY:
+    required: true
+  SSH_PRIVATE_KEY:
+    required: true
+  GITHUB_TOKEN:
+    required: true
+
+#Configuration file variables
+  DATA_API_IP:
+    required: true
+  DATA_API_PORT:
+    required: true
+  EXOLIX_API_URL:
+    required: true
+  EXOLIX_API_KEY:
+    required: true
+  EXOLIX_WORKER_INTERVAL:
+    required: true
+  SIMPLEX_API_URL:
+    required: true
+  SIMPLEX_API_KEY:
+    required: true
+  SIMPLEX_WORKER_INTERVAL:
+    required: true
+  INTEGRATIONNET_OPERATORS_API_URL:
+    required: true
+  INTEGRATIONNET_OPERATORS_API_KEY:
+    required: true
+  INTEGRATIONNET_OPERATORS_WORKER_INTERVAL:
+    required: true
+  WALLET_HOLDING_DAG_API_URL:
+    required: true
+  WALLET_HOLDING_DAG_WORKER_INTERVAL:
+    required: true
+  INFLOW_TRANSACTIONS_API_URL:
+    required: true
+  INFLOW_TRANSACTIONS_WALLETS:
+    required: true
+  INFLOW_TRANSACTIONS_WORKER_INTERVAL:
+    required: true
+  OUTFLOW_TRANSACTIONS_API_URL:
+    required: true
+  OUTFLOW_TRANSACTIONS_WALLETS:
+    required: true
+  OUTFLOW_TRANSACTIONS_WORKER_INTERVAL:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+    - name: Setup Java and scala
+      with:
+        JAVA_VERSION: openjdk@1.11.0
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      uses: "./.github/templates/setup_java_and_scala"
+
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ inputs.SSH_PRIVATE_KEY }}
+
+    - name: Install envsubst
+      shell: bash
+      run: sudo apt-get install -y gettext
+
+    - name: Replace API Keys in application.conf
+      shell: bash
+      run: |
+        export DATA_API_IP="${{ inputs.DATA_API_IP }}"
+        export DATA_API_PORT="${{ inputs.DATA_API_PORT }}"
+
+        export EXOLIX_API_URL="${{ inputs.EXOLIX_API_URL }}"
+        export EXOLIX_API_KEY="${{ inputs.EXOLIX_API_KEY }}"
+        export EXOLIX_WORKER_INTERVAL="${{ inputs.EXOLIX_WORKER_INTERVAL }}"
+
+        export SIMPLEX_API_URL="${{ inputs.SIMPLEX_API_URL }}"
+        export SIMPLEX_API_KEY="${{ inputs.SIMPLEX_API_KEY }}"
+        export SIMPLEX_WORKER_INTERVAL="${{ inputs.SIMPLEX_WORKER_INTERVAL }}"
+
+        export INTEGRATIONNET_OPERATORS_API_URL="${{ inputs.INTEGRATIONNET_OPERATORS_API_URL }}"
+        export INTEGRATIONNET_OPERATORS_API_KEY="${{ inputs.INTEGRATIONNET_OPERATORS_API_KEY }}"
+        export INTEGRATIONNET_OPERATORS_WORKER_INTERVAL="${{ inputs.INTEGRATIONNET_OPERATORS_WORKER_INTERVAL }}"
+
+        export WALLET_HOLDING_DAG_API_URL="${{ inputs.WALLET_HOLDING_DAG_API_URL }}"
+        export WALLET_HOLDING_DAG_WORKER_INTERVAL="${{ inputs.WALLET_HOLDING_DAG_WORKER_INTERVAL }}"
+
+        export INFLOW_TRANSACTIONS_API_URL="${{ inputs.INFLOW_TRANSACTIONS_API_URL }}"
+        export INFLOW_TRANSACTIONS_WALLETS="${{ inputs.INFLOW_TRANSACTIONS_WALLETS }}"
+        export INFLOW_TRANSACTIONS_WORKER_INTERVAL="${{ inputs.INFLOW_TRANSACTIONS_WORKER_INTERVAL }}"
+
+        export OUTFLOW_TRANSACTIONS_API_URL="${{ inputs.OUTFLOW_TRANSACTIONS_API_URL }}"
+        export OUTFLOW_TRANSACTIONS_WALLETS="${{ inputs.OUTFLOW_TRANSACTIONS_WALLETS }}"
+        export OUTFLOW_TRANSACTIONS_WORKER_INTERVAL="${{ inputs.OUTFLOW_TRANSACTIONS_WORKER_INTERVAL }}"
+
+        cd modules/shared_data/src/main/resources
+        envsubst < application.conf > application.conf.tmp
+
+        # Revert placeholders back to the original format
+        sed -i 's/CL_KEYSTORE_PLACEHOLDER/${CL_KEYSTORE}/g' application.conf.tmp
+        sed -i 's/CL_KEYALIAS_PLACEHOLDER/${CL_KEYALIAS}/g' application.conf.tmp
+        sed -i 's/CL_PASSWORD_PLACEHOLDER/${CL_PASSWORD}/g' application.conf.tmp
+
+        mv application.conf.tmp application.conf
+
+    - name: Fetch Dependencies
+      shell: bash
+      if: steps.coursier-cache.outputs.cache-hit-coursier != 'true'
+      env:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      run: |
+        sbt +update
+
+    - name: Assembly 🚀
+      env:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      shell: bash
+      run: |
+        sbt 'currencyL0/assembly;currencyL1/assembly;dataL1/assembly'
+
+    - name: Copy dependencies
+      shell: bash
+      run: |
+        cp ./modules/l0/target/scala-2.13/elpaca_metagraph-currency-l0-assembly-*.jar ./metagraph-l0.jar
+        cp ./modules/l1/target/scala-2.13/elpaca_metagraph-currency-l1-assembly-*.jar ./currency-l1.jar
+        cp ./modules/data_l1/target/scala-2.13/elpaca_metagraph-data_l1-assembly-*.jar ./data-l1.jar
+
+    - name: Copy Metagraph L0 - Node 1
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no metagraph-l0.jar ${{ inputs.SSH_NODE_1_USER }}@${{ inputs.SSH_NODE_1_HOST }}:code/metagraph-l0/metagraph-l0.jar
+
+    - name: Copy Metagraph L0 - Node 2
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no metagraph-l0.jar ${{ inputs.SSH_NODE_2_USER }}@${{ inputs.SSH_NODE_2_HOST }}:code/metagraph-l0/metagraph-l0.jar
+
+    - name: Copy Metagraph L0 - Node 3
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no metagraph-l0.jar ${{ inputs.SSH_NODE_3_USER }}@${{ inputs.SSH_NODE_3_HOST }}:code/metagraph-l0/metagraph-l0.jar
+
+    - name: Copy Currency L1 - Node 1
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no currency-l1.jar ${{ inputs.SSH_NODE_1_USER }}@${{ inputs.SSH_NODE_1_HOST }}:code/currency-l1/currency-l1.jar
+
+    - name: Copy Currency L1 - Node 2
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no currency-l1.jar ${{ inputs.SSH_NODE_2_USER }}@${{ inputs.SSH_NODE_2_HOST }}:code/currency-l1/currency-l1.jar
+
+    - name: Copy Currency L1 - Node 3
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no currency-l1.jar ${{ inputs.SSH_NODE_3_USER }}@${{ inputs.SSH_NODE_3_HOST }}:code/currency-l1/currency-l1.jar
+
+    - name: Copy Data L1 - Node 1
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no data-l1.jar ${{ inputs.SSH_NODE_1_USER }}@${{ inputs.SSH_NODE_1_HOST }}:code/data-l1/data-l1.jar
+
+    - name: Copy Data L1 - Node 2
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no data-l1.jar ${{ inputs.SSH_NODE_2_USER }}@${{ inputs.SSH_NODE_2_HOST }}:code/data-l1/data-l1.jar
+
+    - name: Copy Data L1 - Node 3
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no data-l1.jar ${{ inputs.SSH_NODE_3_USER }}@${{ inputs.SSH_NODE_3_HOST }}:code/data-l1/data-l1.jar
+
+
+    - name: Stopping execution in monitoring
+      shell: bash
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ inputs.SSH_USER_MONITORING }}@${{ inputs.SSH_HOST_MONITORING }} "cd ${{ inputs.MONITORING_PROJECT_DIRECTORY }}; yarn kill"
+
+    - name: Forcing metagraph restart
+      shell: bash
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ inputs.SSH_USER_MONITORING }}@${{ inputs.SSH_HOST_MONITORING }} "cd ${{ inputs.MONITORING_PROJECT_DIRECTORY }}; yarn force-restart"

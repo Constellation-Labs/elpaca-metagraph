@@ -1,0 +1,55 @@
+name: Deploy Integrationnet
+
+on:
+  push:
+    branches:
+      - "deploy/integrationnet"
+
+jobs:
+  deploy-integrationnet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deploy Integrationnet
+        uses: "./.github/templates/deploy"
+        with:
+          DATA_API_IP: ${{ secrets.DATA_API_IP }}
+          DATA_API_PORT: ${{ secrets.DATA_API_PORT }}
+
+          EXOLIX_API_URL: ${{ secrets.EXOLIX_API_URL }}
+          EXOLIX_API_KEY: ${{ secrets.EXOLIX_API_KEY }}
+          EXOLIX_WORKER_INTERVAL: ${{ secrets.EXOLIX_WORKER_INTERVAL }}
+
+          SIMPLEX_API_URL: ${{ secrets.SIMPLEX_API_URL }}
+          SIMPLEX_API_KEY: ${{ secrets.SIMPLEX_API_KEY }}
+          SIMPLEX_WORKER_INTERVAL: ${{ secrets.SIMPLEX_WORKER_INTERVAL }}
+
+          INTEGRATIONNET_OPERATORS_API_URL: ${{ secrets.INTEGRATIONNET_OPERATORS_API_URL }}
+          INTEGRATIONNET_OPERATORS_API_KEY: ${{ secrets.INTEGRATIONNET_OPERATORS_API_KEY }}
+          INTEGRATIONNET_OPERATORS_WORKER_INTERVAL: ${{ secrets.INTEGRATIONNET_OPERATORS_WORKER_INTERVAL }}
+
+          WALLET_HOLDING_DAG_API_URL: ${{ secrets.WALLET_HOLDING_DAG_API_URL }}
+          WALLET_HOLDING_DAG_WORKER_INTERVAL: ${{ secrets.WALLET_HOLDING_DAG_WORKER_INTERVAL }}
+
+          INFLOW_TRANSACTIONS_API_URL: ${{ secrets.INFLOW_TRANSACTIONS_API_URL }}
+          INFLOW_TRANSACTIONS_WALLETS: ${{ secrets.INFLOW_TRANSACTIONS_WALLETS }}
+          INFLOW_TRANSACTIONS_WORKER_INTERVAL: ${{ secrets.INFLOW_TRANSACTIONS_WORKER_INTERVAL }}
+
+          OUTFLOW_TRANSACTIONS_API_URL: ${{ secrets.OUTFLOW_TRANSACTIONS_API_URL }}
+          OUTFLOW_TRANSACTIONS_WALLETS: ${{ secrets.OUTFLOW_TRANSACTIONS_WALLETS }}
+          OUTFLOW_TRANSACTIONS_WORKER_INTERVAL: ${{ secrets.OUTFLOW_TRANSACTIONS_WORKER_INTERVAL }}
+
+          SSH_NODE_1_HOST: ${{ secrets.SSH_HOST_INTNET_1 }}
+          SSH_NODE_1_USER: ${{ secrets.SSH_USER_INTNET_1 }}
+          SSH_NODE_2_HOST: ${{ secrets.SSH_HOST_INTNET_2 }}
+          SSH_NODE_2_USER: ${{ secrets.SSH_USER_INTNET_2 }}
+          SSH_NODE_3_HOST: ${{ secrets.SSH_HOST_INTNET_3 }}
+          SSH_NODE_3_USER: ${{ secrets.SSH_USER_INTNET_3 }}
+
+          SSH_HOST_MONITORING: ${{ secrets.SSH_HOST_INTNET_MONITORING }}
+          SSH_USER_MONITORING: ${{ secrets.SSH_USER_INTNET_MONITORING }}
+          MONITORING_PROJECT_DIRECTORY: ${{ secrets.INTNET_MONITORING_PROJECT_DIRECTORY }}
+
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_INTNET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

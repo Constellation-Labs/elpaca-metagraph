@@ -10,7 +10,7 @@ runs:
     - name: Get tessellation version to build
       shell: bash
       run: |
-        echo "TESSELLATION_VERSION=v$(cat metagraph/project/Dependencies.scala | grep -E "tessellation = \"(.*)" | grep -o "\".*\"" | grep -Eo "[^\"]*")" >> $GITHUB_ENV
+        echo "TESSELLATION_VERSION=v$(cat project/Dependencies.scala | grep -E "tessellation = \"(.*)" | grep -o "\".*\"" | grep -Eo "[^\"]*")" >> $GITHUB_ENV
 
     - name: Clone and generate Tessellation dependencies
       env:
