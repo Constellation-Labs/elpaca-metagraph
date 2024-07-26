@@ -1,9 +1,13 @@
 package org.elpaca_metagraph.shared_data.types
 
+
+import cats.Eq
+import cats.syntax.all._
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import io.circe.generic.auto._
 import org.tessellation.schema.address.Address
+import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
 
 object Simplex {
@@ -17,7 +21,7 @@ object Simplex {
   @derive(encoder, decoder)
   case class SimplexDataSourceAddress(
     epochProgressToReward: EpochProgress,
-    amountToReward       : Long,
+    amountToReward       : Amount,
     latestTransactionsIds: Set[String],
     olderTransactionsIds : Set[String]
   )
@@ -29,12 +33,9 @@ object Simplex {
     destinationWalletAddress: Address,
     payment                 : Payment,
   ) {
-    override def equals(obj: Any): Boolean = obj match {
-      case that: SimplexEvent => this.eventId == that.eventId
-      case _ => false
+    implicit val eqInstance: Eq[SimplexEvent] = Eq.instance { (a, b) =>
+      a.eventId === b.eventId
     }
-
-    override def hashCode(): Int = eventId.hashCode()
   }
 
   case class SimplexApiResponse(data: List[SimplexEvent])

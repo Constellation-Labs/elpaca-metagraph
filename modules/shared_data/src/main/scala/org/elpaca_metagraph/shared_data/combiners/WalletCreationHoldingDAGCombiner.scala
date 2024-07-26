@@ -1,6 +1,7 @@
 package org.elpaca_metagraph.shared_data.combiners
 
 import cats.syntax.all._
+import monocle.Monocle.toAppliedFocusOps
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
@@ -27,7 +28,7 @@ object WalletCreationHoldingDAGCombiner {
   ): Boolean =
     existingWalletsDataSource.existingWallets.get(address).exists(_.holdingDAGRewarded) ||
       walletRewardAddress.balance < toTokenAmountFormat(1500) ||
-      walletRewardAddress.epochProgressToReward.exists(epochProgress => epochProgress.value.value < currentEpochProgress.value.value)
+      walletRewardAddress.epochProgressToReward.exists(epochProgress => epochProgress < currentEpochProgress)
 
   private def createWalletCreationHoldingDAGDataSourceAddress(
     currentEpochProgress: EpochProgress,
@@ -47,9 +48,9 @@ object WalletCreationHoldingDAGCombiner {
     currentWalletCreationDataSource: WalletCreationHoldingDAGDataSource,
     currentEpochProgress           : EpochProgress
   ): Map[Address, WalletCreationHoldingDAGDataSourceAddress] = {
-    val updatedExisting = existing.copy(balance = walletCreationUpdate.balance)
+    val updatedExisting = existing.focus(_.balance).replace(walletCreationUpdate.balance)
     if (addressHoldsDAGForAtLeast5Days(existing, currentEpochProgress) && existing.epochProgressToReward.isEmpty) {
-      currentWalletCreationDataSource.addressesToReward.updated(walletCreationUpdate.address, updatedExisting.copy(epochProgressToReward = currentEpochProgress.some))
+      currentWalletCreationDataSource.addressesToReward.updated(walletCreationUpdate.address, updatedExisting.focus(_.epochProgressToReward).replace(currentEpochProgress.some))
     } else {
       currentWalletCreationDataSource.addressesToReward.updated(walletCreationUpdate.address, updatedExisting)
     }
@@ -76,13 +77,13 @@ object WalletCreationHoldingDAGCombiner {
       if (!shouldRemoveAddress) {
         (acc._1, acc._2.updated(address, existingWallet))
       } else {
-        (acc._1 - address, acc._2.updated(address, existingWallet.copy(holdingDAGRewarded = true)))
+        (acc._1 - address, acc._2.updated(address, existingWallet.focus(_.holdingDAGRewarded).replace(true)))
       }
     }
 
     (
-      walletCreationHoldingDAGDataSource.copy(addressesToReward = addressesToRewardUpdated),
-      existingWalletsDataSource.copy(existingWallets = existingWalletsUpdated)
+      walletCreationHoldingDAGDataSource.focus(_.addressesToReward).replace(addressesToRewardUpdated),
+      existingWalletsDataSource.focus(_.existingWallets).replace(existingWalletsUpdated)
     )
   }
 
@@ -124,7 +125,7 @@ object WalletCreationHoldingDAGCombiner {
     currentCalculatedState        : Map[DataSourceType, DataSource],
     currentEpochProgress          : EpochProgress,
     walletCreationHoldingDAGUpdate: WalletCreationHoldingDAGUpdate
-  ): Map[DataSourceType, DataSource] = {
+  ): WalletCreationHoldingDAGDataSource = {
     val walletCreationHoldingDAGDataSourceAddress = createWalletCreationHoldingDAGDataSourceAddress(currentEpochProgress, walletCreationHoldingDAGUpdate)
     val walletCreationHoldingDAGDataSource = getCurrentWalletCreationHoldingDAGDataSource(currentCalculatedState)
 
@@ -139,9 +140,6 @@ object WalletCreationHoldingDAGCombiner {
       case None => walletCreationHoldingDAGDataSource.addressesToReward.updated(walletCreationHoldingDAGUpdate.address, walletCreationHoldingDAGDataSourceAddress)
     }
 
-    val walletCreationHoldingDAGDataSourceUpdated = walletCreationHoldingDAGDataSource.copy(addressesToReward = walletCreationHoldingDAGDataSourceAddressesUpdated)
-
-    currentCalculatedState
-      .updated(DataSourceType.WalletCreationHoldingDAG, walletCreationHoldingDAGDataSourceUpdated)
+    walletCreationHoldingDAGDataSource.focus(_.addressesToReward).replace(walletCreationHoldingDAGDataSourceAddressesUpdated)
   }
 }

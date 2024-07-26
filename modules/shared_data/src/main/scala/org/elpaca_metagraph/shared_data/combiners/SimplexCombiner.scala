@@ -2,7 +2,7 @@ package org.elpaca_metagraph.shared_data.combiners
 
 import cats.effect.Async
 import cats.syntax.all._
-import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
+import org.elpaca_metagraph.shared_data.Utils.{toTokenAmountFormat, toTokenFormat}
 import org.elpaca_metagraph.shared_data.types.DataUpdates.SimplexUpdate
 import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.Simplex._
@@ -26,8 +26,8 @@ object SimplexCombiner {
     newEventsIds        : Set[String],
     currentEpochProgress: EpochProgress
   ): Long = {
-    if (currentEpochProgress.value.value < existing.epochProgressToReward.value.value) {
-      (simplexRewardAmount * newEventsIds.size) + existing.amountToReward
+    if (currentEpochProgress < existing.epochProgressToReward) {
+      (simplexRewardAmount * newEventsIds.size) + existing.amountToReward.value.value
     } else {
       simplexRewardAmount * newEventsIds.size
     }
@@ -88,13 +88,8 @@ object SimplexCombiner {
     currentCalculatedState: Map[DataSourceType, DataSource],
     currentEpochProgress  : EpochProgress,
     simplexUpdate         : SimplexUpdate
-  ): F[Map[DataSourceType, DataSource]] = {
-
+  ): F[SimplexDataSource] =
     getSimplexDataSourceUpdatedAddresses(currentCalculatedState, simplexUpdate, currentEpochProgress).map { updatedAddresses =>
-      currentCalculatedState.updated(
-        DataSourceType.Simplex,
         SimplexDataSource(updatedAddresses)
-      )
     }
-  }
 }

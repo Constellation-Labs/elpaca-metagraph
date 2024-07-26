@@ -23,67 +23,86 @@ object Combiner {
     currentEpochProgress: EpochProgress,
     update              : Signed[ElpacaUpdate]
   ): F[DataState[ElpacaOnChainState, ElpacaCalculatedState]] = {
-    val updatedCalculatedStateF = update.value match {
+    val currentDataSources = oldState.calculated.dataSources
+
+    val (dataSourceType, updatedDataSourceF): (DataSourceType, F[DataSource]) = update.value match {
       case update: ExolixUpdate =>
         implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("ExolixCombiner")
-        updateStateExolixResponse(
-          oldState.calculated.dataSources,
+        val exolixDataSourceUpdated = updateStateExolixResponse(
+          currentDataSources,
           currentEpochProgress,
           update
-        )
+        ).map(_.asInstanceOf[DataSource])
+
+        (DataSourceType.Exolix, exolixDataSourceUpdated)
+
       case update: SimplexUpdate =>
         implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("SimplexCombiner")
-        updateStateSimplexResponse(
-          oldState.calculated.dataSources,
+        val simplexDataSourceUpdated = updateStateSimplexResponse(
+          currentDataSources,
           currentEpochProgress,
           update
-        )
+        ).map(_.asInstanceOf[DataSource])
+
+        (DataSourceType.Simplex, simplexDataSourceUpdated)
 
       case update: IntegrationnetNodeOperatorUpdate =>
         implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("IntegrationnetOperatorsCombiner")
-        updateStateIntegrationnetOperatorsResponse(
-          oldState.calculated.dataSources,
+        val integrationnetDataSourceUpdated = updateStateIntegrationnetOperatorsResponse(
+          currentDataSources,
           currentEpochProgress,
           update
-        )
+        ).map(_.asInstanceOf[DataSource])
+
+        (DataSourceType.IntegrationnetNodeOperator, integrationnetDataSourceUpdated)
 
       case update: WalletCreationHoldingDAGUpdate =>
-        Async[F].delay(updateStateWalletCreationHoldingDAG(
+        val updatedWalletCreationHoldingDAGDataSource = updateStateWalletCreationHoldingDAG(
+          currentDataSources,
+          currentEpochProgress,
+          update
+        ).asInstanceOf[DataSource]
+
+        (DataSourceType.WalletCreationHoldingDAG, updatedWalletCreationHoldingDAGDataSource.pure)
+
+      case update: FreshWalletUpdate =>
+        val freshWalletDataSourceUpdate = updateStateFreshWallet(
           oldState.calculated.dataSources,
           currentEpochProgress,
           update
-        ))
+        ).asInstanceOf[DataSource]
 
-      case update: FreshWalletUpdate =>
-        Async[F].delay(
-          updateStateFreshWallet(
-            oldState.calculated.dataSources,
-            currentEpochProgress,
-            update
-          ))
+        (DataSourceType.WalletCreationHoldingDAG, freshWalletDataSourceUpdate.pure)
 
       case update: InflowTransactionsUpdate =>
-        Async[F].delay(
-          updateStateInflowTransactions(
-            oldState.calculated.dataSources,
-            currentEpochProgress,
-            update
-          ))
+        val updatedInflowTransactionsDataSource = updateStateInflowTransactions(
+          currentDataSources,
+          currentEpochProgress,
+          update
+        ).asInstanceOf[DataSource]
+
+        (DataSourceType.InflowTransactions, updatedInflowTransactionsDataSource.pure)
 
       case update: OutflowTransactionsUpdate =>
-        Async[F].delay(
-          updateStateOutflowTransactions(
-            oldState.calculated.dataSources,
-            currentEpochProgress,
-            update
-          ))
+        val updatedOutflowTransactionsDataSource = updateStateOutflowTransactions(
+          currentDataSources,
+          currentEpochProgress,
+          update
+        ).asInstanceOf[DataSource]
+
+        (DataSourceType.OutflowTransactions, updatedOutflowTransactionsDataSource.pure)
     }
-
-    val updates: List[ElpacaUpdate] = update.value :: oldState.onChain.updates
-
-    updatedCalculatedStateF.map(updatedCalculatedState => DataState(
-      ElpacaOnChainState(updates),
-      ElpacaCalculatedState(updatedCalculatedState)
-    ))
+    updatedDataSourceF.map { updatedDataSource =>
+      val updates: List[ElpacaUpdate] = update.value :: oldState.onChain.updates
+      DataState(
+        ElpacaOnChainState(updates),
+        ElpacaCalculatedState(
+          currentDataSources.updated(
+            dataSourceType,
+            updatedDataSource
+          )
+        )
+      )
+    }
   }
 }

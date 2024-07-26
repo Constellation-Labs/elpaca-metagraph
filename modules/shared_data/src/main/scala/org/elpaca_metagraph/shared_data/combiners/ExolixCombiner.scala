@@ -4,8 +4,8 @@ import cats.effect.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.types.DataUpdates.ExolixUpdate
-import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.Exolix._
+import org.elpaca_metagraph.shared_data.types.States._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
 import org.typelevel.log4cats.Logger
@@ -22,11 +22,11 @@ object ExolixCombiner {
   }
 
   private def calculateRewardsAmount(
-    existing             : ExolixDataSourceAddress,
-    newTxnsIds           : Set[String],
+    existing            : ExolixDataSourceAddress,
+    newTxnsIds          : Set[String],
     currentEpochProgress: EpochProgress): Long = {
-    if (currentEpochProgress.value.value < existing.epochProgressToReward.value.value) {
-      (exolixRewardAmount * newTxnsIds.size) + existing.amountToReward
+    if (currentEpochProgress < existing.epochProgressToReward) {
+      (exolixRewardAmount * newTxnsIds.size) + existing.amountToReward.value.value
     } else {
       exolixRewardAmount * newTxnsIds.size
     }
@@ -36,7 +36,7 @@ object ExolixCombiner {
     existing               : ExolixDataSourceAddress,
     exolixUpdate           : ExolixUpdate,
     currentExolixDataSource: ExolixDataSource,
-    currentEpochProgress  : EpochProgress
+    currentEpochProgress   : EpochProgress
   ): F[Map[Address, ExolixDataSourceAddress]] = {
     val newTxnsIds = getNewTransactionsIds(existing, exolixUpdate)
 
@@ -85,14 +85,10 @@ object ExolixCombiner {
 
   def updateStateExolixResponse[F[_] : Async : Logger](
     currentCalculatedState: Map[DataSourceType, DataSource],
-    currentEpochProgress : EpochProgress,
+    currentEpochProgress  : EpochProgress,
     exolixUpdate          : ExolixUpdate
-  ): F[Map[DataSourceType, DataSource]] = {
+  ): F[ExolixDataSource] =
     getExolixDataSourceUpdatedAddresses(currentCalculatedState, exolixUpdate, currentEpochProgress).map { updatedAddresses =>
-      currentCalculatedState.updated(
-        DataSourceType.Exolix,
-        ExolixDataSource(updatedAddresses)
-      )
+      ExolixDataSource(updatedAddresses)
     }
-  }
 }

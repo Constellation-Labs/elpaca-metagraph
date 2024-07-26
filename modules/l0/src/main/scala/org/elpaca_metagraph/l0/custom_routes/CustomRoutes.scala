@@ -28,26 +28,28 @@ case class CustomRoutes[F[_] : Async](calculatedStateService: CalculatedStateSer
       .flatMap(state => Ok(CalculatedStateResponse(state.ordinal.value.value, state.state)))
   }
 
-  private def getCalculatedStateByDataSource(
-    dataSourceName: String
-  ): F[Response[F]] = {
+  private def getCalculatedStateByDataSource(dataSourceName: String): F[Response[F]] = {
+    val dataSourceMap = Map(
+      "exolix" -> Exolix,
+      "simplex" -> Simplex,
+      "integrationnetqueue" -> IntegrationnetNodeOperator,
+      "walletsholdingdag" -> WalletCreationHoldingDAG,
+      "freshwallets" -> FreshWallet,
+      "existingwallets" -> ExistingWallets,
+      "inflowtransactions" -> InflowTransactions,
+      "outflowtransactions" -> OutflowTransactions
+    )
+
     calculatedStateService
       .get
       .flatMap { state =>
-        val dataSources = state.state.dataSources
-        dataSourceName.toLowerCase match {
-          case "exolix" => Ok(dataSources.get(Exolix))
-          case "simplex" => Ok(dataSources.get(Simplex))
-          case "integrationnetqueue" => Ok(dataSources.get(IntegrationnetNodeOperator))
-          case "walletsholdingdag" => Ok(dataSources.get(WalletCreationHoldingDAG))
-          case "freshwallets" => Ok(dataSources.get(FreshWallet))
-          case "existingwallets" => Ok(dataSources.get(ExistingWallets))
-          case "inflowtransactions" => Ok(dataSources.get(InflowTransactions))
-          case "outflowtransactions" => Ok(dataSources.get(OutflowTransactions))
-          case _ =>
-            NotFound()
-        }
+        dataSourceMap
+          .get(dataSourceName.toLowerCase)
+          .map(state.state.dataSources.get)
+          .map(Ok(_))
+          .getOrElse(NotFound())
       }
+
   }
 
   private val routes: HttpRoutes[F] = HttpRoutes.of[F] {

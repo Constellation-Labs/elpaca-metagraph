@@ -4,7 +4,7 @@ import cats.effect.{Async, Resource}
 import cats.syntax.all._
 import fs2.io.net.Network
 import io.circe.generic.auto._
-import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
+import org.elpaca_metagraph.shared_data.Utils.{toTokenAmountFormat, toTokenFormat}
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig.WalletsInfo
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
@@ -63,7 +63,7 @@ object OutflowTransactionsFetcher {
           val timestampL: LocalDateTime = timestampZ.toLocalDateTime
 
           timestampL.isAfter(walletInfo.afterDate.atStartOfDay()) &&
-            transaction.amount >= toTokenAmountFormat(walletInfo.minimumAmount)
+            transaction.amount >= toTokenFormat(walletInfo.minimumAmount)
         }
 
         outflowTransactionsResponse.data.filter { transaction =>

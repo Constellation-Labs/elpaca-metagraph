@@ -1,5 +1,7 @@
 package org.elpaca_metagraph.shared_data.combiners
 
+import cats.syntax.all._
+import monocle.Monocle.toAppliedFocusOps
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.OutflowTransactions.{OutflowAddressToRewardInfo, OutflowTransactionsDataSourceAddress}
 import org.elpaca_metagraph.shared_data.types.States._
@@ -24,15 +26,20 @@ object OutflowTransactionsCombiner {
   ): OutflowTransactionsDataSource =
     outflowTransactionsDataSource.existingWallets.foldLeft(outflowTransactionsDataSource) { (acc, entry) =>
       val (address, outflowTransactionsDataSourceAddress) = entry
-      val addressesToReward = outflowTransactionsDataSourceAddress.addressesToReward.filter(_.epochProgressToReward.value.value >= currentEpochProgress.value.value)
+      val addressesToReward = outflowTransactionsDataSourceAddress.addressesToReward.filter(_.epochProgressToReward >= currentEpochProgress)
       val alreadyRewardedAddressesHashes = outflowTransactionsDataSourceAddress.addressesToReward
-        .filter(_.epochProgressToReward.value.value < currentEpochProgress.value.value)
+        .filter(_.epochProgressToReward < currentEpochProgress)
         .map(_.txnHash)
 
       val outflowTransactionsDataSourceAddressUpdated = outflowTransactionsDataSourceAddress
-        .copy(addressesToReward = addressesToReward, transactionsHashRewarded = outflowTransactionsDataSourceAddress.transactionsHashRewarded ++ alreadyRewardedAddressesHashes)
+        .focus(_.addressesToReward)
+        .replace(addressesToReward)
+        .focus(_.transactionsHashRewarded)
+        .replace(outflowTransactionsDataSourceAddress.transactionsHashRewarded ++ alreadyRewardedAddressesHashes)
 
-      acc.copy(existingWallets = acc.existingWallets.updated(address, outflowTransactionsDataSourceAddressUpdated))
+      acc
+        .focus(_.existingWallets)
+        .modify(_.updated(address, outflowTransactionsDataSourceAddressUpdated))
     }
 
   private def getCurrentOutflowTransactionsDataSource(
@@ -63,7 +70,7 @@ object OutflowTransactionsCombiner {
     currentCalculatedState   : Map[DataSourceType, DataSource],
     currentEpochProgress     : EpochProgress,
     outflowTransactionsUpdate: OutflowTransactionsUpdate
-  ): Map[DataSourceType, DataSource] = {
+  ): OutflowTransactionsDataSource = {
     val outflowAddressToRewardInfo = createOutflowAddressToRewardInfo(currentEpochProgress, outflowTransactionsUpdate)
     val outflowTransactionsDataSource = getCurrentOutflowTransactionsDataSource(currentCalculatedState)
 
@@ -75,12 +82,16 @@ object OutflowTransactionsCombiner {
 
     val existingHashes = outflowTransactionsDataSourceAddress.addressesToReward.map(_.txnHash) ++ outflowTransactionsDataSourceAddress.transactionsHashRewarded
     if (existingHashes.contains(outflowTransactionsUpdate.txnHash)) {
-      currentCalculatedState
+      outflowTransactionsDataSource
     } else {
       val addressesToReward = outflowAddressToRewardInfo +: outflowTransactionsDataSourceAddress.addressesToReward
-      val outflowTransactionsDataSourceUpdated = outflowTransactionsDataSource.existingWallets.updated(outflowTransactionsUpdate.address, outflowTransactionsDataSourceAddress.copy(addressesToReward = addressesToReward))
-      currentCalculatedState
-        .updated(DataSourceType.OutflowTransactions, outflowTransactionsDataSource.copy(existingWallets = outflowTransactionsDataSourceUpdated))
+      val outflowTransactionsDataSourceAddressUpdated = outflowTransactionsDataSourceAddress
+        .focus(_.addressesToReward)
+        .replace(addressesToReward)
+
+      outflowTransactionsDataSource
+        .focus(_.existingWallets)
+        .modify(_.updated(outflowTransactionsUpdate.address, outflowTransactionsDataSourceAddressUpdated))
     }
   }
 }

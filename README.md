@@ -33,11 +33,11 @@ Additionally, there are manual data sources that require a `DataUpdate` to be se
     - **Worker Function:** The New Wallet worker checks for new wallet creations and their holding status every hour and updates the metagraph accordingly.
 
 5. **Inflow Transactions:**
-   - **Description:** Provided wallets that received transactions great os equal an specific amount of DAG, greater than starting date
+   - **Description:** Provided wallets that received transactions great or equal an specific amount of DAG, greater than starting date
    - **Worker Function:** The worker checks if the provided wallets received any transactions greater than the specified amount of DAG every 30 minutes and updates the metagraph accordingly.
 
 6. **Outflow Transactions:**
-   - **Description:** Provided wallets that sent transactions great os equal an specific amount of DAG, greater than starting date.
+   - **Description:** Provided wallets that sent transactions great or equal an specific amount of DAG, greater than starting date.
    - **Worker Function:** The worker checks if the provided wallets received any transactions greater than the specified amount of DAG every 30 minutes and updates the metagraph accordingly.
 
 ### Manual Data Sources

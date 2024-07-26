@@ -8,6 +8,7 @@ import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators.OperatorIn
 import org.elpaca_metagraph.shared_data.types.Simplex.SimplexEvent
 import org.tessellation.currency.dataApplication.DataUpdate
 import org.tessellation.schema.address.Address
+import org.tessellation.schema.balance.Amount
 
 object DataUpdates {
   @derive(encoder, decoder)
@@ -36,7 +37,7 @@ object DataUpdates {
   @derive(encoder, decoder)
   case class WalletCreationHoldingDAGUpdate(
     address: Address,
-    balance: Long
+    balance: Amount
   ) extends ElpacaUpdate
 
   @derive(encoder, decoder)
@@ -49,7 +50,7 @@ object DataUpdates {
     address      : Address,
     txnHash      : String,
     rewardAddress: Address,
-    rewardAmount : Long
+    rewardAmount : Amount
   ) extends ElpacaUpdate
 
   @derive(encoder, decoder)
@@ -57,6 +58,6 @@ object DataUpdates {
     address      : Address,
     txnHash      : String,
     rewardAddress: Address,
-    rewardAmount : Long
+    rewardAmount : Amount
   ) extends ElpacaUpdate
 }
