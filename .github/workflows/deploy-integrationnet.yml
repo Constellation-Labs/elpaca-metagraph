@@ -40,6 +40,15 @@ jobs:
           OUTFLOW_TRANSACTIONS_WALLETS: ${{ secrets.OUTFLOW_TRANSACTIONS_WALLETS }}
           OUTFLOW_TRANSACTIONS_WORKER_INTERVAL: ${{ secrets.OUTFLOW_TRANSACTIONS_WORKER_INTERVAL }}
 
+          X_API_URL: ${{secrets.X_API_URL}}
+          X_API_CONSUMER_KEY: ${{secrets.X_API_CONSUMER_KEY}}
+          X_API_CONSUMER_SECRET: ${{secrets.X_API_CONSUMER_SECRET}}
+          X_API_ACCESS_TOKEN: ${{secrets.X_API_ACCESS_TOKEN}}
+          X_API_ACCESS_SECRET: ${{secrets.X_API_ACCESS_SECRET}}
+          USERS_SOURCE_API_URL: ${{secrets.USERS_SOURCE_API_URL}}
+          X_SEARCH_INFORMATION: ${{secrets.X_SEARCH_INFORMATION}}
+          X_WORKER_INTERVAL: ${{secrets.X_WORKER_INTERVAL}}
+
           SSH_NODE_1_HOST: ${{ secrets.SSH_HOST_INTNET_1 }}
           SSH_NODE_1_USER: ${{ secrets.SSH_USER_INTNET_1 }}
           SSH_NODE_2_HOST: ${{ secrets.SSH_HOST_INTNET_2 }}

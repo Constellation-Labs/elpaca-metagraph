@@ -22,7 +22,7 @@ import java.time.LocalDateTime
 
 object WalletCreationHoldingDAGFetcher {
 
-  def make[F[_] : Async: Network](
+  def make[F[_] : Async : Network](
     applicationConfig     : ApplicationConfig,
     calculatedStateService: CalculatedStateService[F]
   ): Fetcher[F] =

@@ -61,7 +61,8 @@ object DaemonApis {
         logger.info("Spawning L0 daemons") >>
           spawnWalletCreationDaemon(config, signer, calculatedStateService) >>
           spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
-          spawnOutflowTransactionsDaemon(config, signer, calculatedStateService)
+          spawnOutflowTransactionsDaemon(config, signer, calculatedStateService) >>
+          spawnXDaemon(config, signer, calculatedStateService)
       }
 
     private def spawn(
@@ -134,6 +135,17 @@ object DaemonApis {
       val outflowTransactionsProcessor = Processor.make[F](outflowTransactionsFetcher, signer)
       logger.info("Spawning Outflow Transactions daemon") >>
         spawn(outflowTransactionsProcessor, config.inflowTransactionsDaemon.idleTime).start
+    }
+
+    private def spawnXDaemon(
+      config                : ApplicationConfig,
+      signer                : Signer[F],
+      calculatedStateService: CalculatedStateService[F]
+    ): F[Unit] = {
+      val xFetcher = XFetcher.make[F](config, calculatedStateService)
+      val outflowTransactionsProcessor = Processor.make[F](xFetcher, signer)
+      logger.info("Spawning X daemon") >>
+        spawn(outflowTransactionsProcessor, config.xDaemon.idleTime).start
     }
   }
 }

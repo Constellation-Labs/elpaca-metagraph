@@ -2,10 +2,10 @@ package org.elpaca_metagraph.shared_data.combiners
 
 import cats.effect.Async
 import cats.syntax.all._
-import org.elpaca_metagraph.shared_data.Utils.{toTokenAmountFormat, toTokenFormat}
+import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.types.DataUpdates.SimplexUpdate
-import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.Simplex._
+import org.elpaca_metagraph.shared_data.types.States._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.epoch.EpochProgress
 import org.typelevel.log4cats.Logger
@@ -90,6 +90,6 @@ object SimplexCombiner {
     simplexUpdate         : SimplexUpdate
   ): F[SimplexDataSource] =
     getSimplexDataSourceUpdatedAddresses(currentCalculatedState, simplexUpdate, currentEpochProgress).map { updatedAddresses =>
-        SimplexDataSource(updatedAddresses)
+      SimplexDataSource(updatedAddresses)
     }
 }

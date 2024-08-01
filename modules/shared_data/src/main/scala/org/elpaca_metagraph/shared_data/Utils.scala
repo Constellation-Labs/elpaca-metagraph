@@ -17,6 +17,7 @@ import java.security.KeyPair
 
 
 object Utils {
+  val epochProgressOneDay: Long = 60 * 24
   def logger[F[_] : Async]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("Utils")
 
   def toTokenFormat(

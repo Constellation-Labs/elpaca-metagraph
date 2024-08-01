@@ -10,6 +10,7 @@ import io.circe.{Decoder, Encoder}
 import org.elpaca_metagraph.l0.custom_routes.CustomRoutes
 import org.elpaca_metagraph.shared_data.LifecycleSharedFunctions
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
+import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
@@ -33,16 +34,19 @@ import scala.io.Source
 object MetagraphL0Service {
 
   def make[F[+_] : Async : JsonSerializer](
-    calculatedStateService: CalculatedStateService[F]
+    calculatedStateService: CalculatedStateService[F],
+    applicationConfig     : ApplicationConfig
   ): F[BaseDataApplicationL0Service[F]] = Async[F].delay {
     makeBaseDataApplicationL0Service(
-      calculatedStateService
+      calculatedStateService,
+      applicationConfig
     )
   }
 
 
   private def makeBaseDataApplicationL0Service[F[+_] : Async : JsonSerializer](
-    calculatedStateService: CalculatedStateService[F]
+    calculatedStateService: CalculatedStateService[F],
+    applicationConfig     : ApplicationConfig
   ): BaseDataApplicationL0Service[F] =
     BaseDataApplicationL0Service(
       new DataApplicationL0Service[F, ElpacaUpdate, ElpacaOnChainState, ElpacaCalculatedState] {
@@ -108,7 +112,8 @@ object MetagraphL0Service {
         )(implicit context: L0NodeContext[F]): F[DataState[ElpacaOnChainState, ElpacaCalculatedState]] =
           LifecycleSharedFunctions.combine[F](
             state,
-            updates
+            updates,
+            applicationConfig
           )
 
         override def dataEncoder: Encoder[ElpacaUpdate] =

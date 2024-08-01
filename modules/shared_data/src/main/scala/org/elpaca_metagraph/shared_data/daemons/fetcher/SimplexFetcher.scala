@@ -20,7 +20,7 @@ import java.time.format.DateTimeFormatter
 
 object SimplexFetcher {
 
-  def make[F[_] : Async: Network](applicationConfig: ApplicationConfig): Fetcher[F] =
+  def make[F[_] : Async : Network](applicationConfig: ApplicationConfig): Fetcher[F] =
     new Fetcher[F] {
       private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(SimplexFetcher.getClass)
 

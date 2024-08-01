@@ -19,7 +19,8 @@ case class ApplicationConfig(
   walletCreationHoldingDagDaemon    : ApplicationConfig.WalletCreationHoldingDagDaemonConfig,
   inflowTransactionsDaemon          : ApplicationConfig.InflowTransactionsDaemonConfig,
   outflowTransactionsDaemon         : ApplicationConfig.OutflowTransactionsDaemonConfig,
-  nodeKey                           : ApplicationConfig.NodeKey
+  nodeKey                           : ApplicationConfig.NodeKey,
+  xDaemon                           : ApplicationConfig.XDaemonConfig
 )
 
 object ApplicationConfig {
@@ -73,6 +74,23 @@ object ApplicationConfig {
     idleTime   : FiniteDuration,
     apiUrl     : Option[ApiUrl],
     walletsInfo: List[WalletsInfo]
+  )
+
+  case class XSearchInfo(
+    text        : String,
+    rewardAmount: Amount,
+    maxPerDay   : Long
+  )
+
+  case class XDaemonConfig(
+    idleTime          : FiniteDuration,
+    usersSourceApiUrl : Option[ApiUrl],
+    xApiUrl           : Option[ApiUrl],
+    xApiConsumerKey   : Option[String],
+    xApiConsumerSecret: Option[String],
+    xApiAccessToken   : Option[String],
+    xApiAccessSecret  : Option[String],
+    searchInformation : List[XSearchInfo]
   )
 
   case class NodeKey(

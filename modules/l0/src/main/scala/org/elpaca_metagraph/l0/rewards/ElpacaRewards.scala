@@ -91,6 +91,17 @@ object ElpacaRewards {
               }
             }
 
+          case dataSource: XDataSource =>
+            dataSource.existingWallets.foldLeft(Map.empty[Address, Amount]) { (acc, dsInfo) =>
+              val (rewardAddress, ds) = dsInfo
+              ds.addressRewards.collect {
+                case (_, addressInfo) if addressInfo.epochProgressToReward === currentEpochProgress =>
+                  rewardAddress -> addressInfo.amountToReward
+              }.foldLeft(acc) { case (innerAcc, (addressToReward, rewardAmount)) =>
+                innerAcc.updated(addressToReward, innerAcc.getOrElse(addressToReward, Amount.empty).plus(rewardAmount).getOrElse(Amount.empty))
+              }
+            }
+
           case _ => Map.empty[Address, Amount]
         }
       }
@@ -100,7 +111,7 @@ object ElpacaRewards {
         currentEpochProgress            : EpochProgress
       ): F[SortedSet[RewardTransaction]] = for {
         _ <- logger.info("Starting to build the rewards")
-        combinedAddressesAndAmounts = Seq(Exolix, Simplex, IntegrationnetNodeOperator, WalletCreationHoldingDAG, FreshWallet, InflowTransactions, OutflowTransactions)
+        combinedAddressesAndAmounts = Seq(Exolix, Simplex, IntegrationnetNodeOperator, WalletCreationHoldingDAG, FreshWallet, InflowTransactions, OutflowTransactions, X)
           .flatMap(getAddressAndAmounts(proofOfAttendanceCalculatedState, currentEpochProgress, _))
           .groupBy(_._1)
           .view

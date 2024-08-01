@@ -19,7 +19,7 @@ import java.time.LocalDateTime
 
 object IntegrationnetNodesOperatorsFetcher {
 
-  def make[F[_] : Async: Network](applicationConfig: ApplicationConfig): Fetcher[F] =
+  def make[F[_] : Async : Network](applicationConfig: ApplicationConfig): Fetcher[F] =
     new Fetcher[F] {
       private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(IntegrationnetNodesOperatorsFetcher.getClass)
 
