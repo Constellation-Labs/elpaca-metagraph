@@ -45,8 +45,6 @@ lazy val sharedData = (project in file("modules/shared_data"))
       CompilerPlugin.betterMonadicFor,
       CompilerPlugin.semanticDB,
       Libraries.tessellationNodeShared,
-      Libraries.requests,
-      Libraries.upickle,
       Libraries.scribeJavaCore,
       Libraries.scribeJavaApis
     )
