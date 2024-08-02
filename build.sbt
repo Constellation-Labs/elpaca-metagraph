@@ -18,9 +18,6 @@ ThisBuild / assemblyMergeStrategy := {
 lazy val commonTestSettings = Seq(
   testFrameworks += new TestFramework("weaver.framework.CatsEffect"),
   libraryDependencies ++= Seq(
-    Libraries.weaverCats,
-    Libraries.weaverDiscipline,
-    Libraries.weaverScalaCheck,
     Libraries.catsEffectTestkit
   ).map(_ % Test)
 )
@@ -48,8 +45,8 @@ lazy val sharedData = (project in file("modules/shared_data"))
       CompilerPlugin.betterMonadicFor,
       CompilerPlugin.semanticDB,
       Libraries.tessellationNodeShared,
-      Libraries.requests,
-      Libraries.upickle
+      Libraries.scribeJavaCore,
+      Libraries.scribeJavaApis
     )
   )
 lazy val currencyL1 = (project in file("modules/l1"))

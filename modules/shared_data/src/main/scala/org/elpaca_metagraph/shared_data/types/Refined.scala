@@ -6,6 +6,7 @@ import eu.timepit.refined.string._
 
 object Refined {
   type ApiUrl = String Refined Uri
+
   object ApiUrl {
     def from(s: String): Either[String, ApiUrl] = refineV[Uri](s)
 

@@ -1,24 +1,34 @@
 {
-    "categories": [
-        {
-            "title": "## 🚀 Features",
-            "labels": ["feature"]
-        },
-        {
-            "title": "## 🐛 Fixes",
-            "labels": ["fix"]
-        },
-        {
-            "title": "## 🧪 Tests",
-            "labels": ["test"]
-        },
-        {
-            "title": "## 📓 Architecture Decision Records",
-            "labels": ["adr"]
-        },
-        {
-            "title": "## 💬 Other",
-            "labels": ["other"]
-        }
-    ]
+  "categories": [
+    {
+      "title": "## 🚀 Features",
+      "labels": [
+        "feature"
+      ]
+    },
+    {
+      "title": "## 🐛 Fixes",
+      "labels": [
+        "fix"
+      ]
+    },
+    {
+      "title": "## 🧪 Tests",
+      "labels": [
+        "test"
+      ]
+    },
+    {
+      "title": "## 📓 Architecture Decision Records",
+      "labels": [
+        "adr"
+      ]
+    },
+    {
+      "title": "## 💬 Other",
+      "labels": [
+        "other"
+      ]
+    }
+  ]
 }

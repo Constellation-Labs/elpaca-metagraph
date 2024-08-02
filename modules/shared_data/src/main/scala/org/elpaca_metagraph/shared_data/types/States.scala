@@ -14,6 +14,7 @@ import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators.Integratio
 import org.elpaca_metagraph.shared_data.types.OutflowTransactions.OutflowTransactionsDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.Simplex.SimplexDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.WalletCreationHoldingDAG.WalletCreationHoldingDAGDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.X.XDataSourceAddress
 import org.tessellation.currency.dataApplication.{DataCalculatedState, DataOnChainState}
 import org.tessellation.schema.address.Address
 
@@ -41,8 +42,9 @@ object States {
     case object InflowTransactions extends DataSourceType("InflowTransactions")
 
     case object OutflowTransactions extends DataSourceType("OutflowTransactions")
-  }
 
+    case object X extends DataSourceType("X")
+  }
 
   @derive(encoder, decoder)
   sealed trait DataSource
@@ -85,6 +87,11 @@ object States {
   @derive(encoder, decoder)
   case class OutflowTransactionsDataSource(
     existingWallets: Map[Address, OutflowTransactionsDataSourceAddress]
+  ) extends DataSource
+
+  @derive(encoder, decoder)
+  case class XDataSource(
+    existingWallets: Map[Address, XDataSourceAddress]
   ) extends DataSource
 
   @derive(encoder, decoder)

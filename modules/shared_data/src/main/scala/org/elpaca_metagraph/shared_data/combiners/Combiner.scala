@@ -2,6 +2,7 @@ package org.elpaca_metagraph.shared_data.combiners
 
 import cats.effect.Async
 import cats.syntax.all._
+import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.combiners.ExolixCombiner.updateStateExolixResponse
 import org.elpaca_metagraph.shared_data.combiners.FreshWalletCombiner.updateStateFreshWallet
 import org.elpaca_metagraph.shared_data.combiners.InflowTransactionsCombiner.updateStateInflowTransactions
@@ -9,6 +10,7 @@ import org.elpaca_metagraph.shared_data.combiners.IntegrationnetOperatorsCombine
 import org.elpaca_metagraph.shared_data.combiners.OutflowTransactionsCombiner.updateStateOutflowTransactions
 import org.elpaca_metagraph.shared_data.combiners.SimplexCombiner.updateStateSimplexResponse
 import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.updateStateWalletCreationHoldingDAG
+import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateStateX
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.States._
 import org.tessellation.currency.dataApplication.DataState
@@ -21,7 +23,8 @@ object Combiner {
   def combineElpacaUpdate[F[_] : Async](
     oldState            : DataState[ElpacaOnChainState, ElpacaCalculatedState],
     currentEpochProgress: EpochProgress,
-    update              : Signed[ElpacaUpdate]
+    update              : Signed[ElpacaUpdate],
+    applicationConfig   : ApplicationConfig
   ): F[DataState[ElpacaOnChainState, ElpacaCalculatedState]] = {
     val currentDataSources = oldState.calculated.dataSources
 
@@ -91,6 +94,16 @@ object Combiner {
         ).asInstanceOf[DataSource]
 
         (DataSourceType.OutflowTransactions, updatedOutflowTransactionsDataSource.pure)
+
+      case update: XUpdate =>
+        val updatedXDataSource = updateStateX(
+          currentDataSources,
+          currentEpochProgress,
+          update,
+          applicationConfig
+        ).asInstanceOf[DataSource]
+
+        (DataSourceType.X, updatedXDataSource.pure)
     }
     updatedDataSourceF.map { updatedDataSource =>
       val updates: List[ElpacaUpdate] = update.value :: oldState.onChain.updates

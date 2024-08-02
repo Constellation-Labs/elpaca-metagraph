@@ -2,11 +2,13 @@ package org.elpaca_metagraph.shared_data
 
 import cats.effect.Async
 import cats.syntax.all._
+import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.combiners.Combiner.combineElpacaUpdate
 import org.elpaca_metagraph.shared_data.combiners.FreshWalletCombiner.cleanFreshWalletsAlreadyRewarded
 import org.elpaca_metagraph.shared_data.combiners.InflowTransactionsCombiner.cleanInflowTransactionsRewarded
 import org.elpaca_metagraph.shared_data.combiners.OutflowTransactionsCombiner.cleanOutflowTransactionsRewarded
 import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.cleanWalletCreationHoldingDAGAlreadyRewardedWallets
+import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateRewardsOlderThanOneDay
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate}
 import org.elpaca_metagraph.shared_data.types.States.{ElpacaCalculatedState, ElpacaOnChainState}
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
@@ -34,8 +36,9 @@ object LifecycleSharedFunctions {
     }
 
   def combine[F[_] : Async](
-    oldState: DataState[ElpacaOnChainState, ElpacaCalculatedState],
-    updates : List[Signed[ElpacaUpdate]]
+    oldState : DataState[ElpacaOnChainState, ElpacaCalculatedState],
+    updates  : List[Signed[ElpacaUpdate]],
+    appConfig: ApplicationConfig
   )(implicit context: L0NodeContext[F]): F[DataState[ElpacaOnChainState, ElpacaCalculatedState]] = {
     val newState = DataState(ElpacaOnChainState(List.empty), ElpacaCalculatedState(oldState.calculated.dataSources))
     for {
@@ -56,7 +59,8 @@ object LifecycleSharedFunctions {
             combineElpacaUpdate(
               acc,
               epochProgress,
-              signedUpdate
+              signedUpdate,
+              appConfig
             )
           }
         } yield combined
@@ -66,9 +70,10 @@ object LifecycleSharedFunctions {
       cleanedFreshWalletsAlreadyRestartedResponse = cleanFreshWalletsAlreadyRewarded(cleanedWalletCreationHoldingDAG, epochProgress)
       cleanedInflowTransactionsAlreadyRewarded = cleanInflowTransactionsRewarded(cleanedFreshWalletsAlreadyRestartedResponse, epochProgress)
       cleanedOutflowTransactionsAlreadyRewarded = cleanOutflowTransactionsRewarded(cleanedInflowTransactionsAlreadyRewarded, epochProgress)
+      updatedXRewardsOlderThanOneDay = updateRewardsOlderThanOneDay(cleanedOutflowTransactionsAlreadyRewarded, epochProgress)
     } yield DataState(
       response.onChain,
-      ElpacaCalculatedState(cleanedOutflowTransactionsAlreadyRewarded)
+      ElpacaCalculatedState(updatedXRewardsOlderThanOneDay)
     )
   }
 }

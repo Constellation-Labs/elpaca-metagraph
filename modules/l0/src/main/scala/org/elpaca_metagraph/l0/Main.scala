@@ -39,7 +39,7 @@ object Main extends CurrencyL0App(
     keyPair <- loadKeyPair[IO](config).asResource
     calculatedStateService <- CalculatedStateService.make[IO].asResource
     _ <- DaemonApis.make[IO](config, keyPair).spawnL0Daemons(calculatedStateService).asResource
-    l0Service <- MetagraphL0Service.make[IO](calculatedStateService).asResource
+    l0Service <- MetagraphL0Service.make[IO](calculatedStateService, config).asResource
   } yield l0Service).some
 
 

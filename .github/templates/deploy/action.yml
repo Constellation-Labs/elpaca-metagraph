@@ -24,7 +24,7 @@ inputs:
   GITHUB_TOKEN:
     required: true
 
-#Configuration file variables
+  #Configuration file variables
   DATA_API_IP:
     required: true
   DATA_API_PORT:
@@ -63,7 +63,22 @@ inputs:
     required: true
   OUTFLOW_TRANSACTIONS_WORKER_INTERVAL:
     required: true
-
+  X_API_URL:
+    required: true
+  X_API_CONSUMER_KEY:
+    required: true
+  X_API_CONSUMER_SECRET:
+    required: true
+  X_API_ACCESS_TOKEN:
+    required: true
+  X_API_ACCESS_SECRET:
+    required: true
+  USERS_SOURCE_API_URL:
+    required: true
+  X_SEARCH_INFORMATION:
+    required: true
+  X_WORKER_INTERVAL:
+    required: true
 runs:
   using: "composite"
   steps:
@@ -111,6 +126,15 @@ runs:
         export OUTFLOW_TRANSACTIONS_API_URL="${{ inputs.OUTFLOW_TRANSACTIONS_API_URL }}"
         export OUTFLOW_TRANSACTIONS_WALLETS="${{ inputs.OUTFLOW_TRANSACTIONS_WALLETS }}"
         export OUTFLOW_TRANSACTIONS_WORKER_INTERVAL="${{ inputs.OUTFLOW_TRANSACTIONS_WORKER_INTERVAL }}"
+        
+        export X_API_URL="${{ inputs.X_API_URL }}"
+        export X_API_CONSUMER_KEY="${{ inputs.X_API_CONSUMER_KEY }}"
+        export X_API_CONSUMER_SECRET="${{ inputs.X_API_CONSUMER_SECRET }}"
+        export X_API_ACCESS_TOKEN="${{ inputs.X_API_ACCESS_TOKEN }}"
+        export X_API_ACCESS_SECRET="${{ inputs.X_API_ACCESS_SECRET }}"
+        export USERS_SOURCE_API_URL="${{ inputs.USERS_SOURCE_API_URL }}"
+        export X_SEARCH_INFORMATION="${{ inputs.X_SEARCH_INFORMATION }}"
+        export X_WORKER_INTERVAL="${{ inputs.X_WORKER_INTERVAL }}"
 
         cd modules/shared_data/src/main/resources
         envsubst < application.conf > application.conf.tmp

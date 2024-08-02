@@ -60,4 +60,11 @@ object DataUpdates {
     rewardAddress: Address,
     rewardAmount : Amount
   ) extends ElpacaUpdate
+
+  @derive(encoder, decoder)
+  case class XUpdate(
+    address   : Address,
+    searchText: String,
+    postId    : String
+  ) extends ElpacaUpdate
 }
