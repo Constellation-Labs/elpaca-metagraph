@@ -163,6 +163,7 @@ runs:
         sed -i 's/CL_PASSWORD_PLACEHOLDER/${CL_PASSWORD}/g' application.conf.tmp
 
         mv application.conf.tmp application.conf
+        cat application.conf
 
     - name: Fetch Dependencies
       shell: bash
