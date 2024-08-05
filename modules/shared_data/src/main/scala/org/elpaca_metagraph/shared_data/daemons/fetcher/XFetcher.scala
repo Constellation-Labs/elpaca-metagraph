@@ -90,7 +90,7 @@ object XFetcher {
         clientResource.use { client =>
           val query = s"from:$username"
           val requestURI = Uri.unsafeFromString(url.toString()).withQueryParam("query", query)
-            .withQueryParam("start_time", s"${currentDateFormatted}T00:00:00Z")
+            .withQueryParam("start_time", s"${currentDateFormatted}T16:00:00Z")
             .withQueryParam("end_time", s"$currentDateTimeFormatted")
             .withQueryParam("tweet.fields", "note_tweet")
 
