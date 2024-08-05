@@ -75,13 +75,12 @@ object XFetcher {
         currentDateTime   : LocalDateTime
       ):
       F[List[XPost]] = {
-        val fixedDateTime = LocalDateTime.of(2024, 7, 29, 20, 0, 0)
         val clientResource: Resource[F, Client[F]] = MkHttpClient.forAsync[F].newEmber(applicationConfig.http4s.client)
 
         val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val dateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-        val currentDateFormatted: String = fixedDateTime.format(dateFormatter)
-        val currentDateTimeFormatted: String = fixedDateTime.minusMinutes(1).format(dateTimeFormatter)
+        val currentDateFormatted: String = currentDateTime.format(dateFormatter)
+        val currentDateTimeFormatted: String = currentDateTime.minusMinutes(1).format(dateTimeFormatter)
 
         val service: OAuth10aService = new ServiceBuilder(xApiConsumerKey)
           .apiSecret(xApiConsumerSecret)
@@ -90,26 +89,24 @@ object XFetcher {
         clientResource.use { client =>
           val query = s"from:$username"
           val requestURI = Uri.unsafeFromString(url.toString()).withQueryParam("query", query)
-            .withQueryParam("start_time", s"${currentDateFormatted}T16:00:00Z")
+            .withQueryParam("start_time", s"${currentDateFormatted}T00:00:00Z")
             .withQueryParam("end_time", s"$currentDateTimeFormatted")
             .withQueryParam("tweet.fields", "note_tweet")
 
-          logger.info(s"Fetching X Url: ${requestURI.toString()}").flatMap { _ =>
-            val oauthRequest = new OAuthRequest(Verb.GET, requestURI.toString())
-            val token = new OAuth1AccessToken(xApiAccessToken, xApiAccessSecret)
-            service.signRequest(token, oauthRequest)
+          val oauthRequest = new OAuthRequest(Verb.GET, requestURI.toString())
+          val token = new OAuth1AccessToken(xApiAccessToken, xApiAccessSecret)
+          service.signRequest(token, oauthRequest)
 
-            val headers = oauthRequest.getHeaders.entrySet().asScala.foldLeft(List.empty[Header.Raw]) { (acc, entry) =>
-              acc :+ Header.Raw(CIString(entry.getKey), entry.getValue)
-            }
-
-            val signedRequest = Request[F](
-              method = Method.GET,
-              uri = Uri.unsafeFromString(oauthRequest.getCompleteUrl)
-            ).withHeaders(headers)
-
-            client.expect[XApiResponse](signedRequest)(jsonOf[F, XApiResponse]).map(_.data.getOrElse(List.empty[XPost]))
+          val headers = oauthRequest.getHeaders.entrySet().asScala.foldLeft(List.empty[Header.Raw]) { (acc, entry) =>
+            acc :+ Header.Raw(CIString(entry.getKey), entry.getValue)
           }
+
+          val signedRequest = Request[F](
+            method = Method.GET,
+            uri = Uri.unsafeFromString(oauthRequest.getCompleteUrl)
+          ).withHeaders(headers)
+
+          client.expect[XApiResponse](signedRequest)(jsonOf[F, XApiResponse]).map(_.data.getOrElse(List.empty[XPost]))
         }
       }
 
