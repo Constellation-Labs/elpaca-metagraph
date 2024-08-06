@@ -74,16 +74,17 @@ object XCombiner {
     applicationConfig     : ApplicationConfig
   ): XDataSource = {
     val xDataSource = getCurrentXDataSource(currentCalculatedState)
-
+  println(s"xDataSource: ${xDataSource}")
+    println(s"xUpdate: ${xUpdate}")
     val xDataSourceAddress = xDataSource.existingWallets
       .get(xUpdate.address) match {
       case Some(xDataSourceAddress) => xDataSourceAddress
       case None => XDataSourceAddress.empty
     }
-
+    println(s"xDataSourceAddress: ${xDataSourceAddress}")
     val maybeSearchInformation = applicationConfig.xDaemon.searchInformation
       .find(_.text == xUpdate.searchText)
-
+    println(s"maybeSearchInformation: ${maybeSearchInformation}")
     maybeSearchInformation.fold(xDataSource) { searchInformation =>
       val updatedData = xDataSourceAddress.addressRewards
         .get(xUpdate.searchText)
@@ -110,29 +111,37 @@ object XCombiner {
           def updateXRewardInfoSameDay() = {
             //If we receive multiple updates to the same address in the same epoch progress we need to increase the rewardAmount
             if (data.epochProgressToReward === currentEpochProgress) {
-              data
+
+              val t = data
                 .focus(_.dailyPostsNumber)
                 .modify(current => current + 1)
                 .focus(_.amountToReward)
                 .modify(current => current.plus(toTokenAmountFormat(searchInformation.rewardAmount)).getOrElse(current))
                 .focus(_.postIds)
                 .modify(current => current :+ xUpdate.postId)
+              println(s"Debug here: ${t}")
+              t
             } else {
-              data
+              val t = data
                 .focus(_.epochProgressToReward)
                 .replace(currentEpochProgress)
                 .focus(_.dailyPostsNumber)
                 .modify(current => current + 1)
                 .focus(_.postIds)
                 .modify(current => current :+ xUpdate.postId)
+              println(s"Debug here2: ${t}")
+              t
             }
           }
 
           if (isNewDay) {
+            println(s"NEW DAY")
             updateXRewardInfoNewDay()
           } else if (isNotExceedingDailyLimit && !postAlreadyExists) {
+            println(s"NEW DAY2")
             updateXRewardInfoSameDay()
           } else {
+            println(s"NEW DAY3")
             data
           }
         }
