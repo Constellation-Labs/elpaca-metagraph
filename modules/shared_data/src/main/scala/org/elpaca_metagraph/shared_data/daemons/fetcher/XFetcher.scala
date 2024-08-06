@@ -157,7 +157,6 @@ object XFetcher {
           _ <- logger.info(s"Found ${sourceUsersFiltered.length} sourceUsersFiltered")
 
           xPosts <- sourceUsersFiltered.traverse { userInfo =>
-            println(s"userInfo ${userInfo}")
             val username = userInfo.twitter.get.username
             val primaryDAGAddress = userInfo.primaryDagAddress.get
             fetchXPosts(xApiUrl, username, xApiConsumerKey, xApiConsumerSecret, xApiAccessToken, xApiAccessSecret, currentDateTime)
@@ -166,9 +165,7 @@ object XFetcher {
               }
               .map { xPosts =>
                 xPosts.flatMap { xPost =>
-                  println(s"xPost ${xPost}")
                   val completePost = xPost.note_tweet.map(_.text).getOrElse(xPost.text)
-                  println(s"completePost ${completePost}")
                   searchInformation.collect {
                     case searchInfo if completePost.contains(searchInfo.text) =>
                       XDataInfo(

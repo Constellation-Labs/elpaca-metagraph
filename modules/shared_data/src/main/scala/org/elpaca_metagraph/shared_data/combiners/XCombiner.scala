@@ -1,14 +1,16 @@
 package org.elpaca_metagraph.shared_data.combiners
 
+import cats.effect.Async
 import cats.syntax.all._
 import monocle.Monocle.toAppliedFocusOps
-import org.elpaca_metagraph.shared_data.Utils.{epochProgressOneDay, toTokenAmountFormat}
+import org.elpaca_metagraph.shared_data.Utils.{epochProgressOneDay, logger, toTokenAmountFormat}
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.X.{XDataSourceAddress, XRewardInfo}
 import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
+import org.typelevel.log4cats.Logger
 
 object XCombiner {
   private val firstPostOfTheDay: Long = 1L
@@ -67,26 +69,27 @@ object XCombiner {
       .updated(DataSourceType.X, xDataSource.focus(_.existingWallets).replace(updatedXDataSourceAddresses))
   }
 
-  def updateStateX(
+  def updateStateX[F[_] : Async : Logger](
     currentCalculatedState: Map[DataSourceType, DataSource],
     currentEpochProgress  : EpochProgress,
     xUpdate               : XUpdate,
     applicationConfig     : ApplicationConfig
-  ): XDataSource = {
-    val xDataSource = getCurrentXDataSource(currentCalculatedState)
-  println(s"xDataSource: ${xDataSource}")
-    println(s"xUpdate: ${xUpdate}")
-    val xDataSourceAddress = xDataSource.existingWallets
+  ): F[XDataSource] = for {
+    _ <- logger.info(s"Incoming update: ${xUpdate}")
+    xDataSource = getCurrentXDataSource(currentCalculatedState)
+    _ <- logger.info(s"Current x data source: ${xDataSource}")
+    xDataSourceAddress = xDataSource.existingWallets
       .get(xUpdate.address) match {
       case Some(xDataSourceAddress) => xDataSourceAddress
       case None => XDataSourceAddress.empty
     }
-    println(s"xDataSourceAddress: ${xDataSourceAddress}")
-    val maybeSearchInformation = applicationConfig.xDaemon.searchInformation
+    _ <- logger.info(s"Current x data source address: ${xDataSourceAddress}")
+    maybeSearchInformation = applicationConfig.xDaemon.searchInformation
       .find(_.text == xUpdate.searchText)
-    println(s"maybeSearchInformation: ${maybeSearchInformation}")
-    maybeSearchInformation.fold(xDataSource) { searchInformation =>
-      val updatedData = xDataSourceAddress.addressRewards
+
+    _ <- logger.info(s"Maybe search information: ${maybeSearchInformation}")
+    response <- maybeSearchInformation.fold(xDataSource.pure) { searchInformation =>
+      val updatedDataF = xDataSourceAddress.addressRewards
         .get(xUpdate.searchText)
         .map { data =>
           def isNewDay = data.epochProgressToReward.value.value + epochProgressOneDay < currentEpochProgress.value.value
@@ -111,49 +114,46 @@ object XCombiner {
           def updateXRewardInfoSameDay() = {
             //If we receive multiple updates to the same address in the same epoch progress we need to increase the rewardAmount
             if (data.epochProgressToReward === currentEpochProgress) {
-
-              val t = data
+              data
                 .focus(_.dailyPostsNumber)
                 .modify(current => current + 1)
                 .focus(_.amountToReward)
                 .modify(current => current.plus(toTokenAmountFormat(searchInformation.rewardAmount)).getOrElse(current))
                 .focus(_.postIds)
                 .modify(current => current :+ xUpdate.postId)
-              println(s"Debug here: ${t}")
-              t
             } else {
-              val t = data
+              data
                 .focus(_.epochProgressToReward)
                 .replace(currentEpochProgress)
                 .focus(_.dailyPostsNumber)
                 .modify(current => current + 1)
                 .focus(_.postIds)
                 .modify(current => current :+ xUpdate.postId)
-              println(s"Debug here2: ${t}")
-              t
             }
           }
 
           if (isNewDay) {
-            println(s"NEW DAY")
-            updateXRewardInfoNewDay()
+            Logger[F].info(s"Updating new day") >>
+            updateXRewardInfoNewDay().pure
           } else if (isNotExceedingDailyLimit && !postAlreadyExists) {
-            println(s"NEW DAY2")
-            updateXRewardInfoSameDay()
+            Logger[F].info(s"Update isNotExceedingDailyLimit and post not Exists") >>
+            updateXRewardInfoSameDay().pure
           } else {
-            println(s"NEW DAY3")
-            data
+            Logger[F].info(s"Update not new day and is exceeding daily limit or post already exists") >>
+            data.pure
           }
         }
-        .getOrElse(createXRewardInfo(currentEpochProgress, xUpdate, searchInformation.rewardAmount))
+        .getOrElse(createXRewardInfo(currentEpochProgress, xUpdate, searchInformation.rewardAmount).pure)
 
-      val updatedDataSourceAddress = xDataSourceAddress
-        .focus(_.addressRewards)
-        .modify(_.updated(xUpdate.searchText, updatedData))
-
-      xDataSource
-        .focus(_.existingWallets)
-        .modify(_.updated(xUpdate.address, updatedDataSourceAddress))
+      for {
+        updatedData <- updatedDataF
+        updatedDataSourceAddress = xDataSourceAddress
+          .focus(_.addressRewards)
+          .modify(_.updated(xUpdate.searchText, updatedData))
+        response = xDataSource
+          .focus(_.existingWallets)
+          .modify(_.updated(xUpdate.address, updatedDataSourceAddress))
+      } yield response
     }
-  }
+  } yield response
 }
