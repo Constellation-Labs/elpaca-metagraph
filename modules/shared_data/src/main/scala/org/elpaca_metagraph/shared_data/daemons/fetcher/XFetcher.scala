@@ -93,20 +93,22 @@ object XFetcher {
             .withQueryParam("end_time", s"$currentDateTimeFormatted")
             .withQueryParam("tweet.fields", "note_tweet")
 
-          val oauthRequest = new OAuthRequest(Verb.GET, requestURI.toString())
-          val token = new OAuth1AccessToken(xApiAccessToken, xApiAccessSecret)
-          service.signRequest(token, oauthRequest)
+          logger.info(s"Fetching X Url: ${requestURI.toString()}").flatMap { _ =>
+            val oauthRequest = new OAuthRequest(Verb.GET, requestURI.toString())
+            val token = new OAuth1AccessToken(xApiAccessToken, xApiAccessSecret)
+            service.signRequest(token, oauthRequest)
 
-          val headers = oauthRequest.getHeaders.entrySet().asScala.foldLeft(List.empty[Header.Raw]) { (acc, entry) =>
-            acc :+ Header.Raw(CIString(entry.getKey), entry.getValue)
+            val headers = oauthRequest.getHeaders.entrySet().asScala.foldLeft(List.empty[Header.Raw]) { (acc, entry) =>
+              acc :+ Header.Raw(CIString(entry.getKey), entry.getValue)
+            }
+
+            val signedRequest = Request[F](
+              method = Method.GET,
+              uri = Uri.unsafeFromString(oauthRequest.getCompleteUrl)
+            ).withHeaders(headers)
+
+            client.expect[XApiResponse](signedRequest)(jsonOf[F, XApiResponse]).map(_.data.getOrElse(List.empty[XPost]))
           }
-
-          val signedRequest = Request[F](
-            method = Method.GET,
-            uri = Uri.unsafeFromString(oauthRequest.getCompleteUrl)
-          ).withHeaders(headers)
-
-          client.expect[XApiResponse](signedRequest)(jsonOf[F, XApiResponse]).map(_.data.getOrElse(List.empty[XPost]))
         }
       }
 
