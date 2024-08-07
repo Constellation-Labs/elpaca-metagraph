@@ -167,7 +167,7 @@ object XFetcher {
                 xPosts.flatMap { xPost =>
                   val completePost = xPost.note_tweet.map(_.text).getOrElse(xPost.text)
                   searchInformation.collect {
-                    case searchInfo if completePost.contains(searchInfo.text) =>
+                    case searchInfo if completePost.toUpperCase().contains(searchInfo.text.toUpperCase()) =>
                       XDataInfo(
                         xPost.id,
                         primaryDAGAddress,
