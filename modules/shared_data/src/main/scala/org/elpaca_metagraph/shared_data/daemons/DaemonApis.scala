@@ -61,8 +61,7 @@ object DaemonApis {
         logger.info("Spawning L0 daemons") >>
           spawnWalletCreationDaemon(config, signer, calculatedStateService) >>
           spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
-          spawnOutflowTransactionsDaemon(config, signer, calculatedStateService) >>
-          spawnXDaemon(config, signer, calculatedStateService)
+          spawnOutflowTransactionsDaemon(config, signer, calculatedStateService)
       }
 
     private def spawn(
