@@ -66,8 +66,9 @@ object XFetcher {
       }
 
       def fetchXPosts(
-        url               : ApiUrl,
         username          : String,
+        searchText        : String,
+        url               : ApiUrl,
         xApiConsumerKey   : String,
         xApiConsumerSecret: String,
         xApiAccessToken   : String,
@@ -87,7 +88,7 @@ object XFetcher {
           .build(TwitterApi.instance())
 
         clientResource.use { client =>
-          val query = s"from:$username"
+          val query = s"from:$username \"$searchText\""
           val requestURI = Uri.unsafeFromString(url.toString()).withQueryParam("query", query)
             .withQueryParam("start_time", s"${currentDateFormatted}T00:00:00Z")
             .withQueryParam("end_time", s"$currentDateTimeFormatted")
@@ -161,24 +162,31 @@ object XFetcher {
           xPosts <- sourceUsersFiltered.traverse { userInfo =>
             val username = userInfo.twitter.get.username
             val primaryDAGAddress = userInfo.primaryDagAddress.get
-            fetchXPosts(xApiUrl, username, xApiConsumerKey, xApiConsumerSecret, xApiAccessToken, xApiAccessSecret, currentDateTime)
-              .handleErrorWith { err =>
-                logger.error(err)(s"Error when fetching XPosts for user: $username").as(List.empty[XPost])
-              }
-              .map { xPosts =>
-                xPosts.flatMap { xPost =>
-                  val completePost = xPost.note_tweet.map(_.text).getOrElse(xPost.text)
-                  searchInformation.collect {
-                    case searchInfo if completePost.toUpperCase().contains(searchInfo.text.toUpperCase()) =>
-                      XDataInfo(
-                        xPost.id,
-                        primaryDAGAddress,
-                        searchInfo.text,
-                        searchInfo.maxPerDay
-                      )
+            searchInformation.traverse { searchInfo =>
+              fetchXPosts(
+                username,
+                searchInfo.text,
+                xApiUrl,
+                xApiConsumerKey,
+                xApiConsumerSecret,
+                xApiAccessToken,
+                xApiAccessSecret,
+                currentDateTime
+              )
+                .handleErrorWith { err =>
+                  logger.error(err)(s"Error when fetching XPosts for user: $username").as(List.empty[XPost])
+                }
+                .map { xPosts =>
+                  xPosts.map { xPost =>
+                    XDataInfo(
+                      xPost.id,
+                      primaryDAGAddress,
+                      searchInfo.text,
+                      searchInfo.maxPerDay
+                    )
                   }
                 }
-              }
+            }.map(_.flatten)
           }.map(_.flatten)
 
           _ <- logger.info(s"Found ${xPosts.length} x posts")
