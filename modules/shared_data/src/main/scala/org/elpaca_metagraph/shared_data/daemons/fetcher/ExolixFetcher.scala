@@ -46,7 +46,7 @@ object ExolixFetcher {
         val exolixConfig = applicationConfig.exolixDaemon
         val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val currentDateFormatted: String = currentDate.format(dateFormatter)
-        val url = s"${exolixConfig.apiUrl.get}/transactions?dateFrom=${currentDateFormatted}T00:00:00&dateTo=${currentDateFormatted}T23:59:59"
+        val url = s"${exolixConfig.apiUrl.get}/transactions?dateFrom=${currentDateFormatted}T00:00:00&dateTo=${currentDateFormatted}T23:59:59&statuses=success"
 
         for {
           _ <- logger.info(s"Incoming datetime: ${currentDate}. Formatted to date: ${currentDateFormatted}")
