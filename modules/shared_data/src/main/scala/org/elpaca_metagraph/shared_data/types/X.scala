@@ -29,8 +29,6 @@ object X {
 
   @derive(encoder, decoder)
   case class XUser(
-    id      : String,
-    name    : String,
     username: String
   )
 
