@@ -49,7 +49,7 @@ object X {
   @derive(encoder, decoder)
   case class SourceUsersApiResponse(
     data: List[SourceUser],
-    meta: SourceUserMeta
+    meta: Option[SourceUserMeta]
   )
 
   @derive(encoder, decoder)
