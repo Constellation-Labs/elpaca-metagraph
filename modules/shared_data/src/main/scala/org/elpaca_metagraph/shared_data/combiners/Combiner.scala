@@ -96,14 +96,15 @@ object Combiner {
         (DataSourceType.OutflowTransactions, updatedOutflowTransactionsDataSource.pure)
 
       case update: XUpdate =>
+        implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("XCombiner")
         val updatedXDataSource = updateStateX(
           currentDataSources,
           currentEpochProgress,
           update,
           applicationConfig
-        ).asInstanceOf[DataSource]
+        ).map(_.asInstanceOf[DataSource])
 
-        (DataSourceType.X, updatedXDataSource.pure)
+        (DataSourceType.X, updatedXDataSource)
     }
     updatedDataSourceF.map { updatedDataSource =>
       val updates: List[ElpacaUpdate] = update.value :: oldState.onChain.updates
