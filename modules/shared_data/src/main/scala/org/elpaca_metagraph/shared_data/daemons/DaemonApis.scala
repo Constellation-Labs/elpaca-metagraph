@@ -70,6 +70,9 @@ object DaemonApis {
           ().pure
         } else {
           logger.info("Spawning L0 daemons") >>
+            spawnWalletCreationDaemon(config, signer, calculatedStateService) >>
+            spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
+            spawnOutflowTransactionsDaemon(config, signer, calculatedStateService) >>
             spawnXDaemon(config, signer, calculatedStateService) >>
             spawnYouTubeDaemon(config, signer, calculatedStateService)
         }
