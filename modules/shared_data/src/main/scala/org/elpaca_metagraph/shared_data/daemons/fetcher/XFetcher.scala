@@ -56,8 +56,8 @@ object XFetcher {
 
           client.expect[SourceUsersApiResponse](request)(jsonOf[F, SourceUsersApiResponse]).flatMap { response =>
             val newUsers = accumulatedUsers ++ response.data
-            if (response.meta.offset + response.meta.limit < response.meta.total) {
-              fetchAllSourceUsers(baseUrl, response.meta.offset + response.meta.limit, newUsers)
+            if (response.meta.exists(meta => meta.offset + meta.limit < meta.total)) {
+              fetchAllSourceUsers(baseUrl, response.meta.get.offset + response.meta.get.limit, newUsers)
             } else {
               newUsers.pure
             }
