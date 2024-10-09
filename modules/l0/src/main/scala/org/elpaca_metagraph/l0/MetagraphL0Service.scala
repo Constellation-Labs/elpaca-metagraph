@@ -12,6 +12,8 @@ import org.elpaca_metagraph.shared_data.LifecycleSharedFunctions
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
+import org.elpaca_metagraph.shared_data.deserializers.Deserializers
+import org.elpaca_metagraph.shared_data.serializers.Serializers
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.FreshWallet.FreshWalletDataSourceAddress
@@ -104,7 +106,7 @@ object MetagraphL0Service {
           state  : DataState[ElpacaOnChainState, ElpacaCalculatedState],
           updates: NonEmptyList[Signed[ElpacaUpdate]]
         )(implicit context: L0NodeContext[F]): F[DataApplicationValidationErrorOr[Unit]] =
-          valid.pure
+          LifecycleSharedFunctions.validateData(updates, state, applicationConfig)
 
         override def combine(
           state  : DataState[ElpacaOnChainState, ElpacaCalculatedState],
@@ -133,33 +135,34 @@ object MetagraphL0Service {
 
         override def serializeBlock(
           block: Signed[DataApplicationBlock]
-        ): F[Array[Byte]] =
-          JsonSerializer[F].serialize[Signed[DataApplicationBlock]](block)
+        ): F[Array[Byte]] = {
+          Serializers.serializeBlock(block)
+        }
 
         override def deserializeBlock(
           bytes: Array[Byte]
         ): F[Either[Throwable, Signed[DataApplicationBlock]]] =
-          JsonSerializer[F].deserialize[Signed[DataApplicationBlock]](bytes)
+          Deserializers.deserializeBlock(bytes)
 
         override def serializeState(
           state: ElpacaOnChainState
         ): F[Array[Byte]] =
-          JsonSerializer[F].serialize[ElpacaOnChainState](state)
+          Serializers.serializeState(state)
 
         override def deserializeState(
           bytes: Array[Byte]
         ): F[Either[Throwable, ElpacaOnChainState]] =
-          JsonSerializer[F].deserialize[ElpacaOnChainState](bytes)
+          Deserializers.deserializeState(bytes)
 
         override def serializeUpdate(
           update: ElpacaUpdate
         ): F[Array[Byte]] =
-          JsonSerializer[F].serialize[ElpacaUpdate](update)
+          Serializers.serializeUpdate(update)
 
         override def deserializeUpdate(
           bytes: Array[Byte]
         ): F[Either[Throwable, ElpacaUpdate]] =
-          JsonSerializer[F].deserialize[ElpacaUpdate](bytes)
+          Deserializers.deserializeUpdate(bytes)
 
         override def getCalculatedState(implicit context: L0NodeContext[F]): F[(SnapshotOrdinal, ElpacaCalculatedState)] =
           calculatedStateService.get.map(calculatedState => (calculatedState.ordinal, calculatedState.state))
@@ -181,11 +184,11 @@ object MetagraphL0Service {
         override def serializeCalculatedState(
           state: ElpacaCalculatedState
         ): F[Array[Byte]] =
-          JsonSerializer[F].serialize[ElpacaCalculatedState](state)
+          Serializers.serializeCalculatedState(state)
 
         override def deserializeCalculatedState(
           bytes: Array[Byte]
         ): F[Either[Throwable, ElpacaCalculatedState]] =
-          JsonSerializer[F].deserialize[ElpacaCalculatedState](bytes)
+          Deserializers.deserializeCalculatedState(bytes)
       })
 }

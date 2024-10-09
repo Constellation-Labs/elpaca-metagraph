@@ -1,7 +1,9 @@
 package org.elpaca_metagraph.shared_data
 
+import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.syntax.all._
+import org.elpaca_metagraph.shared_data.Utils.getCurrentEpochProgress
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.combiners.Combiner.combineElpacaUpdate
 import org.elpaca_metagraph.shared_data.combiners.FreshWalletCombiner.cleanFreshWalletsAlreadyRewarded
@@ -9,14 +11,12 @@ import org.elpaca_metagraph.shared_data.combiners.InflowTransactionsCombiner.cle
 import org.elpaca_metagraph.shared_data.combiners.OutflowTransactionsCombiner.cleanOutflowTransactionsRewarded
 import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.cleanWalletCreationHoldingDAGAlreadyRewardedWallets
 import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateRewardsOlderThanOneDay
-import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate}
+import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate, StreakUpdate}
 import org.elpaca_metagraph.shared_data.types.States.{ElpacaCalculatedState, ElpacaOnChainState}
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
-import org.elpaca_metagraph.shared_data.validations.Validations.integrationnetNodeOperatorsValidationsL1
+import org.elpaca_metagraph.shared_data.validations.Validations.{integrationnetNodeOperatorsValidationsL1, streakValidationsL0}
 import org.tessellation.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
 import org.tessellation.currency.dataApplication.{DataState, L0NodeContext}
-import org.tessellation.ext.cats.syntax.next.catsSyntaxNext
-import org.tessellation.schema.epoch.EpochProgress
 import org.tessellation.security.signature.Signed
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -35,6 +35,23 @@ object LifecycleSharedFunctions {
       case _ => valid.pure[F]
     }
 
+  def validateData[F[_] : Async](
+    updates  : NonEmptyList[Signed[ElpacaUpdate]],
+    oldState : DataState[ElpacaOnChainState, ElpacaCalculatedState],
+    appConfig: ApplicationConfig
+  )(implicit context: L0NodeContext[F]): F[DataApplicationValidationErrorOr[Unit]] = {
+    updates.traverse { update =>
+      update.value match {
+        case streakUpdate: StreakUpdate =>
+          for {
+            epochProgress <- getCurrentEpochProgress
+          } yield streakValidationsL0(Signed(streakUpdate, update.proofs), oldState, appConfig, epochProgress)
+        case _ => valid.pure[F]
+      }
+    }.map(_.reduce)
+
+  }
+
   def combine[F[_] : Async](
     oldState : DataState[ElpacaOnChainState, ElpacaCalculatedState],
     updates  : List[Signed[ElpacaUpdate]],
@@ -42,12 +59,7 @@ object LifecycleSharedFunctions {
   )(implicit context: L0NodeContext[F]): F[DataState[ElpacaOnChainState, ElpacaCalculatedState]] = {
     val newState = DataState(ElpacaOnChainState(List.empty), ElpacaCalculatedState(oldState.calculated.dataSources))
     for {
-      epochProgress <- context.getLastCurrencySnapshot.flatMap {
-        case Some(value) => value.epochProgress.next.pure[F]
-        case None =>
-          val message = "Could not get the epochProgress from currency snapshot. lastCurrencySnapshot not found"
-          logger.error(message) >> new Exception(message).raiseError[F, EpochProgress]
-      }
+      epochProgress <- getCurrentEpochProgress
       response <- if (updates.isEmpty) {
         logger.info("Snapshot without any updates, updating the state to empty updates").as(
           newState

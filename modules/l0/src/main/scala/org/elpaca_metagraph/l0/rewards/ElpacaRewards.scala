@@ -102,6 +102,10 @@ object ElpacaRewards {
               }
             }
 
+          case dataSource: StreakDataSource =>
+            dataSource.existingWallets.collect {
+              case (address, ds) if ds.epochProgressToReward === currentEpochProgress => address -> ds.amountToReward
+            }
           case _ => Map.empty[Address, Amount]
         }
       }
@@ -111,7 +115,7 @@ object ElpacaRewards {
         currentEpochProgress            : EpochProgress
       ): F[SortedSet[RewardTransaction]] = for {
         _ <- logger.info("Starting to build the rewards")
-        combinedAddressesAndAmounts = Seq(Exolix, Simplex, IntegrationnetNodeOperator, WalletCreationHoldingDAG, FreshWallet, InflowTransactions, OutflowTransactions, X)
+        combinedAddressesAndAmounts = Seq(Exolix, Simplex, IntegrationnetNodeOperator, WalletCreationHoldingDAG, FreshWallet, InflowTransactions, OutflowTransactions, X, Streak)
           .flatMap(getAddressAndAmounts(proofOfAttendanceCalculatedState, currentEpochProgress, _))
           .groupBy(_._1)
           .view
