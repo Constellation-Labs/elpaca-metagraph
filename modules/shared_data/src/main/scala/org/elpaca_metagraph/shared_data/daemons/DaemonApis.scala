@@ -62,7 +62,6 @@ object DaemonApis {
           spawnWalletCreationDaemon(config, signer, calculatedStateService) >>
           spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
           spawnOutflowTransactionsDaemon(config, signer, calculatedStateService) >>
-          spawnXDaemon(config, signer, calculatedStateService) >>
           spawnYouTubeDaemon(config, signer, calculatedStateService)
       }
 
