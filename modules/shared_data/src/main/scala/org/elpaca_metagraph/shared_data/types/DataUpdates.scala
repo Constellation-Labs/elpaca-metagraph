@@ -67,4 +67,9 @@ object DataUpdates {
     searchText: String,
     postId    : String
   ) extends ElpacaUpdate
+
+  @derive(encoder, decoder)
+  case class StreakUpdate(
+    address   : Address
+  ) extends ElpacaUpdate
 }
