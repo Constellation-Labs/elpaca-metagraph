@@ -17,8 +17,8 @@ import org.typelevel.log4cats.Logger
 
 object StreakCombiner {
   private val level1Streak = NonNegLong(1L)
-  private val level2Streak = NonNegLong(3L)
-  private val level3Streak = NonNegLong(5L)
+  private val level2Streak = NonNegLong(2L)
+  private val level3Streak = NonNegLong(3L)
 
   private def getCurrentStreakDataSource(
     currentCalculatedState: Map[DataSourceType, DataSource]
