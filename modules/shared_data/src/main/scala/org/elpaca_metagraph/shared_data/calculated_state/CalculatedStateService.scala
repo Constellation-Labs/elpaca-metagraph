@@ -3,10 +3,14 @@ package org.elpaca_metagraph.shared_data.calculated_state
 import cats.effect.Ref
 import cats.effect.kernel.Async
 import cats.syntax.all._
+import io.circe.Json
+import io.circe.syntax.EncoderOps
 import org.elpaca_metagraph.shared_data.types.States.ElpacaCalculatedState
 import org.tessellation.json.JsonSerializer
 import org.tessellation.schema.SnapshotOrdinal
 import org.tessellation.security.hash.Hash
+
+import java.nio.charset.StandardCharsets
 
 trait CalculatedStateService[F[_]] {
   def get: F[CalculatedState]
@@ -43,7 +47,14 @@ object CalculatedStateService {
 
         override def hash(
           state: ElpacaCalculatedState
-        ): F[Hash] = JsonSerializer[F].serialize[ElpacaCalculatedState](state).map(Hash.fromBytes)
+        ): F[Hash] = {
+          def removeField(json: Json, fieldName: String): Json = {
+            json.mapObject(_.filterKeys(_ != fieldName).mapValues(removeField(_, fieldName))).mapArray(_.map(removeField(_, fieldName)))
+          }
+
+          val jsonState = removeField(state.asJson, "nextToken").deepDropNullValues.noSpaces
+          Hash.fromBytes(jsonState.getBytes(StandardCharsets.UTF_8)).pure[F]
+        }
       }
     }
   }
