@@ -5,7 +5,7 @@ import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{IntegrationnetNodeOperatorUpdate, StreakUpdate}
 import org.elpaca_metagraph.shared_data.types.States.DataSourceType.Streak
 import org.elpaca_metagraph.shared_data.types.States.{ElpacaCalculatedState, ElpacaOnChainState, StreakDataSource}
-import org.elpaca_metagraph.shared_data.validations.TypeValidators.{validateIfAddressAlreadyRewardedInCurrentDay, validateIfIntegrationnetOperatorHave250KDAG, validateIfUpdateWasSignedByStargazer}
+import org.elpaca_metagraph.shared_data.validations.TypeValidators._
 import org.tessellation.currency.dataApplication.DataState
 import org.tessellation.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
 import org.tessellation.schema.epoch.EpochProgress
@@ -28,9 +28,9 @@ object Validations {
       .collect { case ds: StreakDataSource => ds }
       .getOrElse(StreakDataSource(Map.empty))
 
-    validateIfUpdateWasSignedByStargazer(streakUpdate.proofs, appConfig).productR(
-      validateIfAddressAlreadyRewardedInCurrentDay(streakUpdate.value, streakDataSource, currentEpochProgress)
-    )
+      validateIfUpdateWasSignedByStargazer(streakUpdate.proofs, appConfig)
+      .productR(validateIfAddressAlreadyRewardedInCurrentDay(streakUpdate.value, streakDataSource, currentEpochProgress))
+      .productR(validateIfTokenIsValid(streakUpdate.value, streakDataSource))
 
   }
 }

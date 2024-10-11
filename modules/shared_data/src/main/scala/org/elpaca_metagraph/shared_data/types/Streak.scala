@@ -1,5 +1,6 @@
 package org.elpaca_metagraph.shared_data.types
 
+import cats.implicits.none
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import eu.timepit.refined.types.numeric.NonNegLong
@@ -15,7 +16,8 @@ object Streak {
     amountToReward       : Amount,
     totalEarned          : Amount,
     nextClaimReward      : Amount,
-    streakDays           : NonNegLong
+    streakDays           : NonNegLong,
+    nextToken            : Option[String]
   )
 
   object StreakDataSourceAddress {
@@ -25,7 +27,8 @@ object Streak {
       Amount.empty,
       Amount.empty,
       Amount.empty,
-      NonNegLong.MinValue
+      NonNegLong.MinValue,
+      none
     )
   }
 }
