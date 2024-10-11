@@ -52,8 +52,8 @@ object CalculatedStateService {
             json.mapObject(_.filterKeys(_ != fieldName).mapValues(removeField(_, fieldName))).mapArray(_.map(removeField(_, fieldName)))
           }
 
-          val jsonState = removeField(state.asJson, "nextToken").deepDropNullValues.noSpaces
-          Hash.fromBytes(jsonState.getBytes(StandardCharsets.UTF_8)).pure[F]
+          val jsonState = removeField(state.asJson, "nextToken")
+          JsonSerializer[F].serialize[Json](jsonState).map(Hash.fromBytes)
         }
       }
     }
