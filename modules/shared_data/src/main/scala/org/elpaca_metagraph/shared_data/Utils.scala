@@ -21,6 +21,7 @@ import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.security.KeyPair
+import scala.util.Random
 
 
 object Utils {
@@ -98,6 +99,11 @@ object Utils {
         password.value.value.toCharArray,
         password.value.value.toCharArray
       )
+
+  def randomString(length: Int): String = {
+    val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    Random.alphanumeric.filter(chars.contains(_)).take(length).mkString
+  }
 
   implicit class RewardTransactionOps(tuple: (Address, PosLong)) {
     def toRewardTransaction: RewardTransaction = {

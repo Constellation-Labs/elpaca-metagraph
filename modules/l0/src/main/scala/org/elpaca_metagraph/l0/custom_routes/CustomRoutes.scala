@@ -72,7 +72,8 @@ case class CustomRoutes[F[_] : Async](
       totalEarned           : Amount,
       claimAmount           : Amount,
       lastClaimEpochProgress: EpochProgress,
-      currentEpochProgress  : EpochProgress
+      currentEpochProgress  : EpochProgress,
+      nextToken             : String
     )
 
     for {
@@ -92,7 +93,8 @@ case class CustomRoutes[F[_] : Async](
                   addressInfo.totalEarned,
                   addressInfo.nextClaimReward,
                   addressInfo.epochProgressToReward,
-                  epochProgress
+                  epochProgress,
+                  addressInfo.nextToken.get
                 )
               )
             }

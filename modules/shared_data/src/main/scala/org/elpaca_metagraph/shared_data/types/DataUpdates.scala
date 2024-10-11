@@ -70,6 +70,7 @@ object DataUpdates {
 
   @derive(encoder, decoder)
   case class StreakUpdate(
-    address   : Address
+    address: Address,
+    token  : Option[String]
   ) extends ElpacaUpdate
 }

@@ -2,7 +2,7 @@ package org.elpaca_metagraph.shared_data.combiners
 
 import cats.data.NonEmptySet
 import cats.effect.Async
-import cats.implicits.toFunctorOps
+import cats.implicits.{catsSyntaxOptionId, toFunctorOps}
 import eu.timepit.refined.types.numeric.NonNegLong
 import monocle.Monocle.toAppliedFocusOps
 import org.elpaca_metagraph.shared_data.Utils._
@@ -19,6 +19,8 @@ object StreakCombiner {
   private val level1Streak = NonNegLong(1L)
   private val level2Streak = NonNegLong(2L)
   private val level3Streak = NonNegLong(3L)
+
+  private val randomStringLength: Int = 20
 
   private def getCurrentStreakDataSource(
     currentCalculatedState: Map[DataSourceType, DataSource]
@@ -58,7 +60,7 @@ object StreakCombiner {
         )
       } else {
         def shouldResetStreak: Boolean =
-          currentEpochProgress.value.value - streakDataSourceAddress.epochProgressToReward.value.value > epochProgressOneDay
+          currentEpochProgress.value.value - streakDataSourceAddress.epochProgressToReward.value.value > (epochProgressOneDay * 2)
 
         def streakBetween(min: Long, max: Long, updatedStreakDays: NonNegLong): Boolean =
           updatedStreakDays.value >= min && updatedStreakDays.value <= max
@@ -97,6 +99,8 @@ object StreakCombiner {
             .replace(nextStreakInfo.rewardAmount)
             .focus(_.streakDays)
             .replace(streakInfo.streakDays)
+            .focus(_.nextToken)
+            .replace(randomString(randomStringLength).some)
         }
 
         val currentStreakInfo = getUpdateStreakInfo(streakDataSourceAddress.streakDays)

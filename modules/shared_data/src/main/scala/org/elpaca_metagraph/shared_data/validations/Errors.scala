@@ -26,4 +26,10 @@ object Errors {
   case object StreakAddressAlreadyRewarded extends DataApplicationValidationError {
     val message = "Streak address already rewarded"
   }
+  case object MissingToken extends DataApplicationValidationError {
+    val message = "Missing token to claim reward"
+  }
+  case object InvalidToken extends DataApplicationValidationError {
+    val message = "Invalid token"
+  }
 }

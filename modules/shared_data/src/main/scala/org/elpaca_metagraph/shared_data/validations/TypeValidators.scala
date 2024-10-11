@@ -34,4 +34,19 @@ object TypeValidators {
     val streakDataSourceAddress = streakDataSource.existingWallets.getOrElse(streakUpdate.address, StreakDataSourceAddress.empty)
     StreakAddressAlreadyRewarded.unlessA(isNewDay(streakDataSourceAddress.epochProgressToReward, currentEpochProgress))
   }
+
+  def validateIfTokenIsValid(
+    streakUpdate     : StreakUpdate,
+    streakDataSource : StreakDataSource
+  ): DataApplicationValidationErrorOr[Unit] = {
+    val streakDataSourceAddress = streakDataSource.existingWallets.getOrElse(streakUpdate.address, StreakDataSourceAddress.empty)
+    if (streakDataSourceAddress.nextToken.isEmpty || streakDataSourceAddress.nextToken.contains("")) {
+      valid
+    } else {
+      streakUpdate.token.map { token =>
+          InvalidToken.whenA(token != streakDataSourceAddress.nextToken.get)
+        }
+        .getOrElse(MissingToken.invalid)
+    }
+  }
 }
