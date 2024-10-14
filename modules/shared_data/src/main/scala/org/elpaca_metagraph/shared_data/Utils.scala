@@ -25,7 +25,7 @@ import scala.util.Random
 
 
 object Utils {
-  val epochProgressOneDay: Long = 60 * 24
+  val epochProgressOneDay: Long = 5
   def logger[F[_] : Async]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("Utils")
 
   def toTokenFormat(
