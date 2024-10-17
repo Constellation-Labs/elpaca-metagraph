@@ -12,6 +12,7 @@ import org.elpaca_metagraph.shared_data.combiners.OutflowTransactionsCombiner.cl
 import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.cleanWalletCreationHoldingDAGAlreadyRewardedWallets
 import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateRewardsOlderThanOneDay
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate, StreakUpdate}
+import org.elpaca_metagraph.shared_data.types.States.DataSourceType.Streak
 import org.elpaca_metagraph.shared_data.types.States.{ElpacaCalculatedState, ElpacaOnChainState}
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
 import org.elpaca_metagraph.shared_data.validations.Validations.{integrationnetNodeOperatorsValidationsL1, streakValidationsL0}
@@ -77,12 +78,13 @@ object LifecycleSharedFunctions {
           }
         } yield combined
       }
-
+_<- logger.info(s"Current STREAK state: ${response.calculated.dataSources.get(Streak)}")
       cleanedWalletCreationHoldingDAG = cleanWalletCreationHoldingDAGAlreadyRewardedWallets(response.calculated.dataSources, epochProgress)
       cleanedFreshWalletsAlreadyRestartedResponse = cleanFreshWalletsAlreadyRewarded(cleanedWalletCreationHoldingDAG, epochProgress)
       cleanedInflowTransactionsAlreadyRewarded = cleanInflowTransactionsRewarded(cleanedFreshWalletsAlreadyRestartedResponse, epochProgress)
       cleanedOutflowTransactionsAlreadyRewarded = cleanOutflowTransactionsRewarded(cleanedInflowTransactionsAlreadyRewarded, epochProgress)
       updatedXRewardsOlderThanOneDay = updateRewardsOlderThanOneDay(cleanedOutflowTransactionsAlreadyRewarded, epochProgress)
+      _<- logger.info(s"Current STREAK state2: ${response.calculated.dataSources.get(Streak)}")
     } yield DataState(
       response.onChain,
       ElpacaCalculatedState(updatedXRewardsOlderThanOneDay)

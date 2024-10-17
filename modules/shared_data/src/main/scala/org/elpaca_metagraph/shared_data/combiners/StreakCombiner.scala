@@ -107,7 +107,7 @@ object StreakCombiner {
         val nextStreakInfo = getUpdateStreakInfo(currentStreakInfo.streakDays)
         val updatedDataSourceAddress = updateStreakDataSource(currentStreakInfo, nextStreakInfo)
 
-        Logger[F].info(s"Claiming reward of the address ${streakUpdate.address}. Streak: ${currentStreakInfo.streakDays}").as(
+        Logger[F].info(s"Claiming reward of the address ${streakUpdate.address}. Streak: ${currentStreakInfo.streakDays}. currentStreakInfo: ${currentStreakInfo}. nextStreakInfo: ${nextStreakInfo}. Updated: ${updatedDataSourceAddress}").as(
           streakDataSource
             .focus(_.existingWallets)
             .modify(_.updated(streakUpdate.address, updatedDataSourceAddress))
