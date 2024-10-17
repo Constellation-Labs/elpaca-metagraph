@@ -13,6 +13,7 @@ import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombin
 import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateRewardsOlderThanOneDay
 import org.elpaca_metagraph.shared_data.combiners.YouTubeCombiner.updateYoutubeRewardsOlderThanOneDay
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate, StreakUpdate}
+import org.elpaca_metagraph.shared_data.types.States.DataSourceType.Streak
 import org.elpaca_metagraph.shared_data.types.States.{ElpacaCalculatedState, ElpacaOnChainState}
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
 import org.elpaca_metagraph.shared_data.validations.Validations.{integrationnetNodeOperatorsValidationsL1, streakValidationsL0}
