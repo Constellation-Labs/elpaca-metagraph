@@ -2,6 +2,7 @@ package org.elpaca_metagraph.shared_data
 
 import cats.data.NonEmptySet
 import cats.effect.Async
+import cats.effect.std.Random
 import cats.syntax.all._
 import eu.timepit.refined.types.all.PosLong
 import eu.timepit.refined.types.numeric.NonNegLong
@@ -16,12 +17,12 @@ import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
 import org.tessellation.schema.transaction.{RewardTransaction, TransactionAmount}
 import org.tessellation.security.SecurityProvider
+import org.tessellation.security.hash.Hash
 import org.tessellation.security.signature.signature.SignatureProof
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.security.KeyPair
-import scala.util.Random
 
 
 object Utils {
@@ -100,9 +101,13 @@ object Utils {
         password.value.value.toCharArray
       )
 
-  def randomString(length: Int): String = {
-    val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    Random.alphanumeric.filter(chars.contains(_)).take(length).mkString
+  def randomString[F[_]: Async](input: String, length: Int): F[String] = {
+    val hash = Hash.fromBytes(input.getBytes("utf-8")).toString
+    val seed = BigInt(hash.take(16), 16).toLong
+
+    Random.scalaUtilRandomSeedLong[F](seed).flatMap { random =>
+      (1 to length).toList.traverse(_ => random.nextAlphaNumeric).map(_.mkString)
+    }
   }
 
   implicit class RewardTransactionOps(tuple: (Address, PosLong)) {
