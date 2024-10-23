@@ -71,8 +71,8 @@ object StreakCombiner {
           else Amount(level3Streak)
         }
 
-        def getUpdateStreakInfo(streakDays: NonNegLong): StreakInfo = {
-          if (shouldResetStreak) {
+        def getUpdateStreakInfo(streakDays: NonNegLong, ignoreReset: Boolean): StreakInfo = {
+          if (shouldResetStreak && !ignoreReset) {
             StreakInfo(level1Streak, toTokenAmountFormat(Amount(level1Streak)))
           } else {
             val updatedStreakDays = NonNegLong.unsafeFrom(streakDays.value + 1L)
@@ -103,11 +103,11 @@ object StreakCombiner {
             .replace(randomString(randomStringLength).some)
         }
 
-        val currentStreakInfo = getUpdateStreakInfo(streakDataSourceAddress.streakDays)
-        val nextStreakInfo = getUpdateStreakInfo(currentStreakInfo.streakDays)
+        val currentStreakInfo = getUpdateStreakInfo(streakDataSourceAddress.streakDays, ignoreReset = false)
+        val nextStreakInfo = getUpdateStreakInfo(currentStreakInfo.streakDays, ignoreReset = true)
         val updatedDataSourceAddress = updateStreakDataSource(currentStreakInfo, nextStreakInfo)
 
-        Logger[F].info(s"Claiming reward of the address ${streakUpdate.address}. Streak: ${currentStreakInfo.streakDays}").as(
+        Logger[F].info(s"Claiming reward of the address ${streakUpdate.address}. Streak: ${currentStreakInfo.streakDays}. currentStreakInfo: ${currentStreakInfo}. nextStreakInfo: ${nextStreakInfo}. Updated: ${updatedDataSourceAddress}").as(
           streakDataSource
             .focus(_.existingWallets)
             .modify(_.updated(streakUpdate.address, updatedDataSourceAddress))
