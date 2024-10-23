@@ -2,7 +2,7 @@ package org.elpaca_metagraph.shared_data.combiners
 
 import cats.data.NonEmptySet
 import cats.effect.Async
-import cats.implicits.{catsSyntaxOptionId, toFunctorOps}
+import cats.syntax.all._
 import eu.timepit.refined.types.numeric.NonNegLong
 import monocle.Monocle.toAppliedFocusOps
 import org.elpaca_metagraph.shared_data.Utils._
@@ -81,37 +81,41 @@ object StreakCombiner {
           }
         }
 
-        def updateStreakDataSource(streakInfo: StreakInfo, nextStreakInfo: StreakInfo): StreakDataSourceAddress = {
+        def updateStreakDataSource(streakInfo: StreakInfo, nextStreakInfo: StreakInfo): F[StreakDataSourceAddress] = {
           val totalEarned = Amount(
             NonNegLong.unsafeFrom(streakDataSourceAddress.totalEarned.value.value + streakInfo.rewardAmount.value.value)
           )
 
-          streakDataSourceAddress
-            .focus(_.dailyEpochProgress)
-            .replace(currentEpochProgress)
-            .focus(_.epochProgressToReward)
-            .replace(currentEpochProgress)
-            .focus(_.amountToReward)
-            .replace(streakInfo.rewardAmount)
-            .focus(_.totalEarned)
-            .replace(totalEarned)
-            .focus(_.nextClaimReward)
-            .replace(nextStreakInfo.rewardAmount)
-            .focus(_.streakDays)
-            .replace(streakInfo.streakDays)
-            .focus(_.nextToken)
-            .replace(randomString(randomStringLength).some)
+          randomString(
+            s"${streakUpdate.address.value.value}-${currentEpochProgress.value.value.toString}",
+            randomStringLength
+          ).map { token =>
+            streakDataSourceAddress
+              .focus(_.dailyEpochProgress)
+              .replace(currentEpochProgress)
+              .focus(_.epochProgressToReward)
+              .replace(currentEpochProgress)
+              .focus(_.amountToReward)
+              .replace(streakInfo.rewardAmount)
+              .focus(_.totalEarned)
+              .replace(totalEarned)
+              .focus(_.nextClaimReward)
+              .replace(nextStreakInfo.rewardAmount)
+              .focus(_.streakDays)
+              .replace(streakInfo.streakDays)
+              .focus(_.nextToken)
+              .replace(token.some)
+          }
         }
 
         val currentStreakInfo = getUpdateStreakInfo(streakDataSourceAddress.streakDays, ignoreReset = false)
         val nextStreakInfo = getUpdateStreakInfo(currentStreakInfo.streakDays, ignoreReset = true)
-        val updatedDataSourceAddress = updateStreakDataSource(currentStreakInfo, nextStreakInfo)
-
-        Logger[F].info(s"Claiming reward of the address ${streakUpdate.address}. Streak: ${currentStreakInfo.streakDays}. currentStreakInfo: ${currentStreakInfo}. nextStreakInfo: ${nextStreakInfo}. Updated: ${updatedDataSourceAddress}").as(
-          streakDataSource
-            .focus(_.existingWallets)
-            .modify(_.updated(streakUpdate.address, updatedDataSourceAddress))
-        )
+        updateStreakDataSource(currentStreakInfo, nextStreakInfo).flatMap { updatedDataSourceAddress =>
+          Logger[F].info(s"Claiming reward of the address ${streakUpdate.address}. Streak: ${currentStreakInfo.streakDays}").as(
+            streakDataSource
+              .focus(_.existingWallets)
+              .modify(_.updated(streakUpdate.address, updatedDataSourceAddress)))
+        }
       }
     }
   }
