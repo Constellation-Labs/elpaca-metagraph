@@ -1,6 +1,6 @@
 package org.elpaca_metagraph.shared_data.types
 
-import cats.implicits.none
+import cats.syntax.all._
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import eu.timepit.refined.types.numeric.NonNegLong
