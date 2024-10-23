@@ -82,8 +82,32 @@ Additionally, there are manual data sources that require a `DataUpdate` to be se
   ]
 }
 ```
-
 **NOTE: Only one update per wallet will be accepted. If you provide the same wallet again, it will be discarded.**
+
+2. **Claim/Streak:**
+-  **Description:** Stargazer will send daily updates to claim PACA rewards. Wallets can build a streak based on consecutive daily claims:
+      -  **1 to 4 days**: The user receives **1 PACA** per day.
+      -  **5 to 10 days**: The user receives **2 PACA** per day.
+      -  **More than 10 days**: The user receives **5 PACA** per day.
+
+-  **Streak Reset**: If the streak is broken (i.e., the user misses a day), the streak will reset to 1, and the user must start over.
+-  **Expected Update Format**: For streak updates, the following structure should be sent to the metagraph:
+
+```json
+{
+  "value": {
+     "StreakUpdate": {
+        "address": ":address"
+     }
+  },
+  "proofs": [
+    {
+      "id": ":public_key_of_stargazer",
+      "signature": ":signature"
+    }
+  ]
+}
+```
 
 ## Token Minting Rates
 
@@ -94,6 +118,10 @@ Additionally, there are manual data sources that require a `DataUpdate` to be se
 - **Inflow Transactions:** Defined in configuration.
 - **Outflow Transactions:** Defined in configuration.
 - **X/Twitter Posts:** Defined in configuration.
+- **Claim/Streak:**
+  -  **1 to 4 days**: The user receives **1 PACA** per day.
+  -  **5 to 10 days**: The user receives **2 PACA** per day.
+  -  **More than 10 days**: The user receives **5 PACA** per day.
 
 ## Worker/Daemon Functionality
 

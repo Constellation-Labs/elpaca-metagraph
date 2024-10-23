@@ -48,6 +48,7 @@ jobs:
           USERS_SOURCE_API_URL: ${{secrets.USERS_SOURCE_API_URL}}
           X_SEARCH_INFORMATION: ${{secrets.X_SEARCH_INFORMATION}}
           X_WORKER_INTERVAL: ${{secrets.X_WORKER_INTERVAL}}
+          STARGAZER_PUBLIC_KEY: ${{secrets.STARGAZER_PUBLIC_KEY}}
 
           SSH_NODE_1_HOST: ${{ secrets.SSH_HOST_INTNET_1 }}
           SSH_NODE_1_USER: ${{ secrets.SSH_USER_INTNET_1 }}

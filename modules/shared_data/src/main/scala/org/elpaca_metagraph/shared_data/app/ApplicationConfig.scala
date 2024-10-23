@@ -4,6 +4,7 @@ import ciris.Secret
 import fs2.io.file.Path
 import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
 import org.tessellation.node.shared.config.types.HttpClientConfig
+import org.tessellation.schema.ID.Id
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.balance.Amount
 
@@ -20,7 +21,8 @@ case class ApplicationConfig(
   inflowTransactionsDaemon          : ApplicationConfig.InflowTransactionsDaemonConfig,
   outflowTransactionsDaemon         : ApplicationConfig.OutflowTransactionsDaemonConfig,
   nodeKey                           : ApplicationConfig.NodeKey,
-  xDaemon                           : ApplicationConfig.XDaemonConfig
+  xDaemon                           : ApplicationConfig.XDaemonConfig,
+  streak                            : ApplicationConfig.StreakConfig
 )
 
 object ApplicationConfig {
@@ -91,6 +93,10 @@ object ApplicationConfig {
     xApiAccessToken   : Option[String],
     xApiAccessSecret  : Option[String],
     searchInformation : List[XSearchInfo]
+  )
+
+  case class StreakConfig(
+    stargazerPublicKey: Id
   )
 
   case class NodeKey(

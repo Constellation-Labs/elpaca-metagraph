@@ -20,4 +20,16 @@ object Errors {
   case object IntegrationnetNodeOperatorBalanceLessThan250K extends DataApplicationValidationError {
     val message = "Integrationnet node operator should have more than 250K DAG"
   }
+  case object StreakUpdateNotSignedByStargazer extends DataApplicationValidationError {
+    val message = "Streak update not signed by Stargazer"
+  }
+  case object StreakAddressAlreadyRewarded extends DataApplicationValidationError {
+    val message = "Streak address already rewarded"
+  }
+  case object MissingToken extends DataApplicationValidationError {
+    val message = "Missing token to claim reward"
+  }
+  case object InvalidToken extends DataApplicationValidationError {
+    val message = "Invalid token"
+  }
 }

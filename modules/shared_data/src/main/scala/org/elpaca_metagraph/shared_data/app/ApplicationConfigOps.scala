@@ -8,8 +8,10 @@ import eu.timepit.refined.types.numeric.NonNegLong
 import fs2.io.file.Path
 import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
 import org.tessellation.node.shared.config.types.HttpClientConfig
+import org.tessellation.schema.ID.Id
 import org.tessellation.schema.address.{Address, DAGAddressRefined}
 import org.tessellation.schema.balance.Amount
+import org.tessellation.security.hex.Hex
 import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.generic.semiauto.deriveReader
@@ -37,6 +39,8 @@ object ConfigReaders {
   implicit val portReader: ConfigReader[Port] =
     ConfigReader[Int].emap(i => Port.fromInt(i).toRight(CannotConvert(i.toString, "Port", "Parse resulted in None")))
 
+  implicit val idReader: ConfigReader[Id] = ConfigReader[String].emap(s => Option(Id(Hex(s))).toRight(CannotConvert(s, "Id", "Parse resulted in None")))
+
   implicit val amountReader: ConfigReader[Amount] = {
     import eu.timepit.refined.pureconfig._
     ConfigReader[NonNegLong].map(Amount(_))
@@ -58,6 +62,7 @@ object ConfigReaders {
   implicit val outflowTransactionsDaemonConfigReader: ConfigReader[ApplicationConfig.OutflowTransactionsDaemonConfig] = deriveReader
   implicit val xSearchInfoReader: ConfigReader[ApplicationConfig.XSearchInfo] = deriveReader
   implicit val xDaemonConfigReader: ConfigReader[ApplicationConfig.XDaemonConfig] = deriveReader
+  implicit val streakConfigReader: ConfigReader[ApplicationConfig.StreakConfig] = deriveReader
   implicit val nodeKeyReader: ConfigReader[ApplicationConfig.NodeKey] = deriveReader
   implicit val clientConfigReader: ConfigReader[HttpClientConfig] = deriveReader
   implicit val http4sConfigReader: ConfigReader[ApplicationConfig.Http4sConfig] = deriveReader

@@ -79,6 +79,8 @@ inputs:
     required: true
   X_WORKER_INTERVAL:
     required: true
+  STARGAZER_PUBLIC_KEY:
+    required: true
 runs:
   using: "composite"
   steps:
@@ -135,6 +137,7 @@ runs:
         export USERS_SOURCE_API_URL="${{ inputs.USERS_SOURCE_API_URL }}"
         export X_SEARCH_INFORMATION="${{ inputs.X_SEARCH_INFORMATION }}"
         export X_WORKER_INTERVAL="${{ inputs.X_WORKER_INTERVAL }}"
+        export STARGAZER_PUBLIC_KEY="${{ inputs.STARGAZER_PUBLIC_KEY }}"
 
         cd modules/shared_data/src/main/resources
         envsubst < application.conf > application.conf.tmp

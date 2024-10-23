@@ -3,7 +3,7 @@ package org.elpaca_metagraph.shared_data.combiners
 import cats.effect.Async
 import cats.syntax.all._
 import monocle.Monocle.toAppliedFocusOps
-import org.elpaca_metagraph.shared_data.Utils.{epochProgressOneDay, logger, toTokenAmountFormat}
+import org.elpaca_metagraph.shared_data.Utils._
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.States._
@@ -92,8 +92,6 @@ object XCombiner {
       val updatedDataF = xDataSourceAddress.addressRewards
         .get(xUpdate.searchText)
         .map { data =>
-          def isNewDay = data.epochProgressToReward.value.value + epochProgressOneDay < currentEpochProgress.value.value
-
           def updateXRewardInfoNewDay() = {
             data
               .focus(_.dailyEpochProgress)
@@ -109,6 +107,7 @@ object XCombiner {
           }
 
           def isNotExceedingDailyLimit = data.dailyPostsNumber < searchInformation.maxPerDay
+
           def postAlreadyExists = data.postIds.contains(xUpdate.postId)
 
           def updateXRewardInfoSameDay() = {
@@ -132,9 +131,8 @@ object XCombiner {
             }
           }
 
-          if (isNewDay) {
-            Logger[F].info(s"Updating new day") >>
-            updateXRewardInfoNewDay().pure
+          if (isNewDay(data.epochProgressToReward, currentEpochProgress)) {
+            updateXRewardInfoNewDay()
           } else if (isNotExceedingDailyLimit && !postAlreadyExists) {
             Logger[F].info(s"Update isNotExceedingDailyLimit and post not Exists") >>
             updateXRewardInfoSameDay().pure
