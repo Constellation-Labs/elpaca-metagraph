@@ -107,6 +107,14 @@ object Combiner {
 
         (DataSourceType.X, updatedXDataSource.pure)
 
+      case update: YouTubeUpdate =>
+        (DataSourceType.YouTube, updateYouTubeState(
+          currentDataSources,
+          currentEpochProgress,
+          update,
+          applicationConfig
+        ).asInstanceOf[DataSource].pure)
+
       case streakUpdate: StreakUpdate =>
         implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("StreakCombiner")
         val updatedStreakDataSource = updateStateStreak(
