@@ -11,6 +11,7 @@ import org.elpaca_metagraph.shared_data.combiners.OutflowTransactionsCombiner.up
 import org.elpaca_metagraph.shared_data.combiners.SimplexCombiner.updateStateSimplexResponse
 import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.updateStateWalletCreationHoldingDAG
 import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateStateX
+import org.elpaca_metagraph.shared_data.combiners.YouTubeCombiner.updateYouTubeState
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.States._
 import org.tessellation.currency.dataApplication.DataState
@@ -104,7 +105,16 @@ object Combiner {
         ).asInstanceOf[DataSource]
 
         (DataSourceType.X, updatedXDataSource.pure)
+
+      case update: YouTubeUpdate =>
+        (DataSourceType.YouTube, updateYouTubeState(
+          currentDataSources,
+          currentEpochProgress,
+          update,
+          applicationConfig
+        ).asInstanceOf[DataSource].pure)
     }
+
     updatedDataSourceF.map { updatedDataSource =>
       val updates: List[ElpacaUpdate] = update.value :: oldState.onChain.updates
       DataState(

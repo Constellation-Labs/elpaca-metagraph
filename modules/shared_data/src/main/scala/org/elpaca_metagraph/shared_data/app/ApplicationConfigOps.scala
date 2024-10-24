@@ -58,6 +58,8 @@ object ConfigReaders {
   implicit val outflowTransactionsDaemonConfigReader: ConfigReader[ApplicationConfig.OutflowTransactionsDaemonConfig] = deriveReader
   implicit val xSearchInfoReader: ConfigReader[ApplicationConfig.XSearchInfo] = deriveReader
   implicit val xDaemonConfigReader: ConfigReader[ApplicationConfig.XDaemonConfig] = deriveReader
+  implicit val ytSearchInfoReader: ConfigReader[ApplicationConfig.YouTubeSearchInfo] = deriveReader
+  implicit val ytDaemonConfigReader: ConfigReader[ApplicationConfig.YouTubeDaemonConfig] = deriveReader
   implicit val nodeKeyReader: ConfigReader[ApplicationConfig.NodeKey] = deriveReader
   implicit val clientConfigReader: ConfigReader[HttpClientConfig] = deriveReader
   implicit val http4sConfigReader: ConfigReader[ApplicationConfig.Http4sConfig] = deriveReader

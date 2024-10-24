@@ -38,7 +38,8 @@ case class CustomRoutes[F[_] : Async](calculatedStateService: CalculatedStateSer
       "existingwallets" -> ExistingWallets,
       "inflowtransactions" -> InflowTransactions,
       "outflowtransactions" -> OutflowTransactions,
-      "x" -> X
+      "x" -> X,
+      "youtube" -> YouTube
     )
 
     calculatedStateService

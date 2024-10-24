@@ -15,6 +15,7 @@ import org.elpaca_metagraph.shared_data.types.OutflowTransactions.OutflowTransac
 import org.elpaca_metagraph.shared_data.types.Simplex.SimplexDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.WalletCreationHoldingDAG.WalletCreationHoldingDAGDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.X.XDataSourceAddress
+import org.elpaca_metagraph.shared_data.types.YouTube.YouTubeDataSourceAddress
 import org.tessellation.currency.dataApplication.{DataCalculatedState, DataOnChainState}
 import org.tessellation.schema.address.Address
 
@@ -44,6 +45,8 @@ object States {
     case object OutflowTransactions extends DataSourceType("OutflowTransactions")
 
     case object X extends DataSourceType("X")
+
+    case object YouTube extends DataSourceType("YouTube")
   }
 
   @derive(encoder, decoder)
@@ -92,6 +95,11 @@ object States {
   @derive(encoder, decoder)
   case class XDataSource(
     existingWallets: Map[Address, XDataSourceAddress]
+  ) extends DataSource
+
+  @derive(encoder, decoder)
+  case class YouTubeDataSource(
+    existingWallets: Map[Address, YouTubeDataSourceAddress] = Map.empty
   ) extends DataSource
 
   @derive(encoder, decoder)

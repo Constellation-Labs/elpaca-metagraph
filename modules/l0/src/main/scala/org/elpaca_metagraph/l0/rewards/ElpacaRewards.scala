@@ -111,7 +111,7 @@ object ElpacaRewards {
         currentEpochProgress            : EpochProgress
       ): F[SortedSet[RewardTransaction]] = for {
         _ <- logger.info("Starting to build the rewards")
-        combinedAddressesAndAmounts = Seq(Exolix, Simplex, IntegrationnetNodeOperator, WalletCreationHoldingDAG, FreshWallet, InflowTransactions, OutflowTransactions, X)
+        combinedAddressesAndAmounts = Seq(Exolix, Simplex, IntegrationnetNodeOperator, WalletCreationHoldingDAG, FreshWallet, InflowTransactions, OutflowTransactions, X, YouTube)
           .flatMap(getAddressAndAmounts(proofOfAttendanceCalculatedState, currentEpochProgress, _))
           .groupBy(_._1)
           .view

@@ -10,6 +10,8 @@ import org.tessellation.currency.dataApplication.DataUpdate
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.balance.Amount
 
+import java.time.LocalDateTime
+
 object DataUpdates {
   @derive(encoder, decoder)
   sealed trait ElpacaUpdate extends DataUpdate {
@@ -66,5 +68,13 @@ object DataUpdates {
     address   : Address,
     searchText: String,
     postId    : String
+  ) extends ElpacaUpdate
+
+  @derive(encoder, decoder)
+  case class YouTubeUpdate(
+    address    : Address,
+    searchText : String,
+    videoId    : String,
+    publishDate: LocalDateTime
   ) extends ElpacaUpdate
 }

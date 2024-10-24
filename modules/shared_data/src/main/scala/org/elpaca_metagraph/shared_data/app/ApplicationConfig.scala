@@ -11,16 +11,17 @@ import java.time.LocalDate
 import scala.concurrent.duration._
 
 case class ApplicationConfig(
-  http4s                            : ApplicationConfig.Http4sConfig,
-  dataApi                           : ApplicationConfig.DataApiConfig,
-  exolixDaemon                      : ApplicationConfig.ExolixDaemonConfig,
-  simplexDaemon                     : ApplicationConfig.SimplexDaemonConfig,
-  integrationnetNodesOperatorsDaemon: ApplicationConfig.IntegrationnetNodesOperatorsDaemonConfig,
-  walletCreationHoldingDagDaemon    : ApplicationConfig.WalletCreationHoldingDagDaemonConfig,
-  inflowTransactionsDaemon          : ApplicationConfig.InflowTransactionsDaemonConfig,
-  outflowTransactionsDaemon         : ApplicationConfig.OutflowTransactionsDaemonConfig,
-  nodeKey                           : ApplicationConfig.NodeKey,
-  xDaemon                           : ApplicationConfig.XDaemonConfig
+                              http4s                            : ApplicationConfig.Http4sConfig,
+                              dataApi                           : ApplicationConfig.DataApiConfig,
+                              exolixDaemon                      : ApplicationConfig.ExolixDaemonConfig,
+                              simplexDaemon                     : ApplicationConfig.SimplexDaemonConfig,
+                              integrationnetNodesOperatorsDaemon: ApplicationConfig.IntegrationnetNodesOperatorsDaemonConfig,
+                              walletCreationHoldingDagDaemon    : ApplicationConfig.WalletCreationHoldingDagDaemonConfig,
+                              inflowTransactionsDaemon          : ApplicationConfig.InflowTransactionsDaemonConfig,
+                              outflowTransactionsDaemon         : ApplicationConfig.OutflowTransactionsDaemonConfig,
+                              nodeKey                           : ApplicationConfig.NodeKey,
+                              xDaemon                           : ApplicationConfig.XDaemonConfig,
+                              youtubeDaemon                     : ApplicationConfig.YouTubeDaemonConfig,
 )
 
 object ApplicationConfig {
@@ -91,6 +92,22 @@ object ApplicationConfig {
     xApiAccessToken   : Option[String],
     xApiAccessSecret  : Option[String],
     searchInformation : List[XSearchInfo]
+  )
+
+  case class YouTubeSearchInfo(
+    text           : String,
+    rewardAmount   : Amount,
+    minimumDuration: Long,
+    minimumViews   : Long,
+    maxPerDay      : Long
+  )
+
+  case class YouTubeDaemonConfig(
+    idleTime          : FiniteDuration,
+    usersSourceApiUrl : Option[ApiUrl],
+    youtubeApiUrl     : Option[ApiUrl],
+    youtubeApiKey     : Option[String],
+    searchInformation : YouTubeSearchInfo
   )
 
   case class NodeKey(
