@@ -125,6 +125,7 @@ object YouTubeFetcher {
         searchInformation = config.searchInformation
 
         youtubeFetcher = new YouTubeFetcher[F](apiKey, baseUrl)
+        dagUsers <- youtubeFetcher.fetchDagUsers(latticeApiUrl)
         calculatedState <- calculatedStateService.get
         dataSource: YouTubeDataSource = calculatedState.state.dataSources
           .get(DataSourceType.YouTube)
