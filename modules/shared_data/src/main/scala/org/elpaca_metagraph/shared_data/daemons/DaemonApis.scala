@@ -62,7 +62,8 @@ object DaemonApis {
           spawnWalletCreationDaemon(config, signer, calculatedStateService) >>
           spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
           spawnOutflowTransactionsDaemon(config, signer, calculatedStateService) >>
-          spawnXDaemon(config, signer, calculatedStateService)
+          spawnXDaemon(config, signer, calculatedStateService) >>
+          spawnYouTubeDaemon(config, signer, calculatedStateService)
       }
 
     private def spawn(
@@ -146,6 +147,18 @@ object DaemonApis {
       val outflowTransactionsProcessor = Processor.make[F](xFetcher, signer)
       logger.info("Spawning X daemon") >>
         spawn(outflowTransactionsProcessor, config.xDaemon.idleTime).start
+    }
+
+    private def spawnYouTubeDaemon(
+      config                : ApplicationConfig,
+      signer                : Signer[F],
+      calculatedStateService: CalculatedStateService[F]
+    ): F[Unit] = {
+      logger.info("Spawning YouTube daemon") >>
+        spawn(
+          Processor.make[F](YouTubeFetcher.make[F](config, calculatedStateService), signer),
+          config.youtubeDaemon.idleTime
+        ).start
     }
   }
 }
