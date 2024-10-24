@@ -51,7 +51,8 @@ case class CustomRoutes[F[_] : Async](
       "inflowtransactions" -> InflowTransactions,
       "outflowtransactions" -> OutflowTransactions,
       "x" -> X,
-      "streak" -> Streak
+      "streak" -> Streak,
+      "youtube" -> YouTube
     )
 
     calculatedStateService
