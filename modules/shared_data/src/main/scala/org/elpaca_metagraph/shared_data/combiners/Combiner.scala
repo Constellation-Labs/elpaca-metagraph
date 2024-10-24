@@ -9,6 +9,7 @@ import org.elpaca_metagraph.shared_data.combiners.InflowTransactionsCombiner.upd
 import org.elpaca_metagraph.shared_data.combiners.IntegrationnetOperatorsCombiner.updateStateIntegrationnetOperatorsResponse
 import org.elpaca_metagraph.shared_data.combiners.OutflowTransactionsCombiner.updateStateOutflowTransactions
 import org.elpaca_metagraph.shared_data.combiners.SimplexCombiner.updateStateSimplexResponse
+import org.elpaca_metagraph.shared_data.combiners.StreakCombiner.updateStateStreak
 import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.updateStateWalletCreationHoldingDAG
 import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateStateX
 import org.elpaca_metagraph.shared_data.combiners.YouTubeCombiner.updateYouTubeState
@@ -105,6 +106,18 @@ object Combiner {
         ).asInstanceOf[DataSource]
 
         (DataSourceType.X, updatedXDataSource.pure)
+
+      case streakUpdate: StreakUpdate =>
+        implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("StreakCombiner")
+        val updatedStreakDataSource = updateStateStreak(
+          currentDataSources,
+          currentEpochProgress,
+          streakUpdate,
+          update.proofs,
+          applicationConfig
+        ).map(_.asInstanceOf[DataSource])
+
+        (DataSourceType.Streak, updatedStreakDataSource)
 
       case update: YouTubeUpdate =>
         (DataSourceType.YouTube, updateYouTubeState(

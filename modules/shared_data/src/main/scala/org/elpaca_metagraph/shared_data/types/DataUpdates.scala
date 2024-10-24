@@ -71,6 +71,12 @@ object DataUpdates {
   ) extends ElpacaUpdate
 
   @derive(encoder, decoder)
+  case class StreakUpdate(
+    address: Address,
+    token  : Option[String]
+  ) extends ElpacaUpdate
+
+  @derive(encoder, decoder)
   case class YouTubeUpdate(
     address    : Address,
     searchText : String,
