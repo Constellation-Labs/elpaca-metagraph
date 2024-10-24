@@ -22,7 +22,8 @@ case class ApplicationConfig(
   outflowTransactionsDaemon         : ApplicationConfig.OutflowTransactionsDaemonConfig,
   nodeKey                           : ApplicationConfig.NodeKey,
   xDaemon                           : ApplicationConfig.XDaemonConfig,
-  streak                            : ApplicationConfig.StreakConfig
+  streak                            : ApplicationConfig.StreakConfig,
+  youtubeDaemon                     : ApplicationConfig.YouTubeDaemonConfig
 )
 
 object ApplicationConfig {
@@ -97,6 +98,22 @@ object ApplicationConfig {
 
   case class StreakConfig(
     stargazerPublicKey: Id
+  )
+
+  case class YouTubeSearchInfo(
+    text           : String,
+    rewardAmount   : Amount,
+    minimumDuration: Long,
+    minimumViews   : Long,
+    maxPerDay      : Long
+  )
+
+  case class YouTubeDaemonConfig(
+    idleTime          : FiniteDuration,
+    usersSourceApiUrl : Option[ApiUrl],
+    youtubeApiUrl     : Option[ApiUrl],
+    youtubeApiKey     : Option[String],
+    searchInformation : YouTubeSearchInfo
   )
 
   case class NodeKey(
