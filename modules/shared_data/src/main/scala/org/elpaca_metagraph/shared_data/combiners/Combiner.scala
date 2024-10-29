@@ -120,12 +120,14 @@ object Combiner {
         (DataSourceType.Streak, updatedStreakDataSource)
 
       case update: YouTubeUpdate =>
-        (DataSourceType.YouTube, updateYouTubeState(
+        val updatedYoutubeDatasource = updateYouTubeState(
           currentDataSources,
           currentEpochProgress,
           update,
           applicationConfig
-        ).asInstanceOf[DataSource].pure)
+        ).asInstanceOf[DataSource].pure
+
+        (DataSourceType.YouTube, updatedYoutubeDatasource)
     }
 
     updatedDataSourceF.map { updatedDataSource =>

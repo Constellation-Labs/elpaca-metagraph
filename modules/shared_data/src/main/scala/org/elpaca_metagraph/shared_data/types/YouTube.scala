@@ -11,67 +11,96 @@ import scala.collection.immutable.ListMap
 
 object YouTube {
   @derive(encoder, decoder)
-  case class YouTubeRewardInfo(dailyEpochProgress: EpochProgress,
-                               epochProgressToReward: EpochProgress,
-                               amountToReward: Amount,
-                               publishDate: LocalDateTime)
+  case class YouTubeRewardInfo(
+    dailyEpochProgress   : EpochProgress,
+    epochProgressToReward: EpochProgress,
+    amountToReward       : Amount,
+    publishDate          : LocalDateTime
+  )
 
   @derive(encoder, decoder)
-  case class YouTubeDataSourceAddress(videoRewards: ListMap[String, YouTubeRewardInfo] = ListMap.empty,
-                                      rewardsReceivedToday: Long = 0)
+  case class YouTubeDataSourceAddress(
+    videoRewards        : ListMap[String, YouTubeRewardInfo] = ListMap.empty,
+    rewardsReceivedToday: Long = 0
+  )
 
   object LatticeClient {
     @derive(encoder, decoder)
-    case class YouTubeAccount(channelId: String)
+    case class YouTubeAccount(
+      channelId: String
+    )
 
     @derive(encoder, decoder)
-    case class LatticeUser(id: String,
-                           primaryDagAddress: Option[Address],
-                           youtube: Option[YouTubeAccount])
+    case class LatticeUser(
+      id               : String,
+      primaryDagAddress: Option[Address],
+      youtube          : Option[YouTubeAccount]
+    )
 
     @derive(encoder, decoder)
-    case class LatticeUserMeta(total: Long,
-                               limit: Long,
-                               offset: Long)
+    case class LatticeUserMeta(
+      total : Long,
+      limit : Long,
+      offset: Long
+    )
 
     @derive(encoder, decoder)
-    case class LatticeUsersApiResponse(data: List[LatticeUser],
-                                       meta: Option[LatticeUserMeta])
-  }
+    case class LatticeUsersApiResponse(
+      data: List[LatticeUser],
+      meta: Option[LatticeUserMeta])
+    }
 
   object YouTubeDataAPI {
     @derive(encoder, decoder)
-    case class Id(videoId: String)
+    case class Id(
+      videoId: String
+    )
 
     @derive(encoder, decoder)
-    case class VideoId(id: Id)
+    case class VideoId(
+      id: Id
+    )
 
     @derive(encoder, decoder)
-    case class VideoDetails(id: String,
-                            viewCount: Long,
-                            duration: Long,
-                            publishedAt: Instant)
+    case class VideoDetails(
+      id         : String,
+      viewCount  : Long,
+      duration   : Long,
+      publishedAt: Instant
+    )
 
     @derive(encoder, decoder)
-    case class SearchListResponse(items: List[VideoId],
-                                  nextPageToken: Option[String])
+    case class SearchListResponse(
+      items        : List[VideoId],
+      nextPageToken: Option[String]
+    )
 
     @derive(encoder, decoder)
-    case class VideoSnippetResponse(publishedAt: Instant)
+    case class VideoSnippetResponse(
+      publishedAt: Instant
+    )
 
     @derive(encoder, decoder)
-    case class VideoStatisticsResponse(viewCount: Long)
+    case class VideoStatisticsResponse(
+      viewCount: Long
+    )
 
     @derive(encoder, decoder)
-    case class VideoContentDetailsResponse(duration: String)
+    case class VideoContentDetailsResponse(
+      duration: String
+    )
 
     @derive(encoder, decoder)
-    case class VideoResponse(id: String,
-                             snippet: VideoSnippetResponse,
-                             statistics: VideoStatisticsResponse,
-                             contentDetails: VideoContentDetailsResponse)
+    case class VideoResponse(
+      id            : String,
+      snippet       : VideoSnippetResponse,
+      statistics    : VideoStatisticsResponse,
+      contentDetails: VideoContentDetailsResponse
+    )
 
     @derive(encoder, decoder)
-    case class VideoListResponse(items: List[VideoResponse])
+    case class VideoListResponse(
+      items: List[VideoResponse]
+    )
   }
 }
