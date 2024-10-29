@@ -52,12 +52,22 @@ Additionally, there are manual data sources that require a `DataUpdate` to be se
       starting date.
     - **Worker Function:** The worker checks if the provided wallets received any transactions greater than the
       specified amount of DAG every 30 minutes and updates the metagraph accordingly.
+
 7. **X Posts:**
    - **Description:** Users who have linked their X/Twitter accounts in Lattice can receive rewards based on the 
       content of their posts.
    - **Worker Function:** The worker will monitor user posts for specific strings and reward them accordingly. 
       The configuration of the worker determines which strings to monitor, the maximum number of rewards per day,
       and the reward amount. This worker will run every 30 minutes.
+
+8. **YouTube Videos:**
+   - **Description:** Lattice users who have linked their YouTube accounts can receive rewards based on videos they 
+      upload to their YouTube channel.
+   - **Worker Function:** The worker will monitor user's YouTube channel uploads for specific strings in title, 
+     description or hashtag and reward them accordingly.
+     The configuration of the worker determines which strings to monitor, the maximum daily rewards, the reward amount,
+     the minimum number of views and minimum video length required. This worker will run every 60 minutes.
+
 
 ### Manual Data Sources
 
@@ -118,6 +128,7 @@ Additionally, there are manual data sources that require a `DataUpdate` to be se
 - **Inflow Transactions:** Defined in configuration.
 - **Outflow Transactions:** Defined in configuration.
 - **X/Twitter Posts:** Defined in configuration.
+- **YouTube Videos:** Defined in configuration.
 - **Claim/Streak:**
   -  **1 to 4 days**: The user receives **1 PACA** per day.
   -  **5 to 10 days**: The user receives **2 PACA** per day.
