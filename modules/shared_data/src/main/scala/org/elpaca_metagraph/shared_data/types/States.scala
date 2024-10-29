@@ -104,7 +104,7 @@ object States {
 
   @derive(encoder, decoder)
   case class YouTubeDataSource(
-    existingWallets: Map[Address, YouTubeDataSourceAddress] = Map.empty
+    existingWallets: Map[Address, YouTubeDataSourceAddress]
   ) extends DataSource
 
   @derive(encoder, decoder)
