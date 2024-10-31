@@ -2,11 +2,12 @@ package org.elpaca_metagraph.shared_data.types
 
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
+import org.elpaca_metagraph.shared_data.types.YouTube.YouTubeDataAPI.VideoDetails
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
 
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 import scala.collection.immutable.ListMap
 
 object YouTube {
@@ -15,13 +16,14 @@ object YouTube {
     dailyEpochProgress   : EpochProgress,
     epochProgressToReward: EpochProgress,
     amountToReward       : Amount,
-    publishDate          : LocalDateTime
+    searchText           : String,
+    videos               : List[VideoDetails],
+    dailyPostsNumber     : Long
   )
 
   @derive(encoder, decoder)
   case class YouTubeDataSourceAddress(
-    videoRewards        : ListMap[String, YouTubeRewardInfo] = ListMap.empty,
-    rewardsReceivedToday: Long = 0
+    addressRewards: ListMap[String, YouTubeRewardInfo] = ListMap.empty
   )
 
   object LatticeClient {
@@ -64,9 +66,9 @@ object YouTube {
     @derive(encoder, decoder)
     case class VideoDetails(
       id         : String,
-      viewCount  : Long,
-      duration   : Long,
-      publishedAt: Instant
+      publishedAt: Instant,
+      views      : Long,
+      duration   : Long
     )
 
     @derive(encoder, decoder)

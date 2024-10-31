@@ -10,73 +10,113 @@ import org.elpaca_metagraph.shared_data.types.YouTube.{YouTubeDataSourceAddress,
 import org.tessellation.schema.epoch.EpochProgress
 
 object YouTubeCombiner {
+  def updateYoutubeRewardsOlderThanOneDay(
+    currentCalculatedState: Map[DataSourceType, DataSource],
+    currentEpochProgress: EpochProgress
+  ): Map[DataSourceType, DataSource] = {
+    val youtubeDatasource = getYouTubeDatasource(currentCalculatedState)
+    val updatedDataSourceAddress = youtubeDatasource.existingWallets.foldLeft(youtubeDatasource.existingWallets) { (acc, current) =>
+      val (address, youtubeDataSourceAddress) = current
+      val updatedRewards = youtubeDataSourceAddress.addressRewards.foldLeft(youtubeDataSourceAddress.addressRewards) { (innerAcc, innerCurrent) =>
+        val (searchText, rewardInfo) = innerCurrent
+        if (isNewDay(rewardInfo.dailyEpochProgress, currentEpochProgress)) {
+          innerAcc.updated(searchText, rewardInfo.focus(_.dailyPostsNumber).replace(0))
+        } else {
+          innerAcc
+        }
+      }
+
+      acc.updated(address, youtubeDataSourceAddress.focus(_.addressRewards).replace(updatedRewards))
+    }
+
+    currentCalculatedState.updated(
+      DataSourceType.YouTube,
+      youtubeDatasource.focus(_.existingWallets).replace(updatedDataSourceAddress)
+    )
+  }
+
   def updateYouTubeState(
     currentCalculatedState: Map[DataSourceType, DataSource],
     currentEpochProgress: EpochProgress,
     youTubeUpdate: YouTubeUpdate,
     applicationConfig: ApplicationConfig
   ): YouTubeDataSource = {
-    val searchInformation = applicationConfig.youtubeDaemon.searchInformation
-    val amountToReward = toTokenAmountFormat(searchInformation.rewardAmount)
-    val youtubeDatasource = currentCalculatedState
+    val maybeSearchInformation = applicationConfig.youtubeDaemon.searchInformation.find(_.text == youTubeUpdate.searchText)
+    val youtubeDatasource = getYouTubeDatasource(currentCalculatedState)
+    val youTubeDataSourceAddress = youtubeDatasource.existingWallets.getOrElse(youTubeUpdate.address, YouTubeDataSourceAddress())
+
+    maybeSearchInformation.fold(youtubeDatasource) { searchInformation =>
+      val updatedData = youTubeDataSourceAddress.addressRewards
+        .get(youTubeUpdate.searchText)
+        .map { data =>
+          def updateYoutubeRewardInfoNewDay() = {
+            data
+              .focus(_.dailyEpochProgress)
+              .replace(currentEpochProgress)
+              .focus(_.epochProgressToReward)
+              .replace(currentEpochProgress)
+              .focus(_.dailyPostsNumber)
+              .replace(1)
+              .focus(_.amountToReward)
+              .replace(toTokenAmountFormat(searchInformation.rewardAmount))
+              .focus(_.videos)
+              .replace(List(youTubeUpdate.video))
+          }
+
+          def isNotExceedingDailyLimit: Boolean = data.dailyPostsNumber < searchInformation.maxPerDay
+
+          def postAlreadyExists: Boolean = data.videos.contains(youTubeUpdate.video)
+
+          def updateXRewardInfoSameDay(): YouTubeRewardInfo = {
+            if (data.epochProgressToReward === currentEpochProgress) {
+              data
+                .focus(_.dailyPostsNumber)
+                .modify(current => current + 1)
+                .focus(_.amountToReward)
+                .modify(current => current.plus(toTokenAmountFormat(searchInformation.rewardAmount)).getOrElse(current))
+                .focus(_.videos)
+                .modify(current => current :+ youTubeUpdate.video)
+            } else {
+              data
+                .focus(_.epochProgressToReward)
+                .replace(currentEpochProgress)
+                .focus(_.dailyPostsNumber)
+                .modify(current => current + 1)
+                .focus(_.videos)
+                .modify(current => current :+ youTubeUpdate.video)
+            }
+          }
+
+          if (isNewDay(data.epochProgressToReward, currentEpochProgress)) {
+            updateYoutubeRewardInfoNewDay()
+          } else if (isNotExceedingDailyLimit && !postAlreadyExists) {
+            updateXRewardInfoSameDay()
+          } else {
+            data
+          }
+        }.getOrElse(YouTubeRewardInfo(
+          currentEpochProgress,
+          currentEpochProgress,
+          toTokenAmountFormat(searchInformation.rewardAmount),
+          searchInformation.text,
+          List(youTubeUpdate.video),
+          1
+        ))
+
+      val updatedDataSourceAddress = youTubeDataSourceAddress
+        .focus(_.addressRewards)
+        .modify(_.updated(youTubeUpdate.searchText, updatedData))
+
+      youtubeDatasource
+        .focus(_.existingWallets)
+        .modify(_.updated(youTubeUpdate.address, updatedDataSourceAddress))
+    }
+  }
+
+  private def getYouTubeDatasource(currentCalculatedState: Map[DataSourceType, DataSource]): YouTubeDataSource = {
+    currentCalculatedState
       .get(DataSourceType.YouTube)
       .collect { case ds: YouTubeDataSource => ds }
       .getOrElse(YouTubeDataSource(Map.empty))
-
-    val record = youtubeDatasource.existingWallets.getOrElse(youTubeUpdate.address, YouTubeDataSourceAddress())
-
-    val updatedData = record.videoRewards.get(youTubeUpdate.videoId).map { data =>
-      def isNotExceedingDailyLimit = record.rewardsReceivedToday <= searchInformation.maxPerDay
-
-      def updateYouTubeRewardInfoNewDay(): YouTubeRewardInfo = {
-        data
-          .focus(_.dailyEpochProgress)
-          .replace(currentEpochProgress)
-          .focus(_.epochProgressToReward)
-          .replace(currentEpochProgress)
-          .focus(_.amountToReward)
-          .replace(amountToReward)
-          .focus(_.publishDate)
-          .replace(youTubeUpdate.publishDate)
-      }
-
-      def updateYouTubeRewardInfoSameDay(): YouTubeRewardInfo = {
-        if (data.epochProgressToReward === currentEpochProgress) {
-          data
-            .focus(_.amountToReward)
-            .modify(current => current.plus(amountToReward).getOrElse(current))
-            .focus(_.publishDate)
-            .replace(youTubeUpdate.publishDate)
-        } else {
-          data
-            .focus(_.epochProgressToReward)
-            .replace(currentEpochProgress)
-            .focus(_.publishDate)
-            .replace(youTubeUpdate.publishDate)
-        }
-      }
-
-      if (isNewDay(data.epochProgressToReward, currentEpochProgress)) updateYouTubeRewardInfoNewDay()
-      else if (isNotExceedingDailyLimit) updateYouTubeRewardInfoSameDay()
-      else data
-    }.getOrElse(YouTubeRewardInfo(currentEpochProgress, currentEpochProgress, amountToReward, youTubeUpdate.publishDate))
-
-    val updatedDataSourceAddress = if (isNewDay(updatedData.epochProgressToReward, currentEpochProgress)) {
-      record
-        .focus(_.rewardsReceivedToday)
-        .replace(1)
-        .focus(_.videoRewards)
-        .modify(_.updated(youTubeUpdate.videoId, updatedData))
-    } else {
-      record
-        .focus(_.rewardsReceivedToday)
-        .modify(_ + 1)
-        .focus(_.videoRewards)
-        .modify(_.updated(youTubeUpdate.videoId, updatedData))
-    }
-
-    youtubeDatasource
-      .focus(_.existingWallets)
-      .modify(_.updated(youTubeUpdate.address, updatedDataSourceAddress))
   }
 }
