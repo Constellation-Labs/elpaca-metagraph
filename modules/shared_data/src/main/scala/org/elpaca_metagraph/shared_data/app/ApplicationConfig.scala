@@ -113,7 +113,7 @@ object ApplicationConfig {
     usersSourceApiUrl : Option[ApiUrl],
     youtubeApiUrl     : Option[ApiUrl],
     youtubeApiKey     : Option[String],
-    searchInformation : YouTubeSearchInfo
+    searchInformation : List[YouTubeSearchInfo]
   )
 
   case class NodeKey(

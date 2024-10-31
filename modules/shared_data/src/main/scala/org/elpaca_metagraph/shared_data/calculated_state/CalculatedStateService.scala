@@ -10,8 +10,6 @@ import org.tessellation.json.JsonSerializer
 import org.tessellation.schema.SnapshotOrdinal
 import org.tessellation.security.hash.Hash
 
-import java.nio.charset.StandardCharsets
-
 trait CalculatedStateService[F[_]] {
   def get: F[CalculatedState]
 

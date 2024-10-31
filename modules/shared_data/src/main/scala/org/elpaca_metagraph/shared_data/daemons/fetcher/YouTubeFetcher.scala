@@ -14,9 +14,12 @@ import org.http4s.circe.jsonOf
 import org.http4s.client.Client
 import org.http4s.{Method, Request, Uri}
 import org.tessellation.node.shared.resources.MkHttpClient
+import org.tessellation.schema.address.Address
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.time.format.DateTimeFormatter
-import java.time.{Duration, LocalDateTime, ZoneOffset}
+import java.time.{Duration, Instant, LocalDateTime, ZoneOffset}
 
 class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(implicit client: Client[F]) {
   def fetchLatticeUsers(
@@ -60,7 +63,7 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
       val videosIds = response.items.map(_.id.videoId)
 
       fetchVideoDetails(videosIds).flatMap { videos =>
-        val updatedVideos = result ++ videos.filter(v => v.duration > minimumDuration && v.viewCount > minimumViews)
+        val updatedVideos = result ++ videos.filter(v => v.duration > minimumDuration && v.views > minimumViews)
 
         response.nextPageToken match {
           case Some(token) => fetchVideosByChannelId(
@@ -92,9 +95,9 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
         response.items.map(item =>
           VideoDetails(
             item.id,
+            item.snippet.publishedAt,
             item.statistics.viewCount,
-            Duration.parse(item.contentDetails.duration).getSeconds,
-            item.snippet.publishedAt
+            Duration.parse(item.contentDetails.duration).getSeconds
           )
         ).pure
       }
@@ -102,11 +105,14 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
 }
 
 object YouTubeFetcher {
+  private val zoneOffset = ZoneOffset.UTC
+
   def make[F[_] : Async : Network](
     applicationConfig: ApplicationConfig,
     calculatedStateService: CalculatedStateService[F]
-  ): Fetcher[F] = (currentDate: LocalDateTime) =>
+  ): Fetcher[F] = (_: LocalDateTime) =>
     MkHttpClient.forAsync[F].newEmber(applicationConfig.http4s.client).use { implicit client =>
+      val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(YouTubeFetcher.getClass)
       val config = applicationConfig.youtubeDaemon
 
       for {
@@ -114,59 +120,88 @@ object YouTubeFetcher {
         baseUrl <- config.youtubeApiUrl.toOptionT.getOrRaise(new Exception(s"Could not get YouTube Data API baseUrl"))
         apiKey <- config.youtubeApiKey.toOptionT.getOrRaise(new Exception(s"Could not get YouTube apiKey"))
         searchInformation = config.searchInformation
+
         youtubeFetcher = new YouTubeFetcher[F](apiKey, baseUrl)
-        latticeUsers <- youtubeFetcher.fetchLatticeUsers(latticeApiUrl)
         calculatedState <- calculatedStateService.get
         dataSource: YouTubeDataSource = calculatedState.state.dataSources
           .get(DataSourceType.YouTube)
           .collect { case ds: YouTubeDataSource => ds }
           .getOrElse(YouTubeDataSource(Map.empty))
 
-        filteredLatticeUsers = latticeUsers.filterNot { user =>
-          dataSource.existingWallets.filter { wallet =>
-            val (_, ytDataSourceAddress) = wallet
-            ytDataSourceAddress.rewardsReceivedToday >= searchInformation.maxPerDay
-          }
-          .keys.toList.contains(user.primaryDagAddress.get)
+        latticeUsers <- youtubeFetcher.fetchLatticeUsers(latticeApiUrl)
+        filteredLatticeUsers = latticeUsers.filter { user =>
+          user.primaryDagAddress.flatMap { address =>
+            user.youtube.map { _ =>
+              validateIfAddressCanProceed(dataSource, searchInformation, address, none)
+            }
+          }.getOrElse(false)
         }
 
+        _ <- logger.info(s"Found ${latticeUsers.length} Lattice users")
+        _ <- logger.info(s"Found ${filteredLatticeUsers.length} filtered Lattice users")
+
         dataUpdates <- filteredLatticeUsers.traverse { user =>
-          youtubeFetcher.fetchVideosByChannelId(
-            user.youtube.get.channelId,
-            searchInformation.text,
-            searchInformation.minimumDuration,
-            searchInformation.minimumViews,
-            dataSource.existingWallets
-              .get(user.primaryDagAddress.get)
-              .map { wallet =>
-                val (_, latestVideoReward) = wallet.videoRewards.last
-                latestVideoReward.publishDate
+          searchInformation.traverse { searchInfo =>
+            youtubeFetcher.fetchVideosByChannelId(
+              user.youtube.get.channelId,
+              searchInfo.text,
+              searchInfo.minimumDuration,
+              searchInfo.minimumViews,
+              dataSource.existingWallets.get(user.primaryDagAddress.get).map { wallet =>
+                val addressReward = wallet.addressRewards(searchInfo.text)
+                val latestVideoRewarded = addressReward.videos.sortBy(_.publishedAt)(Ordering[Instant].reverse).head
+                latestVideoRewarded.publishedAt.atZone(zoneOffset).toLocalDateTime
               }
-          ).map(_.map { video => YouTubeUpdate(
-            user.primaryDagAddress.get,
-            searchInformation.text,
-            video.id,
-            LocalDateTime.ofInstant(video.publishedAt, ZoneOffset.UTC)
-          )})
-        }
+            ).map(_.map { video => YouTubeUpdate(
+              user.primaryDagAddress.get,
+              searchInfo.text,
+              video
+            )})
+          }.map(_.flatten)
+        }.map(_.flatten)
 
         newlyLoadedLatticeUsers = latticeUsers.filterNot { user =>
           dataSource.existingWallets.keys.toList.contains(user.primaryDagAddress.get)
         }
 
         newUpdates <- newlyLoadedLatticeUsers.traverse { user =>
-          youtubeFetcher.fetchVideosByChannelId(
-            user.youtube.get.channelId,
-            searchInformation.text,
-            searchInformation.minimumDuration,
-            searchInformation.minimumViews
-          ).map(_.map { video => YouTubeUpdate(
-            user.primaryDagAddress.get,
-            searchInformation.text,
-            video.id,
-            LocalDateTime.ofInstant(video.publishedAt, ZoneOffset.UTC)
-          )})
+          searchInformation.traverse { searchInfo =>
+            youtubeFetcher.fetchVideosByChannelId(
+              user.youtube.get.channelId,
+              searchInfo.text,
+              searchInfo.minimumDuration,
+              searchInfo.minimumViews
+            ).map(_.map { video => YouTubeUpdate(
+              user.primaryDagAddress.get,
+              searchInfo.text,
+              video
+            )})
+          }.map(_.flatten)
+        }.map(_.flatten)
+
+        filteredUpdates = (dataUpdates ++ newUpdates).filter { update =>
+          validateIfAddressCanProceed(
+            dataSource,
+            searchInformation,
+            update.address,
+            Some(update.video)
+          )
         }
-      } yield dataUpdates.flatten ++ newUpdates.flatten
+      } yield filteredUpdates
+    }
+
+  private def validateIfAddressCanProceed(
+    dataSource: YouTubeDataSource,
+    searchInformation: List[ApplicationConfig.YouTubeSearchInfo],
+    address: Address,
+    maybeVideo: Option[VideoDetails]
+  ): Boolean =
+    dataSource.existingWallets.get(address).fold(true) { existingWallet =>
+      searchInformation.exists { searchInfo =>
+        existingWallet.addressRewards.get(searchInfo.text).fold(true) { addressRewards =>
+          addressRewards.dailyPostsNumber < searchInfo.maxPerDay &&
+            maybeVideo.forall(!addressRewards.videos.contains(_))
+        }
+      }
     }
 }

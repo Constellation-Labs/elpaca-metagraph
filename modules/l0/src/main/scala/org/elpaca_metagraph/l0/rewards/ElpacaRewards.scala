@@ -110,7 +110,7 @@ object ElpacaRewards {
           case dataSource: YouTubeDataSource =>
             dataSource.existingWallets.foldLeft(Map.empty[Address, Amount]) { (acc, dsInfo) =>
               val (rewardAddress, ds) = dsInfo
-              ds.videoRewards.collect {
+              ds.addressRewards.collect {
                 case (_, videoRewardInfo) if videoRewardInfo.epochProgressToReward === currentEpochProgress =>
                   rewardAddress -> videoRewardInfo.amountToReward
               }.foldLeft(acc) { case (innerAcc, (addressToReward, rewardAmount)) =>
