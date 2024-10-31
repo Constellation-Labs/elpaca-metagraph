@@ -23,8 +23,7 @@ object YouTube {
 
   @derive(encoder, decoder)
   case class YouTubeDataSourceAddress(
-    addressRewards        : ListMap[String, YouTubeRewardInfo] = ListMap.empty
-
+    addressRewards: ListMap[String, YouTubeRewardInfo] = ListMap.empty
   )
 
   object LatticeClient {
@@ -68,7 +67,7 @@ object YouTube {
     case class VideoDetails(
       id         : String,
       publishedAt: Instant,
-      views  : Long,
+      views      : Long,
       duration   : Long
     )
 

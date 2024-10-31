@@ -97,10 +97,10 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
       client.expect[VideoListResponse](request)(jsonOf[F, VideoListResponse]).flatMap { response =>
         response.items.map(item =>
           VideoDetails(
-            item.id,item.snippet.publishedAt,
+            item.id,
+            item.snippet.publishedAt,
             item.statistics.viewCount,
             Duration.parse(item.contentDetails.duration).getSeconds
-
           )
         ).pure
       }
@@ -125,7 +125,6 @@ object YouTubeFetcher {
         searchInformation = config.searchInformation
 
         youtubeFetcher = new YouTubeFetcher[F](apiKey, baseUrl)
-        latticeUsers <- youtubeFetcher.fetchLatticeUsers(latticeApiUrl)
         calculatedState <- calculatedStateService.get
         dataSource: YouTubeDataSource = calculatedState.state.dataSources
           .get(DataSourceType.YouTube)
@@ -151,8 +150,7 @@ object YouTubeFetcher {
               searchInfo.text,
               searchInfo.minimumDuration,
               searchInfo.minimumViews,
-              searchInfo.maxPerDay,
-              dataSource.existingWallets.get(user.primaryDagAddress.get).map { wallet =>
+              searchInfo.maxPerDay,dataSource.existingWallets.get(user.primaryDagAddress.get).map { wallet =>
                 val addressReward = wallet.addressRewards(searchInfo.text)
                 val latestVideoRewarded = addressReward.videos.sortBy(_.publishedAt)(Ordering[Instant].reverse).head
                 latestVideoRewarded.publishedAt.atZone(zoneOffset).toLocalDateTime
