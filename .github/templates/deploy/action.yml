@@ -79,6 +79,16 @@ inputs:
     required: true
   X_WORKER_INTERVAL:
     required: true
+  YT_WORKER_INTERVAL:
+    required: true
+  YT_USERS_SOURCE_API_URL:
+    required: true
+  YT_API_SEARCH_URL:
+    required: true
+  YT_API_KEY:
+    required: true
+  YT_SEARCH_INFORMATION:
+    required: true
   STARGAZER_PUBLIC_KEY:
     required: true
 runs:
@@ -137,6 +147,11 @@ runs:
         export USERS_SOURCE_API_URL="${{ inputs.USERS_SOURCE_API_URL }}"
         export X_SEARCH_INFORMATION="${{ inputs.X_SEARCH_INFORMATION }}"
         export X_WORKER_INTERVAL="${{ inputs.X_WORKER_INTERVAL }}"
+        export YT_WORKER_INTERVAL="${{ inputs.YT_WORKER_INTERVAL }}"
+        export YT_USERS_SOURCE_API_URL="${{ inputs.YT_USERS_SOURCE_API_URL }}"
+        export YT_API_SEARCH_URL="${{ inputs.YT_API_SEARCH_URL }}"
+        export YT_API_KEY="${{ inputs.YT_API_KEY }}"
+        export YT_SEARCH_INFORMATION="${{ inputs.YT_SEARCH_INFORMATION }}"
         export STARGAZER_PUBLIC_KEY="${{ inputs.STARGAZER_PUBLIC_KEY }}"
 
         cd modules/shared_data/src/main/resources
