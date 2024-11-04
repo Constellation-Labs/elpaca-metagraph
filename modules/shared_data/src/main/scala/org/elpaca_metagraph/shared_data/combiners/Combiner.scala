@@ -23,11 +23,11 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object Combiner {
   def combineElpacaUpdate[F[_] : Async](
-    oldState            : DataState[ElpacaOnChainState, ElpacaCalculatedState],
-    currentEpochProgress: EpochProgress,
-    update              : Signed[ElpacaUpdate],
-    applicationConfig   : ApplicationConfig
-  ): F[DataState[ElpacaOnChainState, ElpacaCalculatedState]] = {
+                                         oldState            : DataState[ElpacaOnChainState, ElpacaCalculatedState],
+                                         currentEpochProgress: EpochProgress,
+                                         update              : Signed[ElpacaUpdate],
+                                         applicationConfig   : ApplicationConfig
+                                       ): F[DataState[ElpacaOnChainState, ElpacaCalculatedState]] = {
     val currentDataSources = oldState.calculated.dataSources
 
     val (dataSourceType, updatedDataSourceF): (DataSourceType, F[DataSource]) = update.value match {
@@ -106,14 +106,6 @@ object Combiner {
         ).asInstanceOf[DataSource]
 
         (DataSourceType.X, updatedXDataSource.pure)
-
-      case update: YouTubeUpdate =>
-        (DataSourceType.YouTube, updateYouTubeState(
-          currentDataSources,
-          currentEpochProgress,
-          update,
-          applicationConfig
-        ).asInstanceOf[DataSource].pure)
 
       case streakUpdate: StreakUpdate =>
         implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("StreakCombiner")

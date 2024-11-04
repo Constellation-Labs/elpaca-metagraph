@@ -47,8 +47,6 @@ object States {
 
     case object X extends DataSourceType("X")
 
-    case object YouTube extends DataSourceType("YouTube")
-
     case object Streak extends DataSourceType("Streak")
 
     case object YouTube extends DataSourceType("YouTube")
@@ -100,11 +98,6 @@ object States {
   @derive(encoder, decoder)
   case class XDataSource(
     existingWallets: Map[Address, XDataSourceAddress]
-  ) extends DataSource
-
-  @derive(encoder, decoder)
-  case class YouTubeDataSource(
-    existingWallets: Map[Address, YouTubeDataSourceAddress]
   ) extends DataSource
 
   @derive(encoder, decoder)
