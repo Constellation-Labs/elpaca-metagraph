@@ -152,6 +152,7 @@ runs:
         export YT_API_SEARCH_URL="${{ inputs.YT_API_SEARCH_URL }}"
         export YT_API_KEY="${{ inputs.YT_API_KEY }}"
         export YT_SEARCH_INFORMATION="${{ inputs.YT_SEARCH_INFORMATION }}"
+
         export STARGAZER_PUBLIC_KEY="${{ inputs.STARGAZER_PUBLIC_KEY }}"
 
         cd modules/shared_data/src/main/resources
