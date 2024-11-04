@@ -45,6 +45,7 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
     searchString: String,
     minimumDuration: Long,
     minimumViews: Long,
+    maxResults: Long,
     publishedAfter: Option[LocalDateTime] = None,
     pageToken: Option[String] = None,
     result: List[VideoDetails] = List.empty
@@ -55,6 +56,7 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
       .withQueryParam("channelId", channelId)
       .withQueryParam("q", searchString)
       .withQueryParam("type", "video")
+      .withQueryParam("order", "date")
       .withQueryParam("maxResults", 50)
       .withOptionQueryParam("publishedAfter", formattedPublishAfter)
       .withOptionQueryParam("pageToken", pageToken))
@@ -71,11 +73,12 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
             searchString,
             minimumDuration,
             minimumViews,
+            maxResults,
             publishedAfter,
             Some(token),
             updatedVideos
           )
-          case None => updatedVideos.sortBy(_.publishedAt).pure
+          case None => updatedVideos.reverse.take(maxResults.toInt).pure
         }
       }
     }
@@ -147,6 +150,7 @@ object YouTubeFetcher {
               searchInfo.text,
               searchInfo.minimumDuration,
               searchInfo.minimumViews,
+              searchInfo.maxPerDay,
               dataSource.existingWallets.get(user.primaryDagAddress.get).map { wallet =>
                 val addressReward = wallet.addressRewards(searchInfo.text)
                 val latestVideoRewarded = addressReward.videos.sortBy(_.publishedAt)(Ordering[Instant].reverse).head
@@ -170,7 +174,8 @@ object YouTubeFetcher {
               user.youtube.get.channelId,
               searchInfo.text,
               searchInfo.minimumDuration,
-              searchInfo.minimumViews
+              searchInfo.minimumViews,
+              searchInfo.maxPerDay
             ).map(_.map { video => YouTubeUpdate(
               user.primaryDagAddress.get,
               searchInfo.text,
