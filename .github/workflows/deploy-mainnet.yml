@@ -48,7 +48,14 @@ jobs:
           USERS_SOURCE_API_URL: ${{secrets.USERS_SOURCE_API_URL}}
           X_SEARCH_INFORMATION: ${{secrets.X_SEARCH_INFORMATION}}
           X_WORKER_INTERVAL: ${{secrets.X_WORKER_INTERVAL}}
+
           STARGAZER_PUBLIC_KEY: ${{secrets.STARGAZER_PUBLIC_KEY}}
+
+          YT_WORKER_INTERVAL: ${{secrets.YT_WORKER_INTERVAL}}
+          YT_USERS_SOURCE_API_URL: ${{secrets.YT_USERS_SOURCE_API_URL}}
+          YT_API_SEARCH_URL: ${{secrets.YT_API_SEARCH_URL}}
+          YT_API_KEY: ${{secrets.YT_API_KEY}}
+          YT_SEARCH_INFORMATION: ${{secrets.YT_SEARCH_INFORMATION}}
 
           SSH_NODE_1_HOST: ${{ secrets.SSH_HOST_MAINNET_1 }}
           SSH_NODE_1_USER: ${{ secrets.SSH_USER_MAINNET_1 }}
