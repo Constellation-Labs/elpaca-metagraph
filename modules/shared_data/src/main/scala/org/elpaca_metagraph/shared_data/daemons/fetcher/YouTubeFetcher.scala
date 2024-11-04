@@ -50,7 +50,7 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
     pageToken: Option[String] = None,
     result: List[VideoDetails] = List.empty
   ): F[List[VideoDetails]] = {
-    val formattedPublishAfter = publishedAfter.map(_.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT))
+    val formattedPublishAfter = publishedAfter.map(_.plusMinutes(1).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT))
     val request = Request[F](Method.GET, Uri.unsafeFromString(baseUrl.toString() + "/search")
       .withQueryParam("key", apiKey)
       .withQueryParam("channelId", channelId)
