@@ -28,9 +28,10 @@ import java.security.KeyPair
 object Utils {
   private val oneHourInSeconds = 60 * 60
   private val oneEpochProgressInSeconds = 43
+  private val epochProgressesInOneHour = oneHourInSeconds / oneEpochProgressInSeconds
   private val oneDayInHours = 24
 
-  val epochProgressOneDay: Long = (oneHourInSeconds / oneEpochProgressInSeconds) * oneDayInHours
+  val epochProgressOneDay: Int = epochProgressesInOneHour * oneDayInHours
 
   def logger[F[_] : Async]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("Utils")
 
