@@ -53,7 +53,7 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
       .withQueryParam("key", apiKey)
       .withQueryParam("q", searchString)
       .withQueryParam("type", "video")
-      .withQueryParam("order", "relevance")
+      .withQueryParam("order", "date")
       .withQueryParam("maxResults", 50)
       .withQueryParam("part", "snippet")
       .withOptionQueryParam("publishedAfter", formattedPublishAfter)
@@ -61,7 +61,6 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
 
     client.expect[SearchListResponse](request)(jsonOf[F, SearchListResponse]).flatMap { response =>
       val currentMap = response.items.groupBy(_.snippet.channelId).view.mapValues(_.map(_.id.videoId)).toMap
-
       val updatedMap = result ++ currentMap.map {
         case (channelId, videoIds) => channelId -> (result.getOrElse(channelId, List.empty) ++ videoIds)
       }
@@ -82,7 +81,8 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
   def filterVideosByChannels(
     channelVideoMap: Map[String, List[String]],
     allowedChannelIds: List[String]
-  ): List[String] = channelVideoMap.view
+  ): List[String] =
+    channelVideoMap.view
       .filterKeys(allowedChannelIds.contains)
       .values
       .flatten
@@ -92,7 +92,7 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
     users: List[LatticeUser],
     searchInfo: YouTubeSearchInfo,
     globalSearchResult: Map[String, List[String]]
-  ): F[List[YouTubeUpdate]] = {
+  ): F[List[YouTubeUpdate]] =
     users.traverse { user =>
       val videoIds = filterVideosByChannels(globalSearchResult, List(user.youtube.get.channelId))
       fetchVideoDetails(
@@ -105,7 +105,6 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
         video
       )})
     }.map(_.flatten)
-  }
 
   private def fetchVideoDetails(
     videosIds: List[String],
