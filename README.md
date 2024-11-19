@@ -66,7 +66,8 @@ Additionally, there are manual data sources that require a `DataUpdate` to be se
    - **Worker Function:** The worker will monitor user's YouTube channel uploads for specific strings in title, 
      description or hashtag and reward them accordingly.
      The configuration of the worker determines which strings to monitor, the maximum daily rewards, the reward amount,
-     the minimum number of views and minimum video length required. This worker will run every 60 minutes.
+     the minimum number of views and minimum video length required. This worker will run every X minutes, according to
+     the application configuration.
 
 
 ### Manual Data Sources
