@@ -8,7 +8,7 @@ import org.tessellation.schema.ID.Id
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.balance.Amount
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDate
 import scala.concurrent.duration._
 
 case class ApplicationConfig(
