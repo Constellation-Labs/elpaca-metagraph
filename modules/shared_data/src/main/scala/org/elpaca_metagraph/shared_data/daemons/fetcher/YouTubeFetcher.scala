@@ -53,7 +53,7 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
       .withQueryParam("key", apiKey)
       .withQueryParam("q", searchString)
       .withQueryParam("type", "video")
-      .withQueryParam("order", "date")
+      .withQueryParam("order", "relevance")
       .withQueryParam("maxResults", 50)
       .withQueryParam("part", "snippet")
       .withOptionQueryParam("publishedAfter", formattedPublishAfter)
