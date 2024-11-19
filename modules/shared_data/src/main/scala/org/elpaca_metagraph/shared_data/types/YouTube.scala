@@ -60,7 +60,7 @@ object YouTube {
 
     @derive(encoder, decoder)
     case class VideoSummary(
-      id: Id,
+      id     : Id,
       snippet: VideoSnippetResponse
     )
 
@@ -81,7 +81,7 @@ object YouTube {
 
     @derive(encoder, decoder)
     case class VideoSnippetResponse(
-      channelId     : String,
+      channelId  : String,
       publishedAt: Instant
     )
 
