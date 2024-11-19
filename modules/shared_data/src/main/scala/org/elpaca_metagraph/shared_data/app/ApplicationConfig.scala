@@ -8,7 +8,7 @@ import org.tessellation.schema.ID.Id
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.balance.Amount
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.duration._
 
 case class ApplicationConfig(
@@ -101,11 +101,12 @@ object ApplicationConfig {
   )
 
   case class YouTubeSearchInfo(
-    text           : String,
-    rewardAmount   : Amount,
-    minimumDuration: Long,
-    minimumViews   : Long,
-    maxPerDay      : Long
+    text                 : String,
+    rewardAmount         : Amount,
+    minimumDuration      : Long,
+    minimumViews         : Long,
+    maxPerDay            : Long,
+    publishedWithinHours : Long
   )
 
   case class YouTubeDaemonConfig(

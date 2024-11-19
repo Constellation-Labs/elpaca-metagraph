@@ -59,13 +59,15 @@ object YouTube {
     )
 
     @derive(encoder, decoder)
-    case class VideoId(
-      id: Id
+    case class VideoSummary(
+      id: Id,
+      snippet: VideoSnippetResponse
     )
 
     @derive(encoder, decoder)
     case class VideoDetails(
       id         : String,
+      channelId  : String,
       publishedAt: Instant,
       views      : Long,
       duration   : Long
@@ -73,18 +75,19 @@ object YouTube {
 
     @derive(encoder, decoder)
     case class SearchListResponse(
-      items        : List[VideoId],
+      items        : List[VideoSummary],
       nextPageToken: Option[String]
     )
 
     @derive(encoder, decoder)
     case class VideoSnippetResponse(
+      channelId     : String,
       publishedAt: Instant
     )
 
     @derive(encoder, decoder)
     case class VideoStatisticsResponse(
-      viewCount: Long
+      viewCount: Option[Long]
     )
 
     @derive(encoder, decoder)
