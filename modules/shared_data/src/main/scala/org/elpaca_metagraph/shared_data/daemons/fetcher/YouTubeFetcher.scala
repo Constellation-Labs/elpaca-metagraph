@@ -133,8 +133,6 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
 }
 
 object YouTubeFetcher {
-  private val zoneOffset = ZoneOffset.UTC
-
   def make[F[_] : Async : Network](
     applicationConfig: ApplicationConfig,
     calculatedStateService: CalculatedStateService[F]
@@ -164,13 +162,9 @@ object YouTubeFetcher {
             }
           }.getOrElse(false)
         }
-        newlyLoadedLatticeUsers = latticeUsers.filterNot { user =>
-          dataSource.existingWallets.keys.toList.contains(user.primaryDagAddress.get)
-        }
 
         _ <- logger.info(s"Found ${latticeUsers.length} Lattice users")
         _ <- logger.info(s"Found ${filteredLatticeUsers.length} filtered Lattice users")
-        _ <- logger.info(s"Found ${newlyLoadedLatticeUsers.length} newly loaded Lattice users")
 
         updates <- searchInformation.traverse { searchInfo =>
           for {
@@ -180,8 +174,7 @@ object YouTubeFetcher {
               Some(LocalDateTime.now().minusHours(searchInfo.publishedWithinHours))
             )
             dataUpdates <- youtubeFetcher.fetchVideoUpdates(filteredLatticeUsers, searchInfo, globalSearchResult)
-            newUpdates <- youtubeFetcher.fetchVideoUpdates(newlyLoadedLatticeUsers, searchInfo, globalSearchResult)
-          } yield dataUpdates ++ newUpdates
+          } yield dataUpdates
         }.map(_.flatten)
 
         filteredUpdates = updates.filter { update =>
