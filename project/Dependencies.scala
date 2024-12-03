@@ -22,6 +22,7 @@ object Dependencies {
     val declineEffect = decline("effect")
     val declineRefined = decline("refined")
     val catsEffectTestkit = "org.typelevel" %% "cats-effect-testkit" % "3.4.7"
+    val scalaTest =  "org.scalatest" %% "scalatest" % "3.2.19"
     val scribeJavaCore =  "com.github.scribejava" % "scribejava-core" % "8.3.2"
     val scribeJavaApis =  "com.github.scribejava" % "scribejava-apis" % "8.3.2"
   }

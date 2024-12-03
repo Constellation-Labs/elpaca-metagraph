@@ -22,7 +22,9 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import java.time.format.DateTimeFormatter
 import java.time.{Duration, LocalDateTime, ZoneOffset}
 
-class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(implicit client: Client[F]) {
+class YouTubeFetcher[F[_] : Async : Network](
+  apiKey: String,
+  baseUrl: ApiUrl)(implicit client: Client[F], logger: SelfAwareStructuredLogger[F]) {
   def fetchLatticeUsers(
     apiUrl: ApiUrl,
     offset: Long = 0,
@@ -65,6 +67,10 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
         case (channelId, videoIds) => channelId -> (result.getOrElse(channelId, List.empty) ++ videoIds)
       }
 
+      logger.info(s"Total results to be parsed for search term" +
+        s" {$searchString}: ${response.pageInfo.totalResults - updatedMap.values.flatten.size} from the total of" +
+        s" ${response.pageInfo.totalResults}")
+
       response.nextPageToken match {
         case Some(token) => searchVideos(
           searchString,
@@ -73,7 +79,9 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
           Some(token),
           updatedMap
         )
-        case None => updatedMap.pure[F]
+        case None =>
+          logger.info(s"Found ${updatedMap.values.flatten.size} videos for search string $searchString")
+          updatedMap.pure[F]
       }
     }
   }
@@ -106,7 +114,7 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
       )})
     }.map(_.flatten)
 
-  private def fetchVideoDetails(
+  def fetchVideoDetails(
     videosIds: List[String],
     minimumDuration: Long,
     minimumViews: Long
@@ -119,15 +127,22 @@ class YouTubeFetcher[F[_] : Async : Network](apiKey: String, baseUrl: ApiUrl)(im
         .withQueryParam("part", "snippet,contentDetails,statistics"))
 
       client.expect[VideoListResponse](request)(jsonOf[F, VideoListResponse]).flatMap { response =>
-        response.items.map(item =>
+        response.items.map { item =>
+          val views: Long = item.statistics.viewCount.getOrElse(0)
+          val duration: Long = Duration.parse(item.contentDetails.duration).getSeconds
+
+          if (views < minimumViews || duration < minimumDuration) {
+            logger.info(s"Video id ${item.id} with duration $duration and views $views does not meet the criteria")
+          }
+
           VideoDetails(
             id = item.id,
             channelId = item.snippet.channelId,
             publishedAt = item.snippet.publishedAt,
             views = item.statistics.viewCount.getOrElse(0),
-            duration = Duration.parse(item.contentDetails.duration).getSeconds
+            duration = duration
           )
-        ).filter(videoDetails => videoDetails.duration > minimumDuration && videoDetails.views > minimumViews).pure
+        }.filter(videoDetails => videoDetails.duration > minimumDuration && videoDetails.views > minimumViews).pure
       }
     }
 }
@@ -138,7 +153,7 @@ object YouTubeFetcher {
     calculatedStateService: CalculatedStateService[F]
   ): Fetcher[F] = (_: LocalDateTime) =>
     MkHttpClient.forAsync[F].newEmber(applicationConfig.http4s.client).use { implicit client =>
-      val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(YouTubeFetcher.getClass)
+      implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(YouTubeFetcher.getClass)
       val config = applicationConfig.youtubeDaemon
 
       for {
