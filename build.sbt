@@ -18,7 +18,8 @@ ThisBuild / assemblyMergeStrategy := {
 lazy val commonTestSettings = Seq(
   testFrameworks += new TestFramework("weaver.framework.CatsEffect"),
   libraryDependencies ++= Seq(
-    Libraries.catsEffectTestkit
+    Libraries.catsEffectTestkit,
+    Libraries.scalaTest
   ).map(_ % Test)
 )
 
