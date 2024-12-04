@@ -195,10 +195,17 @@ object YouTubeFetcher {
     maybeVideo: Option[VideoDetails]
   ): Boolean =
     dataSource.existingWallets.get(address).fold(true) { existingWallet =>
-      searchInformation.exists { searchInfo =>
+      val videoNotUsedInAnySearchInfo = maybeVideo.forall { video =>
+        searchInformation.forall { searchInfo =>
+          existingWallet.addressRewards.get(searchInfo.text).forall { addressRewards =>
+            !addressRewards.videos.contains(video)
+          }
+        }
+      }
+
+      videoNotUsedInAnySearchInfo && searchInformation.exists { searchInfo =>
         existingWallet.addressRewards.get(searchInfo.text).fold(true) { addressRewards =>
-          addressRewards.dailyPostsNumber < searchInfo.maxPerDay &&
-            maybeVideo.forall(!addressRewards.videos.contains(_))
+          addressRewards.dailyPostsNumber < searchInfo.maxPerDay
         }
       }
     }

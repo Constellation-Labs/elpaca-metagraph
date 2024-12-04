@@ -123,11 +123,14 @@ object XFetcher {
           maybePostId      : Option[String]
         ): Boolean =
           xDataSource.existingWallets.get(address).fold(true) { existingWallet =>
-            searchInformation.exists { searchInfo =>
-              existingWallet.addressRewards.get(searchInfo.text).fold(true) { addressRewards =>
-                addressRewards.dailyPostsNumber < searchInfo.maxPerDay &&
-                  maybePostId.forall(!addressRewards.postIds.contains(_))
+            val postIdNotUsedInAnySearchInfo = maybePostId.forall { postId =>
+              searchInformation.forall { searchInfo =>
+                existingWallet.addressRewards.get(searchInfo.text).forall(!_.postIds.contains(postId))
               }
+            }
+
+            postIdNotUsedInAnySearchInfo && searchInformation.exists { searchInfo =>
+              existingWallet.addressRewards.get(searchInfo.text).fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
             }
           }
 
