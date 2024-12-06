@@ -49,8 +49,7 @@ object DaemonApis {
 
         logger.info("Spawning L1 daemons") >>
           spawnExolixDaemon(config, signer) >>
-          spawnSimplexDaemon(config, signer) >>
-          spawnIntegrationnetNodesOperatorsDaemon(config, signer)
+          spawnSimplexDaemon(config, signer)
       }
 
     override def spawnL0Daemons(calculatedStateService: CalculatedStateService[F]): F[Unit] =
@@ -62,6 +61,7 @@ object DaemonApis {
           spawnWalletCreationDaemon(config, signer, calculatedStateService) >>
           spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
           spawnOutflowTransactionsDaemon(config, signer, calculatedStateService) >>
+          spawnIntegrationnetNodesOperatorsDaemon(config, signer, calculatedStateService) >>
           spawnXDaemon(config, signer, calculatedStateService) >>
           spawnYouTubeDaemon(config, signer, calculatedStateService)
       }
@@ -97,9 +97,10 @@ object DaemonApis {
 
     private def spawnIntegrationnetNodesOperatorsDaemon(
       config: ApplicationConfig,
-      signer: Signer[F]
+      signer: Signer[F],
+      calculatedStateService: CalculatedStateService[F]
     ): F[Unit] = {
-      val integrationnetNodesOperatorsFetcher = IntegrationnetNodesOperatorsFetcher.make[F](config)
+      val integrationnetNodesOperatorsFetcher = IntegrationnetNodesOperatorsFetcher.make[F](config, calculatedStateService)
       val integrationnetNodesOperatorsProcessor = Processor.make[F](integrationnetNodesOperatorsFetcher, signer)
       logger.info("Spawning IntegrationnetNodeOperators daemon") >>
         spawn(integrationnetNodesOperatorsProcessor, config.integrationnetNodesOperatorsDaemon.idleTime).start
