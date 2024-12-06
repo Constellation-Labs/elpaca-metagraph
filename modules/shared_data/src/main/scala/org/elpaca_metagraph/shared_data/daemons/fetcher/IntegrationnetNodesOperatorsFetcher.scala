@@ -5,12 +5,15 @@ import cats.syntax.all._
 import fs2.io.net.Network
 import io.circe.generic.auto._
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
+import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate}
-import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators.{IntegrationnetOperatorsApiResponse, OperatorInQueue}
+import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators.{IntegrationnetNodeOperatorDataSourceAddress, IntegrationnetOperatorsApiResponse, OperatorInQueue}
+import org.elpaca_metagraph.shared_data.types.States.{DataSourceType, IntegrationnetNodeOperatorDataSource}
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.client.Client
 import org.tessellation.node.shared.resources.MkHttpClient
+import org.tessellation.schema.address.Address
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -19,9 +22,24 @@ import java.time.LocalDateTime
 
 object IntegrationnetNodesOperatorsFetcher {
 
-  def make[F[_] : Async : Network](applicationConfig: ApplicationConfig): Fetcher[F] =
+  def make[F[_] : Async : Network](
+    applicationConfig     : ApplicationConfig,
+    calculatedStateService: CalculatedStateService[F]
+  ): Fetcher[F] =
     new Fetcher[F] {
       private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(IntegrationnetNodesOperatorsFetcher.getClass)
+
+      private def calculateDaysInQueue(existing: IntegrationnetNodeOperatorDataSourceAddress, operatorInQueue: OperatorInQueue): Long =
+        operatorInQueue.daysInQueue - existing.daysInQueue
+
+      private def getIntegrationnetOperatorsDataSourceAddresses: F[Map[Address, IntegrationnetNodeOperatorDataSourceAddress]] = {
+        calculatedStateService.get.map { calculatedState =>
+          calculatedState.state.dataSources.get(DataSourceType.IntegrationnetNodeOperator) match {
+            case Some(integrationnetNodeOperatorDataSource: IntegrationnetNodeOperatorDataSource) => integrationnetNodeOperatorDataSource
+            case _ => IntegrationnetNodeOperatorDataSource(Map.empty)
+          }
+        }.map(_.addresses)
+      }
 
       def fetchOperatorsInQueue(url: String): F[IntegrationnetOperatorsApiResponse] = {
         val integrationnetOperatorsConfig = applicationConfig.integrationnetNodesOperatorsDaemon
@@ -49,8 +67,21 @@ object IntegrationnetNodesOperatorsFetcher {
             logger.error(s"Error when fetching from Lattice Integrationnet operators API: ${err.getMessage}")
               .as(IntegrationnetOperatorsApiResponse(List.empty[OperatorInQueue]))
           }
-          _ <- logger.info(s"Found ${integrationnetOperatorsApiResponse.data.length} operators in queue")
-          dataUpdates = integrationnetOperatorsApiResponse.data.foldLeft(List.empty[ElpacaUpdate]) { (acc, operatorInQueue) =>
+
+          integrationnetOperatorsDataSourceAddresses <- getIntegrationnetOperatorsDataSourceAddresses
+
+          _ <- logger.info(s"Fetched ${integrationnetOperatorsApiResponse.data} operators in queue from Lattice API")
+          integrationnetOperatorsApiResponseFiltered = integrationnetOperatorsApiResponse.data.filter { operatorInQueue =>
+            integrationnetOperatorsDataSourceAddresses.get(operatorInQueue.walletAddress) match {
+              case None => true
+              case Some(value) =>
+                val daysInQueue = calculateDaysInQueue(value, operatorInQueue)
+                daysInQueue > 0
+            }
+          }
+          _ <- logger.info(s"Filtered ${integrationnetOperatorsApiResponseFiltered.length} valid operators to be rewarded")
+
+          dataUpdates = integrationnetOperatorsApiResponseFiltered.foldLeft(List.empty[ElpacaUpdate]) { (acc, operatorInQueue) =>
             acc :+ IntegrationnetNodeOperatorUpdate(operatorInQueue.walletAddress, operatorInQueue)
           }
         } yield dataUpdates
