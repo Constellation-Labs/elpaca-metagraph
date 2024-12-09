@@ -35,7 +35,7 @@ object Utils {
   private val epochProgressesInOneHour = oneHourInSeconds / oneEpochProgressInSeconds
   private val oneDayInHours = 24
 
-  val epochProgressOneDay: Int = epochProgressesInOneHour * oneDayInHours
+  val epochProgressOneDay: Int = 5
 
   def logger[F[_] : Async]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("Utils")
 

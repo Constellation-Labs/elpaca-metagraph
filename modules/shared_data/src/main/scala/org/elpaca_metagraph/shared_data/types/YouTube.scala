@@ -55,11 +55,6 @@ object YouTube {
     )
 
     @derive(encoder, decoder)
-    case class PageInfo(
-      totalResults  : Int
-    )
-
-    @derive(encoder, decoder)
     case class SearchListResponse(
       items        : List[VideoSummary],
       nextPageToken: Option[String],
