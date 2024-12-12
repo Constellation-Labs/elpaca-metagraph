@@ -134,7 +134,13 @@ object XCombiner {
             }
           }
 
-          if (isNewDay(data.epochProgressToReward, currentEpochProgress)) {
+          if (data.dailyEpochProgress.value.value + epochProgressOneDay < data.epochProgressToReward.value.value) {
+            data
+              .focus(_.dailyEpochProgress)
+              .replace(data.epochProgressToReward)
+              .focus(_.dailyPostsNumber)
+              .replace(searchInformation.maxPerDay)
+          } else if (isNewDay(data.epochProgressToReward, currentEpochProgress)) {
             updateXRewardInfoNewDay()
           } else if (isNotExceedingDailyLimit && !postAlreadyExists) {
             updateXRewardInfoSameDay()
