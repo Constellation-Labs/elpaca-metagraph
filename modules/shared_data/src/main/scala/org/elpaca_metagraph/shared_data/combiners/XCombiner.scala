@@ -81,12 +81,20 @@ object XCombiner {
       case None => XDataSourceAddress.empty
     }
 
+    val xDataSourceAddressExistentPosts = xDataSource.existingWallets
+      .get(xUpdate.address) match {
+      case Some(xDataSourceAddress) => xDataSourceAddress.addressRewards.values.flatMap(_.postIds).toList
+      case None => List.empty[String]
+    }
+
+    val xUpdateSearchText = xUpdate.searchText.toLowerCase
+
     val maybeSearchInformation = applicationConfig.xDaemon.searchInformation
-      .find(_.text == xUpdate.searchText)
+      .find(_.text.toLowerCase == xUpdateSearchText)
 
     maybeSearchInformation.fold(xDataSource) { searchInformation =>
       val updatedData = xDataSourceAddress.addressRewards
-        .get(xUpdate.searchText)
+        .get(xUpdateSearchText)
         .map { data =>
           def updateXRewardInfoNewDay() = {
             data
@@ -104,10 +112,9 @@ object XCombiner {
 
           def isNotExceedingDailyLimit = data.dailyPostsNumber < searchInformation.maxPerDay
 
-          def postAlreadyExists = data.postIds.contains(xUpdate.postId)
+          def postAlreadyExists = xDataSourceAddressExistentPosts.contains(xUpdate.postId)
 
           def updateXRewardInfoSameDay() = {
-            //If we receive multiple updates to the same address in the same epoch progress we need to increase the rewardAmount
             if (data.epochProgressToReward === currentEpochProgress) {
               data
                 .focus(_.dailyPostsNumber)
@@ -139,7 +146,7 @@ object XCombiner {
 
       val updatedDataSourceAddress = xDataSourceAddress
         .focus(_.addressRewards)
-        .modify(_.updated(xUpdate.searchText, updatedData))
+        .modify(_.updated(xUpdateSearchText, updatedData))
 
       xDataSource
         .focus(_.existingWallets)
