@@ -136,6 +136,23 @@ object XFetcher {
             postIdNotUsed && canProceedWithPosts
           }
 
+        def filterAlreadyRewardedSearches(
+          xPosts           : List[XDataInfo],
+          searchInformation: List[ApplicationConfig.XSearchInfo],
+          xDataSource      : XDataSource
+        ): List[XDataInfo] = xPosts.filter { xPost =>
+          xDataSource.existingWallets.get(xPost.dagAddress).fold(true) { existingWallet =>
+            existingWallet.addressRewards.get(xPost.searchText.toLowerCase).fold(true) { xRewardInfo =>
+              val searchTextMaxPerDay = searchInformation
+                .find(_.text.toLowerCase === xRewardInfo.searchText.toLowerCase)
+                .map(_.maxPerDay)
+                .getOrElse(0L)
+
+              xRewardInfo.dailyPostsNumber < searchTextMaxPerDay
+            }
+          }
+        }
+
         for {
           usersSourceApiUrl <- xConfig.usersSourceApiUrl.toOptionT.getOrRaise(new Exception(s"Could not get usersSourceApiUrl"))
           xApiUrl <- xConfig.xApiUrl.toOptionT.getOrRaise(new Exception(s"Could not get xApiUrl"))
@@ -199,8 +216,15 @@ object XFetcher {
           filteredXPosts = xPosts.filter { xPost =>
             validateIfAddressCanProceed(xDataSource, searchInformation, xPost.dagAddress, xPost.postId.some)
           }
-          _ <- logger.info(s"Found ${filteredXPosts.length} valid x posts: ${filteredXPosts}")
-          dataUpdates = filteredXPosts.foldLeft(List.empty[XUpdate]) { (acc, info) =>
+
+          filteredXPostsSearchesAlreadyRewarded = filterAlreadyRewardedSearches(
+            filteredXPosts,
+            searchInformation,
+            xDataSource
+          )
+
+          _ <- logger.info(s"Found ${filteredXPostsSearchesAlreadyRewarded.length} valid x posts: $filteredXPostsSearchesAlreadyRewarded")
+          dataUpdates = filteredXPostsSearchesAlreadyRewarded.foldLeft(List.empty[XUpdate]) { (acc, info) =>
             acc :+ XUpdate(info.dagAddress, info.searchText.toLowerCase, info.postId)
           }
         } yield dataUpdates
