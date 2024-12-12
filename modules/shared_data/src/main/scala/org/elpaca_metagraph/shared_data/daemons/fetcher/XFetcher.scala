@@ -123,15 +123,17 @@ object XFetcher {
           maybePostId      : Option[String]
         ): Boolean =
           xDataSource.existingWallets.get(address).fold(true) { existingWallet =>
-            val postIdNotUsedInAnySearchInfo = maybePostId.forall { postId =>
-              searchInformation.forall { searchInfo =>
-                existingWallet.addressRewards.get(searchInfo.text).forall(!_.postIds.contains(postId))
+            val postIdNotUsed = maybePostId.forall { postId =>
+              !searchInformation.exists { searchInfo =>
+                existingWallet.addressRewards.get(searchInfo.text.toLowerCase).exists(_.postIds.contains(postId))
               }
             }
 
-            postIdNotUsedInAnySearchInfo && searchInformation.exists { searchInfo =>
-              existingWallet.addressRewards.get(searchInfo.text).fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
+            val canProceedWithPosts = searchInformation.exists { searchInfo =>
+              existingWallet.addressRewards.get(searchInfo.text.toLowerCase).fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
             }
+
+            postIdNotUsed && canProceedWithPosts
           }
 
         for {
@@ -199,7 +201,7 @@ object XFetcher {
           }
           _ <- logger.info(s"Found ${filteredXPosts.length} valid x posts: ${filteredXPosts}")
           dataUpdates = filteredXPosts.foldLeft(List.empty[XUpdate]) { (acc, info) =>
-            acc :+ XUpdate(info.dagAddress, info.searchText, info.postId)
+            acc :+ XUpdate(info.dagAddress, info.searchText.toLowerCase, info.postId)
           }
         } yield dataUpdates
       }
