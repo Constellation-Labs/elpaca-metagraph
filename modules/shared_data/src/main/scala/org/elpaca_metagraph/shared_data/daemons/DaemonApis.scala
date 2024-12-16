@@ -42,28 +42,41 @@ object DaemonApis {
     private def createP2PContext(keypair: KeyPair): P2PContext =
       P2PContext(Host.fromString(config.dataApi.ip).get, Port.fromInt(config.dataApi.port).get, keypair.getPublic.toId.toPeerId)
 
+    def shouldDisableDaemons: Option[Boolean] = sys.env.get("SHOULD_DISABLE_DAEMONS").flatMap {
+      case "true" | "1" => Some(true)
+      case "false" | "0" => Some(false)
+      case _ => None
+    }
+
     override def spawnL1Daemons: F[Unit] =
       withHttpClient { client =>
         val publisher = Publisher.make[F](client, createP2PContext(keypair))
         val signer = Signer.make[F](keypair, publisher)
 
-        logger.info("Spawning L1 daemons") >>
-          spawnExolixDaemon(config, signer) >>
-          spawnSimplexDaemon(config, signer)
+        if (shouldDisableDaemons.contains(true)) {
+          ().pure
+        } else {
+          logger.info("Spawning L1 daemons") >>
+            spawnExolixDaemon(config, signer) >>
+            spawnSimplexDaemon(config, signer)
+        }
       }
 
     override def spawnL0Daemons(calculatedStateService: CalculatedStateService[F]): F[Unit] =
       withHttpClient { client =>
         val publisher = Publisher.make[F](client, createP2PContext(keypair))
         val signer = Signer.make[F](keypair, publisher)
-
-        logger.info("Spawning L0 daemons") >>
-          spawnWalletCreationDaemon(config, signer, calculatedStateService) >>
-          spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
-          spawnOutflowTransactionsDaemon(config, signer, calculatedStateService) >>
-          spawnIntegrationnetNodesOperatorsDaemon(config, signer, calculatedStateService) >>
-          spawnXDaemon(config, signer, calculatedStateService) >>
-          spawnYouTubeDaemon(config, signer, calculatedStateService)
+        if (shouldDisableDaemons.contains(true)) {
+          ().pure
+        } else {
+          logger.info("Spawning L0 daemons") >>
+            spawnWalletCreationDaemon(config, signer, calculatedStateService) >>
+            spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
+            spawnOutflowTransactionsDaemon(config, signer, calculatedStateService) >>
+            spawnIntegrationnetNodesOperatorsDaemon(config, signer, calculatedStateService) >>
+            spawnXDaemon(config, signer, calculatedStateService) >>
+            spawnYouTubeDaemon(config, signer, calculatedStateService)
+        }
       }
 
     private def spawn(
