@@ -133,7 +133,7 @@ Additionally, there are manual data sources that require a `DataUpdate` to be se
 - **Claim/Streak:**
   -  **1 to 4 days**: The user receives **1 PACA** per day.
   -  **5 to 10 days**: The user receives **2 PACA** per day.
-  -  **More than 10 days**: The user receives **5 PACA** per day.
+  -  **More than 10 days**: The user receives **3 PACA** per day.
 
 ## Worker/Daemon Functionality
 
