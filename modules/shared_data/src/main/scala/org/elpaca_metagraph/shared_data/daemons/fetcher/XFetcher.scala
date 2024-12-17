@@ -24,11 +24,14 @@ import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.jdk.CollectionConverters._
 
 object XFetcher {
+
+  private val groupsNumber: Int = 4
+  private val xRateLimitMinutes: Int = 15
 
   def make[F[_] : Async : Network](
     applicationConfig     : ApplicationConfig,
@@ -88,7 +91,7 @@ object XFetcher {
           .build(TwitterApi.instance())
 
         clientResource.use { client =>
-          val query = s"from:$username \"$searchText\""
+          val query = s"from:$username (\"$searchText\")"
           val requestURI = Uri.unsafeFromString(url.toString()).withQueryParam("query", query)
             .withQueryParam("start_time", s"${currentDateFormatted}T00:00:00Z")
             .withQueryParam("end_time", s"$currentDateTimeFormatted")
@@ -113,26 +116,54 @@ object XFetcher {
         }
       }
 
-      override def getAddressesAndBuildUpdates(currentDateTime: LocalDateTime): F[List[ElpacaUpdate]] = {
-        val xConfig = applicationConfig.xDaemon
 
-        def validateIfAddressCanProceed(
-          xDataSource      : XDataSource,
-          searchInformation: List[ApplicationConfig.XSearchInfo],
-          address          : Address,
-          maybePostId      : Option[String]
-        ): Boolean =
-          xDataSource.existingWallets.get(address).fold(true) { existingWallet =>
-            val postIdNotUsedInAnySearchInfo = maybePostId.forall { postId =>
-              searchInformation.forall { searchInfo =>
-                existingWallet.addressRewards.get(searchInfo.text).forall(!_.postIds.contains(postId))
-              }
-            }
+      def splitUsersIntoGroups(users: List[SourceUser]): List[List[SourceUser]] = {
+        val groupSize = (users.size / groupsNumber.toDouble).ceil.toInt
+        users.grouped(groupSize).toList.take(groupsNumber)
+      }
 
-            postIdNotUsedInAnySearchInfo && searchInformation.exists { searchInfo =>
-              existingWallet.addressRewards.get(searchInfo.text).fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
+      def getCurrentGroupIndex: Int =
+        (Instant.now().atZone(ZoneOffset.UTC).getMinute / xRateLimitMinutes) % groupsNumber
+
+      def validateIfAddressCanProceed(
+        xDataSource      : XDataSource,
+        searchInformation: List[ApplicationConfig.XSearchInfo],
+        address          : Address,
+        maybePostId      : Option[String]
+      ): Boolean =
+        xDataSource.existingWallets.get(address).fold(true) { existingWallet =>
+          val postIdNotUsed = maybePostId.forall { postId =>
+            !searchInformation.exists { searchInfo =>
+              existingWallet.addressRewards.get(searchInfo.text.toLowerCase).exists(_.postIds.contains(postId))
             }
           }
+
+          val canProceedWithPosts = searchInformation.exists { searchInfo =>
+            existingWallet.addressRewards.get(searchInfo.text.toLowerCase).fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
+          }
+
+          postIdNotUsed && canProceedWithPosts
+        }
+
+      def filterAlreadyRewardedSearches(
+        xPosts           : List[XDataInfo],
+        searchInformation: List[ApplicationConfig.XSearchInfo],
+        xDataSource      : XDataSource
+      ): List[XDataInfo] = xPosts.filter { xPost =>
+        xDataSource.existingWallets.get(xPost.dagAddress).fold(true) { existingWallet =>
+          existingWallet.addressRewards.get(xPost.searchText.toLowerCase).fold(true) { xRewardInfo =>
+            val searchTextMaxPerDay = searchInformation
+              .find(_.text.toLowerCase === xRewardInfo.searchText.toLowerCase)
+              .map(_.maxPerDay)
+              .getOrElse(0L)
+
+            xRewardInfo.dailyPostsNumber < searchTextMaxPerDay
+          }
+        }
+      }
+
+      override def getAddressesAndBuildUpdates(currentDateTime: LocalDateTime): F[List[ElpacaUpdate]] = {
+        val xConfig = applicationConfig.xDaemon
 
         for {
           usersSourceApiUrl <- xConfig.usersSourceApiUrl.toOptionT.getOrRaise(new Exception(s"Could not get usersSourceApiUrl"))
@@ -151,7 +182,7 @@ object XFetcher {
           searchInformation = xConfig.searchInformation
 
           sourceUsers <- fetchAllSourceUsers(usersSourceApiUrl)
-          sourceUsersFiltered = sourceUsers.filter { user =>
+          eligibleSourceUsers = sourceUsers.filter { user =>
             user.primaryDagAddress.flatMap { address =>
               user.twitter.map { _ =>
                 validateIfAddressCanProceed(xDataSource, searchInformation, address, none)
@@ -159,28 +190,41 @@ object XFetcher {
             }.getOrElse(false)
           }
 
-          _ <- logger.info(s"Found ${sourceUsers.length} sourceUsers")
-          _ <- logger.info(s"Found ${sourceUsersFiltered.length} sourceUsersFiltered")
+          groups = splitUsersIntoGroups(eligibleSourceUsers)
+          currentGroupIndex = getCurrentGroupIndex
 
-          xPosts <- sourceUsersFiltered.traverse { userInfo =>
+          filteredUsers = groups(currentGroupIndex)
+          _ <- logger.info(s"Found ${sourceUsers.length} sourceUsers")
+          _ <- logger.info(s"Found ${filteredUsers.length} sourceUsersFiltered. Current group index: ${currentGroupIndex}")
+
+          currentPostsIds = xDataSource
+            .existingWallets
+            .values
+            .flatMap(_.addressRewards.values)
+            .flatMap(_.postIds)
+            .toList
+
+          searchInfo = searchInformation.map(_.text).mkString("\" OR \"")
+          xPosts <- filteredUsers.traverse { userInfo =>
             val username = userInfo.twitter.get.username
             val primaryDAGAddress = userInfo.primaryDagAddress.get
-            searchInformation.traverse { searchInfo =>
-              fetchXPosts(
-                username,
-                searchInfo.text,
-                xApiUrl,
-                xApiConsumerKey,
-                xApiConsumerSecret,
-                xApiAccessToken,
-                xApiAccessSecret,
-                currentDateTime
-              )
-                .handleErrorWith { err =>
-                  logger.error(err)(s"Error when fetching XPosts for user: $username").as(List.empty[XPost])
-                }
-                .map { xPosts =>
-                  xPosts.map { xPost =>
+            fetchXPosts(
+              username,
+              searchInfo,
+              xApiUrl,
+              xApiConsumerKey,
+              xApiConsumerSecret,
+              xApiAccessToken,
+              xApiAccessSecret,
+              currentDateTime
+            )
+              .handleErrorWith { err =>
+                logger.error(err)(s"Error when fetching XPosts for user: $username").as(List.empty[XPost])
+              }
+              .map { xPosts =>
+                xPosts
+                  .map { xPost =>
+                    val searchInfo = searchInformation.find(searchInfo => xPost.text.contains(searchInfo.text)).get
                     XDataInfo(
                       xPost.id,
                       primaryDAGAddress,
@@ -188,18 +232,24 @@ object XFetcher {
                       searchInfo.maxPerDay
                     )
                   }
-                }
-            }.map(_.flatten)
+              }
           }.map(_.flatten)
 
           _ <- logger.info(s"Found ${xPosts.length} x posts")
 
           filteredXPosts = xPosts.filter { xPost =>
-            validateIfAddressCanProceed(xDataSource, searchInformation, xPost.dagAddress, xPost.postId.some)
+            !currentPostsIds.contains(xPost.postId) && validateIfAddressCanProceed(xDataSource, searchInformation, xPost.dagAddress, xPost.postId.some)
           }
-          _ <- logger.info(s"Found ${filteredXPosts.length} valid x posts: ${filteredXPosts}")
-          dataUpdates = filteredXPosts.foldLeft(List.empty[XUpdate]) { (acc, info) =>
-            acc :+ XUpdate(info.dagAddress, info.searchText, info.postId)
+
+          filteredXPostsSearchesAlreadyRewarded = filterAlreadyRewardedSearches(
+            filteredXPosts,
+            searchInformation,
+            xDataSource
+          )
+
+          _ <- logger.info(s"Found ${filteredXPostsSearchesAlreadyRewarded.length} valid x posts: $filteredXPostsSearchesAlreadyRewarded")
+          dataUpdates = filteredXPostsSearchesAlreadyRewarded.foldLeft(List.empty[XUpdate]) { (acc, info) =>
+            acc :+ XUpdate(info.dagAddress, info.searchText.toLowerCase, info.postId)
           }
         } yield dataUpdates
       }
