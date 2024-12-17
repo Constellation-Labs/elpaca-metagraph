@@ -91,7 +91,7 @@ object XFetcher {
           .build(TwitterApi.instance())
 
         clientResource.use { client =>
-          val query = s"from:$username (\"$searchText\")"
+          val query = s"from:$username (\"$searchText\") -is:reply -is:retweet"
           val requestURI = Uri.unsafeFromString(url.toString()).withQueryParam("query", query)
             .withQueryParam("start_time", s"${currentDateFormatted}T00:00:00Z")
             .withQueryParam("end_time", s"$currentDateTimeFormatted")
@@ -115,7 +115,6 @@ object XFetcher {
           }
         }
       }
-
 
       def splitUsersIntoGroups(users: List[SourceUser]): List[List[SourceUser]] = {
         val groupSize = (users.size / groupsNumber.toDouble).ceil.toInt
@@ -217,22 +216,36 @@ object XFetcher {
               xApiAccessToken,
               xApiAccessSecret,
               currentDateTime
-            )
-              .handleErrorWith { err =>
-                logger.error(err)(s"Error when fetching XPosts for user: $username").as(List.empty[XPost])
-              }
-              .map { xPosts =>
-                xPosts
-                  .map { xPost =>
-                    val searchInfo = searchInformation.find(searchInfo => xPost.text.contains(searchInfo.text)).get
-                    XDataInfo(
-                      xPost.id,
-                      primaryDAGAddress,
-                      searchInfo.text,
-                      searchInfo.maxPerDay
-                    )
-                  }
-              }
+            ).handleErrorWith { err =>
+              logger.error(err)(s"Error when fetching XPosts for user: $username").as(List.empty[XPost])
+            }.flatMap { xPosts =>
+              xPosts
+                .filter { xPost =>
+                  searchInformation.exists(searchInfo => xPost.text.toLowerCase.contains(searchInfo.text.toLowerCase))
+                }
+                .traverse { xPost =>
+                  searchInformation
+                    .find(searchInfo => xPost.text.toLowerCase.contains(searchInfo.text.toLowerCase))
+                    .fold {
+                      val defaultSearchInfo = searchInformation.head
+                      logger.warn(s"Could not get searchInformation from post: $xPost, setting $defaultSearchInfo").as(
+                        XDataInfo(
+                          xPost.id,
+                          primaryDAGAddress,
+                          defaultSearchInfo.text,
+                          defaultSearchInfo.maxPerDay
+                        )
+                      )
+                    } { searchInfo =>
+                      XDataInfo(
+                        xPost.id,
+                        primaryDAGAddress,
+                        searchInfo.text,
+                        searchInfo.maxPerDay
+                      ).pure[F]
+                    }
+                }
+            }
           }.map(_.flatten)
 
           _ <- logger.info(s"Found ${xPosts.length} x posts")
