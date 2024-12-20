@@ -7,6 +7,8 @@ import cats.syntax.all._
 import eu.timepit.refined.types.all.PosLong
 import eu.timepit.refined.types.numeric.NonNegLong
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
+import org.elpaca_metagraph.shared_data.app.ApplicationConfig.SearchInfo
+import org.elpaca_metagraph.shared_data.types.Lattice.SocialDataSourceAddress
 import org.tessellation.currency.dataApplication.L0NodeContext
 import org.tessellation.env.env.{KeyAlias, Password, StorePath}
 import org.tessellation.ext.cats.syntax.next.catsSyntaxNext
@@ -127,4 +129,12 @@ object Utils {
     def toPosLongUnsafe: PosLong =
       PosLong.unsafeFrom(value)
   }
+
+  def isWithinDailyLimit(
+    searchInformation: List[SearchInfo],
+    wallet           : SocialDataSourceAddress
+  ): Boolean = searchInformation.exists { searchInfo =>
+    wallet.addressRewards.get(searchInfo.text.toLowerCase).fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
+  }
+
 }

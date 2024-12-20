@@ -79,11 +79,17 @@ object ApplicationConfig {
     walletsInfo: List[WalletsInfo]
   )
 
+  trait SearchInfo {
+    def text        : String
+    def rewardAmount: Amount
+    def maxPerDay   : Long
+  }
+
   case class XSearchInfo(
     text        : String,
     rewardAmount: Amount,
     maxPerDay   : Long
-  )
+  ) extends SearchInfo
 
   case class XDaemonConfig(
     idleTime          : FiniteDuration,
@@ -101,13 +107,13 @@ object ApplicationConfig {
   )
 
   case class YouTubeSearchInfo(
-    text                 : String,
-    rewardAmount         : Amount,
-    minimumDuration      : Long,
-    minimumViews         : Long,
-    maxPerDay            : Long,
-    publishedWithinHours : Long
-  )
+    text                : String,
+    rewardAmount        : Amount,
+    maxPerDay           : Long,
+    minimumDuration     : Long,
+    minimumViews        : Long,
+    publishedWithinHours: Long
+  ) extends SearchInfo
 
   case class YouTubeDaemonConfig(
     idleTime          : FiniteDuration,

@@ -2,8 +2,8 @@ package org.elpaca_metagraph.shared_data.types
 
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
+import org.elpaca_metagraph.shared_data.types.Lattice._
 import org.elpaca_metagraph.shared_data.types.YouTube.YouTubeDataAPI.VideoDetails
-import org.tessellation.schema.address.Address
 import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
 
@@ -19,38 +19,12 @@ object YouTube {
     searchText           : String,
     videos               : List[VideoDetails],
     dailyPostsNumber     : Long
-  )
+  ) extends RewardInfo
 
   @derive(encoder, decoder)
   case class YouTubeDataSourceAddress(
     addressRewards: ListMap[String, YouTubeRewardInfo] = ListMap.empty
-  )
-
-  object LatticeClient {
-    @derive(encoder, decoder)
-    case class YouTubeAccount(
-      channelId: String
-    )
-
-    @derive(encoder, decoder)
-    case class LatticeUser(
-      id               : String,
-      primaryDagAddress: Option[Address],
-      youtube          : Option[YouTubeAccount]
-    )
-
-    @derive(encoder, decoder)
-    case class LatticeUserMeta(
-      total : Long,
-      limit : Long,
-      offset: Long
-    )
-
-    @derive(encoder, decoder)
-    case class LatticeUsersApiResponse(
-      data: List[LatticeUser],
-      meta: Option[LatticeUserMeta])
-    }
+  ) extends SocialDataSourceAddress
 
   object YouTubeDataAPI {
     @derive(encoder, decoder)
