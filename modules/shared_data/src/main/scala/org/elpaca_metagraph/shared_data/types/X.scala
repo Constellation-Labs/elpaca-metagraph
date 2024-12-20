@@ -2,9 +2,12 @@ package org.elpaca_metagraph.shared_data.types
 
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
+import org.elpaca_metagraph.shared_data.types.Lattice._
 import org.tessellation.schema.address.Address
 import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
+
+import scala.collection.immutable.ListMap
 
 object X {
   @derive(encoder, decoder)
@@ -15,41 +18,20 @@ object X {
     searchText           : String,
     postIds              : List[String],
     dailyPostsNumber     : Long,
-  )
-
+  ) extends RewardInfo
 
   @derive(encoder, decoder)
   case class XDataSourceAddress(
-    addressRewards: Map[String, XRewardInfo]
-  )
+    addressRewards: ListMap[String, XRewardInfo]
+  ) extends SocialDataSourceAddress
 
   object XDataSourceAddress {
-    def empty: XDataSourceAddress = XDataSourceAddress(Map.empty)
+    def empty: XDataSourceAddress = XDataSourceAddress(ListMap.empty)
   }
 
   @derive(encoder, decoder)
   case class XUser(
     username: String
-  )
-
-  @derive(encoder, decoder)
-  case class SourceUser(
-    id               : String,
-    primaryDagAddress: Option[Address],
-    twitter          : Option[XUser]
-  )
-
-  @derive(encoder, decoder)
-  case class SourceUserMeta(
-    total : Long,
-    limit : Long,
-    offset: Long
-  )
-
-  @derive(encoder, decoder)
-  case class SourceUsersApiResponse(
-    data: List[SourceUser],
-    meta: Option[SourceUserMeta]
   )
 
   @derive(encoder, decoder)
