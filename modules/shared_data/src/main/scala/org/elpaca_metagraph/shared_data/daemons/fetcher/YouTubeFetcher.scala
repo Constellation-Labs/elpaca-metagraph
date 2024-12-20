@@ -3,153 +3,164 @@ package org.elpaca_metagraph.shared_data.daemons.fetcher
 import cats.effect.Async
 import cats.syntax.all._
 import fs2.io.net.Network
+import org.elpaca_metagraph.shared_data.Utils.isWithinDailyLimit
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
-import org.elpaca_metagraph.shared_data.app.ApplicationConfig.YouTubeSearchInfo
+import org.elpaca_metagraph.shared_data.app.ApplicationConfig.{SearchInfo, YouTubeSearchInfo}
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
+import org.elpaca_metagraph.shared_data.daemons.fetcher.YouTubeFetcher.logInfo
 import org.elpaca_metagraph.shared_data.types.DataUpdates.YouTubeUpdate
+import org.elpaca_metagraph.shared_data.types.Lattice.LatticeUser
 import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
 import org.elpaca_metagraph.shared_data.types.States.{DataSourceType, YouTubeDataSource}
-import org.elpaca_metagraph.shared_data.types.YouTube.LatticeClient.{LatticeUser, LatticeUsersApiResponse}
-import org.elpaca_metagraph.shared_data.types.YouTube.YouTubeDataAPI.{SearchListResponse, VideoDetails, VideoListResponse}
+import org.elpaca_metagraph.shared_data.types.YouTube.YouTubeDataAPI._
+import org.http4s._
 import org.http4s.circe.jsonOf
 import org.http4s.client.Client
-import org.http4s.{Method, Request, Uri}
 import org.tessellation.node.shared.resources.MkHttpClient
 import org.tessellation.schema.address.Address
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.time.format.DateTimeFormatter
 import java.time.{Duration, LocalDateTime, ZoneOffset}
 
-class YouTubeFetcher[F[_] : Async : Network](
-  apiKey: String,
-  baseUrl: ApiUrl)(implicit client: Client[F], logger: SelfAwareStructuredLogger[F]) {
-  def fetchLatticeUsers(
-    apiUrl: ApiUrl,
-    offset: Long = 0,
-    users: List[LatticeUser] = List.empty
-  ): F[List[LatticeUser]] = {
-    val request = Request[F](Method.GET, Uri.unsafeFromString(apiUrl.toString())
-      .withQueryParam("limit", 100)
-      .withQueryParam("offset", offset))
-
-    client.expect[LatticeUsersApiResponse](request)(jsonOf[F, LatticeUsersApiResponse]).flatMap { response =>
-      val newUsers = users ++ response.data
-
-      if (!response.meta.exists(meta => meta.offset + meta.limit < meta.total)) {
-        newUsers.filter(user => user.primaryDagAddress.isDefined && user.youtube.isDefined).pure
-      } else fetchLatticeUsers(apiUrl, response.meta.get.offset + response.meta.get.limit, newUsers)
-    }
-  }
+class YouTubeFetcher[F[_]: Async: Network](
+  apiKey : String,
+  baseUrl: ApiUrl
+)(implicit client: Client[F],
+  logger: SelfAwareStructuredLogger[F]) {
 
   def searchVideos(
-    searchString: String,
-    maxResults: Long = 50,
+    searchString  : String,
+    maxResults    : Long = 50,
     publishedAfter: Option[LocalDateTime] = None,
-    pageToken: Option[String] = None,
-    result: Map[String, List[String]] = Map.empty
+    pageToken     : Option[String] = None,
+    result        : Map[String, List[String]] = Map.empty
   ): F[Map[String, List[String]]] = {
     val formattedPublishAfter = publishedAfter.map(_.plusMinutes(1).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT))
-    val request = Request[F](Method.GET, Uri.unsafeFromString(baseUrl.toString() + "/search")
-      .withQueryParam("key", apiKey)
-      .withQueryParam("q", searchString)
-      .withQueryParam("type", "video")
-      .withQueryParam("order", "date")
-      .withQueryParam("maxResults", 50)
-      .withQueryParam("part", "snippet")
-      .withOptionQueryParam("publishedAfter", formattedPublishAfter)
-      .withOptionQueryParam("pageToken", pageToken))
+    val request = Request[F](
+      Method.GET,
+      Uri
+        .unsafeFromString(baseUrl.toString() + "/search")
+        .withQueryParam("key", apiKey)
+        .withQueryParam("q", URLEncoder.encode(searchString, StandardCharsets.UTF_8))
+        .withQueryParam("type", "video")
+        .withQueryParam("order", "date")
+        .withQueryParam("maxResults", 50)
+        .withQueryParam("part", "snippet")
+        .withOptionQueryParam("publishedAfter", formattedPublishAfter)
+        .withOptionQueryParam("pageToken", pageToken)
+    )
 
-    client.expect[SearchListResponse](request)(jsonOf[F, SearchListResponse]).flatMap { response =>
-      val currentMap = response.items.groupBy(_.snippet.channelId).view.mapValues(_.map(_.id.videoId)).toMap
-      val updatedMap = result ++ currentMap.map {
+    for {
+      _ <- logInfo(s"Searching for videos with search string $searchString")
+      response <- client.expect[SearchListResponse](request)(jsonOf[F, SearchListResponse]).handleErrorWith { e =>
+        logger
+          .error(e)(s"Error searching for videos with search string $searchString: ${e.getMessage}")
+          .as(SearchListResponse(List.empty, None, PageInfo(0)))
+      }
+      currentMap = response.items.groupBy(_.snippet.channelId).view.mapValues(_.map(_.id.videoId)).toMap
+      updatedMap = result ++ currentMap.map {
         case (channelId, videoIds) => channelId -> (result.getOrElse(channelId, List.empty) ++ videoIds)
       }
-
-      logger.info(s"Total results to be parsed for search term" +
-        s" {$searchString}: ${response.pageInfo.totalResults - updatedMap.values.flatten.size} from the total of" +
-        s" ${response.pageInfo.totalResults}")
-
-      response.nextPageToken match {
-        case Some(token) => searchVideos(
-          searchString,
-          maxResults,
-          publishedAfter,
-          Some(token),
-          updatedMap
-        )
-        case None =>
-          logger.info(s"Found ${updatedMap.values.flatten.size} videos for search string $searchString")
-          updatedMap.pure[F]
+      _ <- logInfo(
+        s"Total results to be parsed for search term" +
+          s" {$searchString}: ${response.pageInfo.totalResults - updatedMap.values.flatten.size} from the total of" +
+          s" ${response.pageInfo.totalResults}"
+      )
+      result <- response.nextPageToken match {
+        case Some(token) =>
+          searchVideos(
+            searchString,
+            maxResults,
+            publishedAfter,
+            Some(token),
+            updatedMap
+          )
+        case None => updatedMap.pure[F]
       }
-    }
+      _ <- logInfo(s"Found ${result.values.flatten.size} videos for search string $searchString")
+    } yield result
   }
 
   def filterVideosByChannels(
-    channelVideoMap: Map[String, List[String]],
+    channelVideoMap  : Map[String, List[String]],
     allowedChannelIds: List[String]
   ): List[String] =
     channelVideoMap.view
-      .filterKeys(allowedChannelIds.contains)
+      .filterKeys(allowedChannelIds.toSet)
       .values
       .flatten
       .toList
 
   def fetchVideoUpdates(
-    users: List[LatticeUser],
-    searchInfo: YouTubeSearchInfo,
+    users             : List[LatticeUser],
+    searchInfo        : YouTubeSearchInfo,
     globalSearchResult: Map[String, List[String]]
   ): F[List[YouTubeUpdate]] =
     users.traverse { user =>
       val videoIds = filterVideosByChannels(globalSearchResult, List(user.youtube.get.channelId))
-      fetchVideoDetails(
-        videoIds,
-        searchInfo.minimumDuration,
-        searchInfo.minimumViews
-      ).map(_.map { video => YouTubeUpdate(
-        user.primaryDagAddress.get,
-        searchInfo.text,
-        video
-      )})
+
+      for {
+        _ <- logInfo(s"Found ${videoIds.length} videos for user ${user.primaryDagAddress.get}")
+        videos <- fetchVideoDetails(
+          videoIds,
+          searchInfo.minimumDuration,
+          searchInfo.minimumViews
+        )
+        updates = videos.map { video =>
+          YouTubeUpdate(user.primaryDagAddress.get, searchInfo.text.toLowerCase, video)
+        }
+      } yield updates
     }.map(_.flatten)
 
   def fetchVideoDetails(
-    videosIds: List[String],
+    videosIds      : List[String],
     minimumDuration: Long,
-    minimumViews: Long
+    minimumViews   : Long
   ): F[List[VideoDetails]] =
     if (videosIds.isEmpty) Async[F].pure(Nil)
     else {
-      val request = Request[F](Method.GET, Uri.unsafeFromString(baseUrl.toString() + "/videos")
-        .withQueryParam("key", apiKey)
-        .withQueryParam("id", videosIds.mkString(","))
-        .withQueryParam("part", "snippet,contentDetails,statistics"))
+      val request = Request[F](
+        Method.GET,
+        Uri
+          .unsafeFromString(baseUrl.toString() + "/videos")
+          .withQueryParam("key", apiKey)
+          .withQueryParam("id", videosIds.mkString(","))
+          .withQueryParam("part", "snippet,contentDetails,statistics")
+      )
 
-      client.expect[VideoListResponse](request)(jsonOf[F, VideoListResponse]).flatMap { response =>
-        response.items.map { item =>
-          val views: Long = item.statistics.viewCount.getOrElse(0)
-          val duration: Long = Duration.parse(item.contentDetails.duration).getSeconds
+      client
+        .expect[VideoListResponse](request)(jsonOf[F, VideoListResponse])
+        .flatMap { response =>
+          response.items.map { item =>
+            val views: Long = item.statistics.viewCount.getOrElse(0)
+            val duration: Long = Duration.parse(item.contentDetails.duration).getSeconds
 
-          if (views < minimumViews || duration < minimumDuration) {
-            logger.info(s"Video id ${item.id} with duration $duration and views $views does not meet the criteria")
-          }
+            if (views < minimumViews || duration < minimumDuration) {
+              logInfo(s"Video id ${item.id} with duration $duration and views $views does not meet the criteria")
+            }
 
-          VideoDetails(
-            id = item.id,
-            channelId = item.snippet.channelId,
-            publishedAt = item.snippet.publishedAt,
-            views = item.statistics.viewCount.getOrElse(0),
-            duration = duration
-          )
-        }.filter(videoDetails => videoDetails.duration > minimumDuration && videoDetails.views > minimumViews).pure
-      }
+            VideoDetails(
+              id = item.id,
+              channelId = item.snippet.channelId,
+              publishedAt = item.snippet.publishedAt,
+              views = item.statistics.viewCount.getOrElse(0),
+              duration = duration
+            )
+          }.filter(videoDetails => videoDetails.duration > minimumDuration && videoDetails.views > minimumViews).pure
+        }
+        .handleErrorWith { e =>
+          logger.error(e)(s"Error fetching video details: ${e.getMessage}").as(List.empty[VideoDetails])
+        }
     }
 }
 
 object YouTubeFetcher {
-  def make[F[_] : Async : Network](
-    applicationConfig: ApplicationConfig,
+  def make[F[_]: Async: Network](
+    applicationConfig     : ApplicationConfig,
     calculatedStateService: CalculatedStateService[F]
   ): Fetcher[F] = (_: LocalDateTime) =>
     MkHttpClient.forAsync[F].newEmber(applicationConfig.http4s.client).use { implicit client =>
@@ -162,6 +173,7 @@ object YouTubeFetcher {
         apiKey <- config.youtubeApiKey.toOptionT.getOrRaise(new Exception(s"Could not get YouTube apiKey"))
         searchInformation = config.searchInformation
 
+        latticeUsersFetcher = new LatticeFetcher[F](latticeApiUrl)
         youtubeFetcher = new YouTubeFetcher[F](apiKey, baseUrl)
         calculatedState <- calculatedStateService.get
         dataSource: YouTubeDataSource = calculatedState.state.dataSources
@@ -169,7 +181,8 @@ object YouTubeFetcher {
           .collect { case ds: YouTubeDataSource => ds }
           .getOrElse(YouTubeDataSource(Map.empty))
 
-        latticeUsers <- youtubeFetcher.fetchLatticeUsers(latticeApiUrl)
+        latticeUsers <- latticeUsersFetcher.fetchLatticeUsersWithYouTubeAccount()
+
         filteredLatticeUsers = latticeUsers.filter { user =>
           user.primaryDagAddress.flatMap { address =>
             user.youtube.map { _ =>
@@ -178,8 +191,11 @@ object YouTubeFetcher {
           }.getOrElse(false)
         }
 
-        _ <- logger.info(s"Found ${latticeUsers.length} Lattice users")
-        _ <- logger.info(s"Found ${filteredLatticeUsers.length} filtered Lattice users")
+        _ <- logInfo(
+          s"YouTube Lattice fetcher started. " +
+          s"\n\tTotal Lattice users: ${latticeUsers.length}, " +
+          s"\n\tFiltered: ${filteredLatticeUsers.length}"
+        )
 
         updates <- searchInformation.traverse { searchInfo =>
           for {
@@ -188,40 +204,35 @@ object YouTubeFetcher {
               searchInfo.maxPerDay,
               Some(LocalDateTime.now().minusHours(searchInfo.publishedWithinHours))
             )
+
             dataUpdates <- youtubeFetcher.fetchVideoUpdates(filteredLatticeUsers, searchInfo, globalSearchResult)
           } yield dataUpdates
         }.map(_.flatten)
 
         filteredUpdates = updates.filter { update =>
-          validateIfAddressCanProceed(
-            dataSource,
-            searchInformation,
-            update.address,
-            Some(update.video)
-          )
+          validateIfAddressCanProceed(dataSource, searchInformation, update.address, Some(update.video))
         }
       } yield filteredUpdates
     }
 
-  private def validateIfAddressCanProceed(
-    dataSource: YouTubeDataSource,
-    searchInformation: List[ApplicationConfig.YouTubeSearchInfo],
-    address: Address,
-    maybeVideo: Option[VideoDetails]
-  ): Boolean =
-    dataSource.existingWallets.get(address).fold(true) { existingWallet =>
-      val videoNotUsedInAnySearchInfo = maybeVideo.forall { video =>
-        searchInformation.forall { searchInfo =>
-          existingWallet.addressRewards.get(searchInfo.text).forall { addressRewards =>
-            !addressRewards.videos.contains(video)
-          }
-        }
-      }
+  def logInfo[F[_]: Async: Network](
+    message: String
+  )(implicit logger: SelfAwareStructuredLogger[F]
+  ): F[Unit] =
+    logger.info(s"[YouTubeFetcher] $message").flatMap(_ => Async[F].unit)
 
-      videoNotUsedInAnySearchInfo && searchInformation.exists { searchInfo =>
-        existingWallet.addressRewards.get(searchInfo.text).fold(true) { addressRewards =>
-          addressRewards.dailyPostsNumber < searchInfo.maxPerDay
-        }
+  private def validateIfAddressCanProceed(
+    dataSource       : YouTubeDataSource,
+    searchInformation: List[SearchInfo],
+    address          : Address,
+    maybeVideo       : Option[VideoDetails]
+  ): Boolean = dataSource.existingWallets.get(address).fold(true) { wallet =>
+    val videoNotRewarded = maybeVideo.fold(true) { video =>
+      !searchInformation.exists { searchInfo =>
+        wallet.addressRewards.get(searchInfo.text.toLowerCase).exists(_.videos.contains(video))
       }
     }
+
+    videoNotRewarded && isWithinDailyLimit(searchInformation, wallet)
+  }
 }
