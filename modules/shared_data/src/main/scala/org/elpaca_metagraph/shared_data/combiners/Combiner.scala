@@ -112,8 +112,7 @@ object Combiner {
         val updatedStreakDataSource = updateStateStreak(
           currentDataSources,
           currentEpochProgress,
-          streakUpdate,
-          update.proofs,
+          Signed(streakUpdate, update.proofs),
           applicationConfig
         ).map(_.asInstanceOf[DataSource])
 

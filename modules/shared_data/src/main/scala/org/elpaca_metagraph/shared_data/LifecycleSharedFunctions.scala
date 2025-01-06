@@ -12,10 +12,10 @@ import org.elpaca_metagraph.shared_data.combiners.OutflowTransactionsCombiner.cl
 import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.cleanWalletCreationHoldingDAGAlreadyRewardedWallets
 import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateRewardsOlderThanOneDay
 import org.elpaca_metagraph.shared_data.combiners.YouTubeCombiner.updateYoutubeRewardsOlderThanOneDay
-import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate, StreakUpdate}
+import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate}
 import org.elpaca_metagraph.shared_data.types.States.{ElpacaCalculatedState, ElpacaOnChainState}
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
-import org.elpaca_metagraph.shared_data.validations.Validations.{integrationnetNodeOperatorsValidationsL1, streakValidationsL0}
+import org.elpaca_metagraph.shared_data.validations.Validations.integrationnetNodeOperatorsValidationsL1
 import org.tessellation.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
 import org.tessellation.currency.dataApplication.{DataState, L0NodeContext}
 import org.tessellation.security.signature.Signed
@@ -40,18 +40,8 @@ object LifecycleSharedFunctions {
     updates  : NonEmptyList[Signed[ElpacaUpdate]],
     oldState : DataState[ElpacaOnChainState, ElpacaCalculatedState],
     appConfig: ApplicationConfig
-  )(implicit context: L0NodeContext[F]): F[DataApplicationValidationErrorOr[Unit]] = {
-    updates.traverse { update =>
-      update.value match {
-        case streakUpdate: StreakUpdate =>
-          for {
-            epochProgress <- getCurrentEpochProgress
-          } yield streakValidationsL0(Signed(streakUpdate, update.proofs), oldState, appConfig, epochProgress)
-        case _ => valid.pure[F]
-      }
-    }.map(_.reduce)
-
-  }
+  )(implicit context: L0NodeContext[F]): F[DataApplicationValidationErrorOr[Unit]] =
+    valid.pure[F]
 
   def combine[F[_] : Async](
     oldState : DataState[ElpacaOnChainState, ElpacaCalculatedState],
