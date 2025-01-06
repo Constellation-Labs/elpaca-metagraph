@@ -80,7 +80,7 @@ object OutflowTransactionsFetcher {
         val outflowConfig = applicationConfig.outflowTransactionsDaemon
 
         val walletsUpdates = outflowConfig.walletsInfo.traverse { walletInfo =>
-          val url = s"${outflowConfig.apiUrl.get}/addresses/${walletInfo.address}/transactions/sent?limit=10000"
+          val url = s"${outflowConfig.apiUrl.get}/addresses/${walletInfo.address}/transactions/sent?limit=5000"
 
           for {
             _ <- logger.info(s"Outflow - Fetching from block explorer using URL: $url")
