@@ -80,7 +80,7 @@ object InflowTransactionsFetcher {
         val inflowConfig = applicationConfig.inflowTransactionsDaemon
 
         val walletsUpdates = inflowConfig.walletsInfo.traverse { walletInfo =>
-          val url = s"${inflowConfig.apiUrl.get}/addresses/${walletInfo.address}/transactions/received?limit=10000"
+          val url = s"${inflowConfig.apiUrl.get}/addresses/${walletInfo.address}/transactions/received?limit=5000"
 
           for {
             _ <- logger.info(s"Inflow - Fetching from block explorer using URL: $url")
