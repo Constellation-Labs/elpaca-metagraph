@@ -25,6 +25,8 @@ import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.security.KeyPair
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 
 object Utils {
@@ -118,6 +120,29 @@ object Utils {
     }
   }
 
+  def isWithinDailyLimit(
+    searchInformation: List[SearchInfo],
+    wallet           : SocialDataSourceAddress
+  ): Boolean = searchInformation.exists { searchInfo =>
+    wallet.addressRewards.get(searchInfo.text.toLowerCase).fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
+  }
+
+  def timeRangeFromDayStartTillNow(
+    currentDateTime: LocalDateTime
+  ): (LocalDateTime, LocalDateTime) = {
+    val startOfDay = currentDateTime.withHour(0).withMinute(0).withSecond(0).withNano(0)
+    val endOfDay = currentDateTime.minusMinutes(1)
+    (startOfDay, endOfDay)
+  }
+
+  def timeRangeFromDayStartTillNowFormatted(
+    currentDateTime: LocalDateTime,
+    formatter      : DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  ): (String, String) = {
+    val (startOfDay, endOfDay) = timeRangeFromDayStartTillNow(currentDateTime)
+    (startOfDay.format(formatter), endOfDay.format(formatter))
+  }
+
   implicit class RewardTransactionOps(tuple: (Address, PosLong)) {
     def toRewardTransaction: RewardTransaction = {
       val (address, amount) = tuple
@@ -129,12 +154,4 @@ object Utils {
     def toPosLongUnsafe: PosLong =
       PosLong.unsafeFrom(value)
   }
-
-  def isWithinDailyLimit(
-    searchInformation: List[SearchInfo],
-    wallet           : SocialDataSourceAddress
-  ): Boolean = searchInformation.exists { searchInfo =>
-    wallet.addressRewards.get(searchInfo.text.toLowerCase).fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
-  }
-
 }

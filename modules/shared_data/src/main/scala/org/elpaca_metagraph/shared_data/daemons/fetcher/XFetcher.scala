@@ -7,11 +7,11 @@ import com.github.scribejava.core.builder.ServiceBuilder
 import com.github.scribejava.core.model.{OAuth1AccessToken, OAuthRequest, Verb}
 import com.github.scribejava.core.oauth.OAuth10aService
 import fs2.io.net.Network
-import org.elpaca_metagraph.shared_data.Utils.isWithinDailyLimit
+import org.elpaca_metagraph.shared_data.Utils.{isWithinDailyLimit, timeRangeFromDayStartTillNowFormatted}
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
-import org.elpaca_metagraph.shared_data.types.Lattice.LatticeUser
 import org.elpaca_metagraph.shared_data.types.DataUpdates.XUpdate
+import org.elpaca_metagraph.shared_data.types.Lattice.LatticeUser
 import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
 import org.elpaca_metagraph.shared_data.types.States.{DataSourceType, XDataSource}
 import org.elpaca_metagraph.shared_data.types.X._
@@ -24,7 +24,6 @@ import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.jdk.CollectionConverters._
 
@@ -37,26 +36,22 @@ class XFetcher[F[_]: Async: Network](
 )(implicit client: Client[F],
   logger: SelfAwareStructuredLogger[F]) {
 
+  private val service: OAuth10aService = new ServiceBuilder(xApiConsumerKey)
+    .apiSecret(xApiConsumerSecret)
+    .build(TwitterApi.instance())
+
   def fetchXPosts(
     username       : String,
     searchText     : String,
     currentDateTime: LocalDateTime
   ): F[List[XPost]] = {
-    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    val dateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-    val currentDateFormatted: String = currentDateTime.format(dateFormatter)
-    val currentDateTimeFormatted: String = currentDateTime.minusMinutes(1).format(dateTimeFormatter)
-
-    val service: OAuth10aService = new ServiceBuilder(xApiConsumerKey)
-      .apiSecret(xApiConsumerSecret)
-      .build(TwitterApi.instance())
-
+    val (startTime, endTime) = timeRangeFromDayStartTillNowFormatted(currentDateTime)
     val query = s"from:$username (\"$searchText\") -is:reply -is:retweet"
     val requestURI = Uri
       .unsafeFromString(apiUrl.toString())
       .withQueryParam("query", query)
-      .withQueryParam("start_time", s"${currentDateFormatted}T00:00:00Z")
-      .withQueryParam("end_time", s"$currentDateTimeFormatted")
+      .withQueryParam("start_time", s"$startTime")
+      .withQueryParam("end_time", s"$endTime")
       .withQueryParam("tweet.fields", "note_tweet")
 
     logger.info(s"Fetching X Url: ${requestURI.toString()}").flatMap { _ =>
@@ -65,7 +60,7 @@ class XFetcher[F[_]: Async: Network](
       service.signRequest(token, oauthRequest)
 
       val headers = oauthRequest.getHeaders.entrySet().asScala.foldLeft(List.empty[Header.Raw]) { (acc, entry) =>
-          acc :+ Header.Raw(CIString(entry.getKey), entry.getValue)
+        acc :+ Header.Raw(CIString(entry.getKey), entry.getValue)
       }
 
       val signedRequest = Request[F](
@@ -106,10 +101,28 @@ object XFetcher {
     postIdNotUsed && isWithinDailyLimit(searchInformation, existingWallet)
   }
 
-  def filterAlreadyRewardedSearches(
+  def filterXPosts(
     xPosts           : List[XDataInfo],
-    searchInformation: List[ApplicationConfig.XSearchInfo],
-    xDataSource      : XDataSource
+    currentPostsIds  : List[String],
+    xDataSource      : XDataSource,
+    searchInformation: List[ApplicationConfig.XSearchInfo]
+  ): List[XDataInfo] = {
+    val filteredPosts = xPosts.filter { xPost =>
+      !currentPostsIds.contains(xPost.postId) && validateIfAddressCanProceed(
+        xDataSource,
+        searchInformation,
+        xPost.dagAddress,
+        xPost.postId.some
+      )
+    }
+
+    removeAlreadyRewardedSearches(filteredPosts, searchInformation, xDataSource)
+  }
+
+  def removeAlreadyRewardedSearches(
+  xPosts           : List[XDataInfo],
+  searchInformation: List[ApplicationConfig.XSearchInfo],
+  xDataSource      : XDataSource
   ): List[XDataInfo] = xPosts.filter { xPost =>
     xDataSource.existingWallets.get(xPost.dagAddress).fold(true) { existingWallet =>
       existingWallet.addressRewards.get(xPost.searchText.toLowerCase).fold(true) { xRewardInfo =>
@@ -122,6 +135,11 @@ object XFetcher {
       }
     }
   }
+
+  def currentPostsIds(xDataSource: XDataSource): List[String] = xDataSource.existingWallets.values
+    .flatMap(_.addressRewards.values)
+    .flatMap(_.postIds)
+    .toList
 
   def make[F[_]: Async: Network](
     applicationConfig     : ApplicationConfig,
@@ -171,43 +189,37 @@ object XFetcher {
         filteredUsers = groups(currentGroupIndex)
         _ <- logger.info(
           s"Found ${sourceUsers.length} sourceUsers" +
-            s"\nFound ${filteredUsers.length} sourceUsersFiltered. Current group index: $currentGroupIndex"
+          s"\nFound ${filteredUsers.length} sourceUsersFiltered. Current group index: $currentGroupIndex"
         )
-
-        currentPostsIds = xDataSource.existingWallets.values
-          .flatMap(_.addressRewards.values)
-          .flatMap(_.postIds)
-          .toList
 
         searchInfo = searchInformation.map(_.text).mkString("\" OR \"")
         xPosts <- filteredUsers.traverse { userInfo =>
           val username = userInfo.twitter.get.username
           val primaryDAGAddress = userInfo.primaryDagAddress.get
-          xFetcher.fetchXPosts(
+          val xSearchResult = xFetcher.fetchXPosts(
             username,
             searchInfo,
             currentDateTime
           ).handleErrorWith { err =>
             logger.error(err)(s"Error when fetching XPosts for user: $username").as(List.empty[XPost])
-          }.flatMap { xPosts =>
-            xPosts.filter { xPost =>
-              searchInformation.exists(searchInfo => xPost.text.toLowerCase.contains(searchInfo.text.toLowerCase))
+          }
+
+          xSearchResult.flatMap { _.filter { post =>
+              searchInformation.exists(searchInfo => post.text.toLowerCase.contains(searchInfo.text.toLowerCase))
             }.traverse { xPost =>
               searchInformation
                 .find(searchInfo => xPost.text.toLowerCase.contains(searchInfo.text.toLowerCase))
                 .fold {
                   val defaultSearchInfo = searchInformation.head
-                  logger
-                    .warn(
-                      s"Could not get searchInformation from post: $xPost" +
+                  logger.warn(
+                    s"Could not get searchInformation from post: $xPost" +
                       s"\n\tSearch term: ${xPost.text}. Setting ${defaultSearchInfo.text}"
-                    )
-                    .as(XDataInfo(
-                        xPost.id,
-                        primaryDAGAddress,
-                        defaultSearchInfo.text,
-                        defaultSearchInfo.maxPerDay
-                    ))
+                  ).as(XDataInfo(
+                    xPost.id,
+                    primaryDAGAddress,
+                    defaultSearchInfo.text,
+                    defaultSearchInfo.maxPerDay
+                  ))
                 } { searchInfo =>
                   XDataInfo(
                     xPost.id,
@@ -222,23 +234,10 @@ object XFetcher {
 
         _ <- logger.info(s"Found ${xPosts.length} x posts")
 
-        filteredXPosts = xPosts.filter { xPost =>
-          !currentPostsIds.contains(xPost.postId) && validateIfAddressCanProceed(
-            xDataSource,
-            searchInformation,
-            xPost.dagAddress,
-            xPost.postId.some
-          )
-        }
+        filteredXPosts = filterXPosts(xPosts, currentPostsIds(xDataSource), xDataSource, searchInformation)
 
-        filteredXPostsSearchesAlreadyRewarded = filterAlreadyRewardedSearches(
-          filteredXPosts,
-          searchInformation,
-          xDataSource
-        )
-
-        _ <- logger.info(s"Found ${filteredXPostsSearchesAlreadyRewarded.length} valid x posts: $filteredXPostsSearchesAlreadyRewarded")
-        dataUpdates = filteredXPostsSearchesAlreadyRewarded.foldLeft(List.empty[XUpdate]) { (acc, info) =>
+        _ <- logger.info(s"Found ${filteredXPosts.length} valid x posts: $filteredXPosts")
+        dataUpdates = filteredXPosts.foldLeft(List.empty[XUpdate]) { (acc, info) =>
           acc :+ XUpdate(info.dagAddress, info.searchText.toLowerCase, info.postId)
         }
       } yield dataUpdates
