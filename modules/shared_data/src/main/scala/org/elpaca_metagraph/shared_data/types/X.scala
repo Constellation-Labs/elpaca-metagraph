@@ -17,7 +17,7 @@ object X {
     amountToReward       : Amount,
     searchText           : String,
     postIds              : List[String],
-    dailyPostsNumber     : Long,
+    dailyPostsNumber     : Long
   ) extends RewardInfo
 
   @derive(encoder, decoder)
@@ -28,11 +28,6 @@ object X {
   object XDataSourceAddress {
     def empty: XDataSourceAddress = XDataSourceAddress(ListMap.empty)
   }
-
-  @derive(encoder, decoder)
-  case class XUser(
-    username: String
-  )
 
   @derive(encoder, decoder)
   case class NoteTweet(

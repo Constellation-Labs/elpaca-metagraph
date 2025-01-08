@@ -2,6 +2,7 @@ package org.elpaca_metagraph.shared_data.daemons.fetcher
 
 import cats.effect._
 import cats.effect.testkit.TestControl
+import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
 import io.circe.syntax._
 import org.elpaca_metagraph.shared_data.types.Lattice._
@@ -26,46 +27,30 @@ class LatticeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     meta = Some(LatticeUserMeta(total = 5, limit = 100, offset = 0))
   )
 
-  test("fetchLatticeUsers should return only valid users with YouTube accounts") {
+  test("fetchLatticeUsersWithYouTubeAccount should return only valid users with YouTube accounts") {
     implicit val client: Client[IO] = mockClient(Map(
-      Uri.unsafeFromString(baseUrl.toString()) -> Response[IO](Status.Ok).withEntity(latticeUsersResponse.asJson)
+      Uri.unsafeFromString(s"$baseUrl?limit=100&offset=0") -> Response[IO](Status.Ok).withEntity(latticeUsersResponse.asJson)
     ))
 
     val fetcher = new LatticeFetcher[IO](baseUrl)
+    val users = fetcher.fetchLatticeUsersWithYouTubeAccount().unsafeRunSync()
 
-    val result = TestControl.execute {
-      for {
-        users <- fetcher.fetchLatticeUsersWithYouTubeAccount()
-        _ <- IO {
-          users should have size 1
-          users.head.primaryDagAddress shouldBe Some(dagAddress1)
-          users.head.youtube.map(_.channelId) shouldBe Some("channel1")
-        }
-      } yield ()
-    }
-
-    result.flatMap(_.tickAll)
+    users should have size 1
+    users.head.primaryDagAddress shouldBe Some(dagAddress1)
+    users.head.youtube.map(_.channelId) shouldBe Some("channel1")
   }
 
-  test("fetchLatticeUsers should return only valid users with X accounts") {
+  test("fetchLatticeUsersWithXAccount should return only valid users with X accounts") {
     implicit val client: Client[IO] = mockClient(Map(
-      Uri.unsafeFromString(baseUrl.toString()) -> Response[IO](Status.Ok).withEntity(latticeUsersResponse.asJson)
+      Uri.unsafeFromString(s"$baseUrl?limit=100&offset=0") -> Response[IO](Status.Ok).withEntity(latticeUsersResponse.asJson)
     ))
 
     val fetcher = new LatticeFetcher[IO](baseUrl)
+    val users = fetcher.fetchLatticeUsersWithXAccount().unsafeRunSync()
 
-    val result = TestControl.execute {
-      for {
-        users <- fetcher.fetchLatticeUsersWithYouTubeAccount()
-        _ <- IO {
-          users should have size 1
-          users.head.primaryDagAddress shouldBe Some(dagAddress1)
-          users.head.twitter.map(_.username) shouldBe Some("account1")
-        }
-      } yield ()
-    }
-
-    result.flatMap(_.tickAll)
+    users should have size 1
+    users.head.primaryDagAddress shouldBe Some(dagAddress1)
+    users.head.twitter.map(_.username) shouldBe Some("account1")
   }
 
   test("fetchLatticeUsers should handle API errors gracefully") {
@@ -85,65 +70,34 @@ class LatticeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     result.flatMap(_.tickAll)
   }
 
-  test("fetchLatticeUsers should handle large datasets") {
-    val largeResponse = LatticeUsersApiResponse(
-      data = List.fill(1000)(LatticeUser("user", Some(dagAddress1), Some(YouTubeAccount("channel1")), None)),
-      meta = Some(LatticeUserMeta(total = 1000, limit = 100, offset = 0))
-    )
+  test("fetchLatticeUsers should handle pagination correctly") {
+    val pageSize = 100
+    val totalUsers = 1000
+    val totalPages = totalUsers / pageSize
 
-    implicit val client: Client[IO] = mockClient(Map(
-      Uri.unsafeFromString(baseUrl.toString()) -> Response[IO](Status.Ok).withEntity(largeResponse.asJson)
-    ))
+    val paginatedResponses = (0 until totalPages).map { page =>
+      val offset = page * pageSize
+      val response = LatticeUsersApiResponse(
+        data = List.fill(pageSize)(LatticeUser(s"user$offset", Some(dagAddress1), Some(YouTubeAccount(s"channel$offset")), None)),
+        meta = Some(LatticeUserMeta(total = totalUsers.toLong, limit = pageSize.toLong, offset = offset.toLong))
+      )
 
-    val fetcher = new LatticeFetcher[IO](baseUrl)
+      Uri
+        .unsafeFromString(baseUrl.toString())
+        .withQueryParam("limit", pageSize)
+        .withQueryParam("offset", offset) -> Response[IO](Status.Ok)
+        .withEntity(response.asJson)
+    }.toMap
 
-    val result = TestControl.execute {
-      fetcher.fetchLatticeUsers().map { users =>
-        users should have size 1000
-      }
-    }
-
-    result.flatMap(_.tickAll)
-  }
-
-  test("YouTubeFetcher should handle rate-limiting gracefully") {
-    val rateLimitResponse = Response[IO](Status.TooManyRequests)
-
-    implicit val client: Client[IO] = mockClient(Map(
-      Uri.unsafeFromString(baseUrl.toString()) -> rateLimitResponse
-    ))
+    implicit val client: Client[IO] = mockClient(paginatedResponses)
 
     val fetcher = new LatticeFetcher[IO](baseUrl)
+    val users = fetcher.fetchLatticeUsers().unsafeRunSync()
 
-    val result = TestControl.execute {
-      fetcher.fetchLatticeUsers().attempt.map {
-        case Left(error) => error shouldBe a[Throwable]
-        case Right(_)    => fail("Expected an error but got success")
-      }
-    }
-
-    result.flatMap(_.tickAll)
+    users should have size totalUsers.toLong
   }
 
-  test("YouTubeFetcher should log API responses and errors") {
-    val response = Response[IO](Status.Ok).withEntity(latticeUsersResponse.asJson)
-
-    implicit val client: Client[IO] = mockClient(Map(
-      Uri.unsafeFromString(baseUrl.toString()) -> response
-    ))
-
-    val fetcher = new LatticeFetcher[IO](baseUrl)
-
-    val result = TestControl.execute {
-      fetcher.fetchLatticeUsers().flatMap { _ =>
-        logger.info("API responded successfully")
-      }
-    }
-
-    result.flatMap(_.tickAll)
-  }
-
-  test("YouTubeFetcher should handle API timeouts") {
+  test("LatticeFetcher should handle API timeouts") {
     val delayedResponse = IO.sleep(5.seconds) *> Response[IO](Status.Ok).withEntity(latticeUsersResponse.asJson).pure[IO]
 
     implicit val client: Client[IO] = Client.fromHttpApp(HttpRoutes.of[IO] {

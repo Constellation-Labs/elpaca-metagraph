@@ -34,12 +34,12 @@ class LatticeFetcher[F[_]: Async: Network](
         logger.error(e)(s"Error fetching Lattice users: ${e.getMessage}").as(LatticeUsersApiResponse(List.empty, None))
       }
       newUsers = users ++ response.data
-      result <-
+      latticeUsers <-
         if (!response.meta.exists(meta => meta.offset + meta.limit < meta.total)) {
-          newUsers.filter(_.primaryDagAddress.isDefined).pure
+          val result = newUsers.filter(_.primaryDagAddress.isDefined)
+          logger.info(s"Found ${result.length} Lattice users").as(result)
         } else fetchLatticeUsers(response.meta.get.offset + response.meta.get.limit, newUsers)
-      _ <- logger.info(s"Found ${result.length} Lattice users")
-    } yield result
+    } yield latticeUsers
   }
 
   def fetchLatticeUsersWithYouTubeAccount(

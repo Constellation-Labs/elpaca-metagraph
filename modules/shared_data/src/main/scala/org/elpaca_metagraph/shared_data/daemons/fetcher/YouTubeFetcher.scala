@@ -43,7 +43,7 @@ class YouTubeFetcher[F[_]: Async: Network](
     val request = Request[F](
       Method.GET,
       Uri
-        .unsafeFromString(baseUrl.toString() + "/search")
+        .unsafeFromString(s"$baseUrl/search")
         .withQueryParam("key", apiKey)
         .withQueryParam("q", URLEncoder.encode(searchString, StandardCharsets.UTF_8))
         .withQueryParam("type", "video")
@@ -99,34 +99,37 @@ class YouTubeFetcher[F[_]: Async: Network](
     users             : List[LatticeUser],
     searchInfo        : YouTubeSearchInfo,
     globalSearchResult: Map[String, List[String]]
-  ): F[List[YouTubeUpdate]] =
-    users.traverse { user =>
-      val videoIds = filterVideosByChannels(globalSearchResult, List(user.youtube.get.channelId))
+  ): F[List[YouTubeUpdate]] = {
+    val channelIds = users.flatMap(_.youtube.map(_.channelId))
+    val videoIds = filterVideosByChannels(globalSearchResult, channelIds)
 
-      for {
-        _ <- logInfo(s"Found ${videoIds.length} videos for user ${user.primaryDagAddress.get}")
-        videos <- fetchVideoDetails(
-          videoIds,
-          searchInfo.minimumDuration,
-          searchInfo.minimumViews
-        )
-        updates = videos.map { video =>
+    fetchVideoDetails(
+      videoIds,
+      searchInfo.minimumDuration,
+      searchInfo.minimumViews
+    ).flatMap { videos =>
+      users.traverse { user =>
+        videos.filter(_.channelId == user.youtube.get.channelId).map { video =>
           YouTubeUpdate(user.primaryDagAddress.get, searchInfo.text.toLowerCase, video)
-        }
-      } yield updates
+        }.pure
+      }
     }.map(_.flatten)
+  }
 
   def fetchVideoDetails(
     videosIds      : List[String],
     minimumDuration: Long,
     minimumViews   : Long
-  ): F[List[VideoDetails]] =
-    if (videosIds.isEmpty) Async[F].pure(Nil)
+  ): F[List[VideoDetails]] = {
+    if (videosIds.isEmpty) {
+      logInfo("No videos to fetch").as(Nil)
+      Async[F].pure(Nil)
+    }
     else {
       val request = Request[F](
         Method.GET,
         Uri
-          .unsafeFromString(baseUrl.toString() + "/videos")
+          .unsafeFromString(s"$baseUrl/videos")
           .withQueryParam("key", apiKey)
           .withQueryParam("id", videosIds.mkString(","))
           .withQueryParam("part", "snippet,contentDetails,statistics")
@@ -140,7 +143,7 @@ class YouTubeFetcher[F[_]: Async: Network](
             val duration: Long = Duration.parse(item.contentDetails.duration).getSeconds
 
             if (views < minimumViews || duration < minimumDuration) {
-              logInfo(s"Video id ${item.id} with duration $duration and views $views does not meet the criteria")
+              logger.warn(s"Video id ${item.id} with duration $duration and views $views does not meet the criteria")
             }
 
             VideoDetails(
@@ -150,12 +153,13 @@ class YouTubeFetcher[F[_]: Async: Network](
               views = item.statistics.viewCount.getOrElse(0),
               duration = duration
             )
-          }.filter(videoDetails => videoDetails.duration > minimumDuration && videoDetails.views > minimumViews).pure
+          }.filter(videoDetails => videoDetails.duration >= minimumDuration && videoDetails.views >= minimumViews).pure
         }
         .handleErrorWith { e =>
           logger.error(e)(s"Error fetching video details: ${e.getMessage}").as(List.empty[VideoDetails])
         }
     }
+  }
 }
 
 object YouTubeFetcher {
