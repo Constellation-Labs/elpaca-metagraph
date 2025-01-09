@@ -100,7 +100,7 @@ class YouTubeFetcher[F[_]: Async: Network](
     searchInfo        : YouTubeSearchInfo,
     globalSearchResult: Map[String, List[String]]
   ): F[List[YouTubeUpdate]] = {
-    val channelIds = users.flatMap(_.youtube.map(_.channelId))
+    val channelIds = users.flatMap(_.linkedAccounts.youtube.map(_.channelId))
     val videoIds = filterVideosByChannels(globalSearchResult, channelIds)
 
     fetchVideoDetails(
@@ -109,7 +109,7 @@ class YouTubeFetcher[F[_]: Async: Network](
       searchInfo.minimumViews
     ).flatMap { videos =>
       users.traverse { user =>
-        videos.filter(_.channelId == user.youtube.get.channelId).map { video =>
+        videos.filter(_.channelId == user.linkedAccounts.youtube.get.channelId).map { video =>
           YouTubeUpdate(user.primaryDagAddress.get, searchInfo.text.toLowerCase, video)
         }.pure
       }
@@ -189,7 +189,7 @@ object YouTubeFetcher {
 
         filteredLatticeUsers = latticeUsers.filter { user =>
           user.primaryDagAddress.flatMap { address =>
-            user.youtube.map { _ =>
+            user.linkedAccounts.youtube.map { _ =>
               validateIfAddressCanProceed(dataSource, searchInformation, address, none)
             }
           }.getOrElse(false)

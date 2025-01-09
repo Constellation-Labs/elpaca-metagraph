@@ -19,11 +19,11 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
 
   private val mockSearchInfo = ApplicationConfig.YouTubeSearchInfo(
     text = "test-search",
-    rewardAmount = Amount(NonNegLong(10L)),
+    rewardAmount = Amount(NonNegLong(50L)),
     minimumDuration = 60,
     minimumViews = 50,
-    maxPerDay = 3,
-    publishedWithinHours = 24
+    maxPerDay = 1,
+    publishedWithinHours = 3
   )
 
   private val mockConfig = ApplicationConfig(
@@ -49,7 +49,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
 
   private val address = Address("DAG56BtU1j5uCMb5f1QxZ5oxfBhpUeYucRGygfEa")
   private val currentEpoch = EpochProgress(NonNegLong(5L))
-  private val olderEpoch = EpochProgress(NonNegLong(4L))
+  private val previousEpoch = EpochProgress(NonNegLong(4L))
 
   test("updateYoutubeRewardsOlderThanOneDay should reset daily posts on a new day") {
     val initialState: Map[DataSourceType, YouTubeDataSource] = Map(
@@ -58,12 +58,12 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
           address -> YouTubeDataSourceAddress(
             addressRewards = ListMap(
               "test-search" -> YouTubeRewardInfo(
-                dailyEpochProgress = olderEpoch,
-                epochProgressToReward = olderEpoch,
-                amountToReward = toTokenAmountFormat(20),
+                dailyEpochProgress = previousEpoch,
+                epochProgressToReward = previousEpoch,
+                amountToReward = toTokenAmountFormat(50),
                 searchText = "test-search",
                 videos = List(),
-                dailyPostsNumber = 2
+                dailyPostsNumber = 0
               )
             )
           )
@@ -78,8 +78,8 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       .existingWallets(address)
       .addressRewards("test-search")
 
-    rewards.dailyPostsNumber shouldBe 2 //0
-    rewards.dailyEpochProgress shouldBe olderEpoch //currentEpoch
+    rewards.dailyPostsNumber shouldBe 0
+    rewards.dailyEpochProgress shouldBe previousEpoch
   }
 
   test("updateYoutubeRewardsOlderThanOneDay should not reset rewards if on the same day") {
@@ -135,7 +135,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
 
     rewards.dailyPostsNumber shouldBe 1
     rewards.epochProgressToReward shouldBe currentEpoch
-    rewards.amountToReward shouldBe toTokenAmountFormat(10)
+    rewards.amountToReward shouldBe toTokenAmountFormat(50)
   }
 
   test("updateYouTubeState should update existing rewards if criteria are met") {
@@ -147,7 +147,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
               "test-search" -> YouTubeRewardInfo(
                 dailyEpochProgress = currentEpoch,
                 epochProgressToReward = currentEpoch,
-                amountToReward = toTokenAmountFormat(10),
+                amountToReward = toTokenAmountFormat(50),
                 searchText = "test-search",
                 videos = List(),
                 dailyPostsNumber = 1
@@ -173,8 +173,8 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
 
     val rewards = updatedState.existingWallets(address).addressRewards("test-search")
 
-    rewards.dailyPostsNumber shouldBe 2
-    rewards.amountToReward shouldBe toTokenAmountFormat(20)
+    rewards.dailyPostsNumber shouldBe 1
+    rewards.amountToReward shouldBe toTokenAmountFormat(50)
   }
 
   test("updateYouTubeState should not update rewards if daily limit is exceeded") {

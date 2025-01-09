@@ -45,14 +45,14 @@ class LatticeFetcher[F[_]: Async: Network](
   def fetchLatticeUsersWithYouTubeAccount(
     offset: Long = 0
   ): F[List[LatticeUser]] = for {
-    users <- fetchLatticeUsers(offset).map(_.filter(_.youtube.isDefined))
+    users <- fetchLatticeUsers(offset).map(_.filter(_.linkedAccounts.youtube.isDefined))
     _ <- logger.info(s"Found ${users.length} Lattice users with YouTube account")
   } yield users
 
   def fetchLatticeUsersWithXAccount(
     offset: Long = 0
   ): F[List[LatticeUser]] = for {
-    users <- fetchLatticeUsers(offset).map(_.filter(_.twitter.isDefined))
+    users <- fetchLatticeUsers(offset).map(_.filter(_.linkedAccounts.twitter.isDefined))
     _ <- logger.info(s"Found ${users.length} Lattice users with X account")
   } yield users
 }

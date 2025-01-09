@@ -35,8 +35,13 @@ object Lattice {
   case class LatticeUser(
     id               : String,
     primaryDagAddress: Option[Address],
-    youtube          : Option[YouTubeAccount],
-    twitter          : Option[XAccount]
+    linkedAccounts   : LinkedAccounts
+  )
+
+  @derive(encoder, decoder)
+  case class LinkedAccounts(
+    youtube: Option[YouTubeAccount],
+    twitter: Option[XAccount]
   )
 
   @derive(encoder, decoder)
