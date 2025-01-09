@@ -134,8 +134,8 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
 
     val updates = fetcher.fetchVideoUpdates(
       List(
-        LatticeUser("user1", Some(dagAddress1), Some(YouTubeAccount("channel1")), None),
-        LatticeUser("user2", Some(dagAddress2), Some(YouTubeAccount("channel2")), None)
+        LatticeUser("user1", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount("channel1")), None)),
+        LatticeUser("user2", Some(dagAddress2), LinkedAccounts(Some(YouTubeAccount("channel2")), None))
       ),
       searchInfo,
       globalSearchResult

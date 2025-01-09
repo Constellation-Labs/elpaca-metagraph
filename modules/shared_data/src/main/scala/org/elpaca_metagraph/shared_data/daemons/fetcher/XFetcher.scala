@@ -177,7 +177,7 @@ object XFetcher {
         sourceUsers <- latticeFetcher.fetchLatticeUsersWithXAccount()
         eligibleSourceUsers = sourceUsers.filter { user =>
           user.primaryDagAddress.flatMap { address =>
-            user.twitter.map { _ =>
+            user.linkedAccounts.twitter.map { _ =>
               validateIfAddressCanProceed(xDataSource, searchInformation, address, none)
             }
           }.getOrElse(false)
@@ -194,7 +194,7 @@ object XFetcher {
 
         searchInfo = searchInformation.map(_.text).mkString("\" OR \"")
         xPosts <- filteredUsers.traverse { userInfo =>
-          val username = userInfo.twitter.get.username
+          val username = userInfo.linkedAccounts.twitter.get.username
           val primaryDAGAddress = userInfo.primaryDagAddress.get
           val xSearchResult = xFetcher.fetchXPosts(
             username,

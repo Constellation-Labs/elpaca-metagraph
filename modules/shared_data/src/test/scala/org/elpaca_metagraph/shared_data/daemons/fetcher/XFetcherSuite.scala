@@ -8,7 +8,7 @@ import io.circe.syntax._
 import org.elpaca_metagraph.shared_data.Utils
 import org.elpaca_metagraph.shared_data.Utils.timeRangeFromDayStartTillNowFormatted
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
-import org.elpaca_metagraph.shared_data.types.Lattice.{LatticeUser, XAccount}
+import org.elpaca_metagraph.shared_data.types.Lattice.{LatticeUser, LinkedAccounts, XAccount}
 import org.elpaca_metagraph.shared_data.types.States.XDataSource
 import org.elpaca_metagraph.shared_data.types.X._
 import org.http4s._
@@ -60,8 +60,16 @@ class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     meta = XApiResponseMetadata(4)
   )
 
+  private def getXFetcherInstance()(implicit client: Client[IO]) = new XFetcher[IO](
+    apiUrl = baseUrl,
+    xApiConsumerKey = "key",
+    xApiConsumerSecret = "secret",
+    xApiAccessToken = "token",
+    xApiAccessSecret = "secret"
+  )
+
   private def createUser(i: Int, dagAddress: Address): LatticeUser =
-    LatticeUser(s"user$i", Some(dagAddress), None, Some(XAccount(s"account$i")))
+    LatticeUser(s"user$i", Some(dagAddress), LinkedAccounts(None, Some(XAccount(s"account$i"))))
 
   private def buildUriForUser(
     username: String,
@@ -86,13 +94,7 @@ class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
 
     implicit val client: Client[IO] = mockClient(buildUriForUser(user1.id, searchText, currentDate, xDagPostsResponse))
 
-    val fetcher = new XFetcher[IO](
-      apiUrl = baseUrl,
-      xApiConsumerKey = "key",
-      xApiConsumerSecret = "secret",
-      xApiAccessToken = "token",
-      xApiAccessSecret = "secret"
-    )
+    val fetcher = getXFetcherInstance()
 
     val posts = fetcher.fetchXPosts(user1.id, searchText, currentDate).unsafeRunSync()
     posts should have size 4
@@ -105,13 +107,7 @@ class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
 
     implicit val client: Client[IO] = mockClient(buildUriForUser(user1.id, searchText, currentDate, xABPostsResponse))
 
-    val fetcher = new XFetcher[IO](
-      apiUrl = baseUrl,
-      xApiConsumerKey = "key",
-      xApiConsumerSecret = "secret",
-      xApiAccessToken = "token",
-      xApiAccessSecret = "secret"
-    )
+    val fetcher = getXFetcherInstance()
 
     val posts = fetcher.fetchXPosts(user1.id, searchText, currentDate).unsafeRunSync()
     posts should have size 4
