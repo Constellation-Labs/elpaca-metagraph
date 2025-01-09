@@ -65,9 +65,9 @@ object YouTubeCombiner {
 
           def isNotExceedingDailyLimit: Boolean = data.dailyPostsNumber < searchInformation.maxPerDay
 
-          def postAlreadyExists: Boolean = data.videos.contains(youTubeUpdate.video)
+          def videoAlreadyExists: Boolean = data.videos.contains(youTubeUpdate.video)
 
-          def updateXRewardInfoSameDay(): YouTubeRewardInfo = {
+          def updateYTRewardInfoSameDay(): YouTubeRewardInfo = {
             if (data.epochProgressToReward === currentEpochProgress) {
               data
                 .focus(_.dailyPostsNumber)
@@ -89,8 +89,8 @@ object YouTubeCombiner {
 
           if (isNewDay(data.epochProgressToReward, currentEpochProgress)) {
             updateYoutubeRewardInfoNewDay()
-          } else if (isNotExceedingDailyLimit && !postAlreadyExists) {
-            updateXRewardInfoSameDay()
+          } else if (isNotExceedingDailyLimit && !videoAlreadyExists) {
+            updateYTRewardInfoSameDay()
           } else {
             data
           }
