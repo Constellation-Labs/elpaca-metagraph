@@ -2,7 +2,7 @@ package org.elpaca_metagraph.shared_data.combiners
 
 import cats.syntax.all._
 import monocle.Monocle.toAppliedFocusOps
-import org.elpaca_metagraph.shared_data.Utils.{isNewDay, toTokenAmountFormat}
+import org.elpaca_metagraph.shared_data.Utils._
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates.YouTubeUpdate
 import org.elpaca_metagraph.shared_data.types.States.{DataSource, DataSourceType, YouTubeDataSource}
@@ -87,7 +87,13 @@ object YouTubeCombiner {
             }
           }
 
-          if (isNewDay(data.epochProgressToReward, currentEpochProgress)) {
+          if (data.dailyEpochProgress.value.value + epochProgressOneDay < data.epochProgressToReward.value.value) {
+            data
+              .focus(_.dailyEpochProgress)
+              .replace(data.epochProgressToReward)
+              .focus(_.dailyPostsNumber)
+              .replace(searchInformation.maxPerDay)
+          } else if (isNewDay(data.epochProgressToReward, currentEpochProgress)) {
             updateYoutubeRewardInfoNewDay()
           } else if (isNotExceedingDailyLimit && !videoAlreadyExists) {
             updateYTRewardInfoSameDay()

@@ -124,7 +124,9 @@ object Utils {
     searchInformation: List[SearchInfo],
     wallet           : SocialDataSourceAddress
   ): Boolean = searchInformation.exists { searchInfo =>
-    wallet.addressRewards.get(searchInfo.text.toLowerCase).fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
+    wallet.addressRewards
+      .get(searchInfo.text.toLowerCase)
+      .fold(true)(_.dailyPostsNumber < searchInfo.maxPerDay)
   }
 
   def timeRangeFromDayStartTillNow(
