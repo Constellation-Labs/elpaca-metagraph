@@ -55,7 +55,6 @@ class YouTubeFetcher[F[_]: Async: Network](
     )
 
     for {
-      _ <- logInfo(s"Searching for videos with search string $searchString")
       response <- client.expect[SearchListResponse](request)(jsonOf[F, SearchListResponse]).handleErrorWith { e =>
         logger
           .error(e)(s"Error searching for videos with search string $searchString: ${e.getMessage}")
@@ -66,11 +65,11 @@ class YouTubeFetcher[F[_]: Async: Network](
         case (channelId, videoIds) => channelId -> (result.getOrElse(channelId, List.empty) ++ videoIds)
       }
       _ <- logInfo(
-        s"Total results to be parsed for search term" +
-          s" {$searchString}: ${response.pageInfo.totalResults - updatedMap.values.flatten.size} from the total of" +
+        s"Total results parsed for search term" +
+          s" {$searchString}: ${updatedMap.values.flatten.size} of" +
           s" ${response.pageInfo.totalResults}"
       )
-      result <- response.nextPageToken match {
+      finalResult <- response.nextPageToken match {
         case Some(token) =>
           searchVideos(
             searchString,
@@ -79,10 +78,12 @@ class YouTubeFetcher[F[_]: Async: Network](
             Some(token),
             updatedMap
           )
-        case None => updatedMap.pure[F]
+        case None =>
+          val (totalChannels, totalResults) = (updatedMap.size, updatedMap.values.flatten.size)
+          logInfo(s"Found $totalResults video${if (totalResults > 1) "s" else ""} for " +
+          s"$totalChannels channel${if (totalChannels > 1) "s" else ""} with search term {$searchString}").as(updatedMap)
       }
-      _ <- logInfo(s"Found ${result.values.flatten.size} videos for search string $searchString")
-    } yield result
+    } yield finalResult
   }
 
   def filterVideosByChannels(
@@ -123,7 +124,6 @@ class YouTubeFetcher[F[_]: Async: Network](
   ): F[List[VideoDetails]] = {
     if (videosIds.isEmpty) {
       logInfo("No videos to fetch").as(Nil)
-      Async[F].pure(Nil)
     }
     else {
       val request = Request[F](
@@ -170,15 +170,15 @@ object YouTubeFetcher {
     MkHttpClient.forAsync[F].newEmber(applicationConfig.http4s.client).use { implicit client =>
       implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromClass(YouTubeFetcher.getClass)
       val config = applicationConfig.youtubeDaemon
+      val searchInformation = config.searchInformation
 
       for {
         latticeApiUrl <- config.usersSourceApiUrl.toOptionT.getOrRaise(new Exception(s"Could not get usersSourceApiUrl"))
         baseUrl <- config.youtubeApiUrl.toOptionT.getOrRaise(new Exception(s"Could not get YouTube Data API baseUrl"))
         apiKey <- config.youtubeApiKey.toOptionT.getOrRaise(new Exception(s"Could not get YouTube apiKey"))
-        searchInformation = config.searchInformation
-
         latticeUsersFetcher = new LatticeFetcher[F](latticeApiUrl)
         youtubeFetcher = new YouTubeFetcher[F](apiKey, baseUrl)
+
         calculatedState <- calculatedStateService.get
         dataSource: YouTubeDataSource = calculatedState.state.dataSources
           .get(DataSourceType.YouTube)
@@ -186,14 +186,7 @@ object YouTubeFetcher {
           .getOrElse(YouTubeDataSource(Map.empty))
 
         latticeUsers <- latticeUsersFetcher.fetchLatticeUsersWithYouTubeAccount()
-
-        filteredLatticeUsers = latticeUsers.filter { user =>
-          user.primaryDagAddress.flatMap { address =>
-            user.linkedAccounts.youtube.map { _ =>
-              validateIfAddressCanProceed(dataSource, searchInformation, address, none)
-            }
-          }.getOrElse(false)
-        }
+        filteredLatticeUsers = filterLatticeUsers(latticeUsers, searchInformation, dataSource, None)
 
         _ <- logInfo(
           s"YouTube Lattice fetcher started. " +
@@ -203,6 +196,7 @@ object YouTubeFetcher {
 
         updates <- searchInformation.traverse { searchInfo =>
           for {
+            _ <- logger.info(s"Searching for videos with search string ${searchInfo.text}")
             globalSearchResult <- youtubeFetcher.searchVideos(
               s"constellation-${searchInfo.text}",
               searchInfo.maxPerDay,
@@ -225,15 +219,31 @@ object YouTubeFetcher {
   ): F[Unit] =
     logger.info(s"[YouTubeFetcher] $message").flatMap(_ => Async[F].unit)
 
+  def filterLatticeUsers(
+    latticeUsers     : List[LatticeUser],
+    searchInformation: List[SearchInfo],
+    dataSource       : YouTubeDataSource,
+    maybeVideo       : Option[VideoDetails]
+  ): List[LatticeUser] = latticeUsers.filter { user =>
+    user.primaryDagAddress.flatMap { address =>
+      user.linkedAccounts.youtube.map { _ =>
+        validateIfAddressCanProceed(dataSource, searchInformation, address, maybeVideo)
+      }
+    }.getOrElse(false)
+  }
+
   private def validateIfAddressCanProceed(
     dataSource       : YouTubeDataSource,
     searchInformation: List[SearchInfo],
     address          : Address,
     maybeVideo       : Option[VideoDetails]
-  ): Boolean = dataSource.existingWallets.get(address).fold(true) { wallet =>
+  ): Boolean =
+    dataSource.existingWallets.get(address).fold(true) { wallet =>
     val videoNotRewarded = maybeVideo.fold(true) { video =>
       !searchInformation.exists { searchInfo =>
-        wallet.addressRewards.get(searchInfo.text.toLowerCase).exists(_.videos.contains(video))
+        wallet.addressRewards
+          .get(searchInfo.text.toLowerCase)
+          .exists(_.videos.contains(video))
       }
     }
 

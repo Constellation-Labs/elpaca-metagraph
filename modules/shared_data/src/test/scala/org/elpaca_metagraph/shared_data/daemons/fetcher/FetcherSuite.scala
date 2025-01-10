@@ -16,6 +16,7 @@ trait FetcherSuite {
   protected val baseUrl: ApiUrl = ApiUrl.unsafeFrom("http://localhost:8080")
   protected val dagAddress1: Address = Address("DAG56BtU1j5uCMb5f1QxZ5oxfBhpUeYucRGygfEa")
   protected val dagAddress2: Address = Address("DAG45ZLcgmQeRHY3oV2ZJACrFUjEZwqeXKSfZc75")
+  protected val dagAddress3: Address = Address("DAG4J3i4K87evc71ti3aEcSKx8AUR5GhPy3EysiM")
 
   def mockClient(responses: Map[Uri, Response[IO]]): Client[IO] = Client.fromHttpApp(HttpRoutes.of[IO] {
     case req if responses.contains(req.uri) =>
