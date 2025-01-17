@@ -22,6 +22,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import scala.collection.immutable.ListMap
+import scala.concurrent.duration._
 
 class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
   private val apiKey = "mockApiKey"
@@ -30,9 +31,10 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     text = testQuery,
     rewardAmount = toTokenAmountFormat(50),
     maxPerDay = 1,
-    minimumDuration = 60,
+    minimumDuration = 60.seconds,
     minimumViews = 50,
-    publishedWithinHours = 3
+    publishedWithinHours = 3.hours,
+    daysToMonitorVideoUpdates = 30.days
   )
 
   private val searchResponsePage1 = SearchListResponse(
@@ -64,7 +66,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
         "video2",
         VideoSnippetResponse("channel2", Instant.now()),
         VideoStatisticsResponse(Some(49)),
-        VideoContentDetailsResponse("PT2M")
+        VideoContentDetailsResponse("PT1M")
       )
     )
   )
@@ -139,7 +141,8 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     result should contain theSameElementsAs List("video1", "video3", "video2")
   }
 
-  test("fetchVideoDetails should filter videos based on video duration and view count") {
+  test("fetchVideoDetails should filter videos based on video duration") {
+    // video1 is 3 minutes long, video2 is 1 minute long
     val videosIds = List("video1", "video2")
 
     implicit val client: Client[IO] = mockClient(Map(
@@ -147,18 +150,14 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     ))
 
     val fetcher = new YouTubeFetcher[IO](apiKey, baseUrl)
-    val details = fetcher.fetchVideoDetails(videosIds, 120, 50).unsafeRunSync()
+    // return all videos with at least 2 minutes long
+    val details = fetcher.fetchVideoDetails(videosIds, 120).unsafeRunSync()
 
     details should have size 1
     details.head.id shouldBe "video1"
   }
 
   test("fetchVideoUpdates should generate updates for valid users and videos") {
-    val globalSearchResult = Map(
-      "channel1" -> List("video1"),
-      "channel2" -> List("video2")
-    )
-
     implicit val client: Client[IO] = mockClient(Map(
       buildVideosDetailsUri(List("video1", "video2")) -> Response[IO](Status.Ok).withEntity(videoDetailsResponse.asJson)
     ))
@@ -169,11 +168,11 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
         LatticeUser("user1", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount("channel1")), None)),
         LatticeUser("user2", Some(dagAddress2), LinkedAccounts(Some(YouTubeAccount("channel2")), None))
       ),
-      searchInfo,
-      globalSearchResult
+      List("video1", "video2"),
+      searchInfo.copy(minimumDuration = 2.minutes)
     ).unsafeRunSync()
 
-    updates should have size 1 // video 2 doesn't meet the minimum views requirement
+    updates should have size 1 // video 2 doesn't meet the minimum duration requirement
     updates.head.address shouldBe dagAddress1
     updates.head.video.id shouldBe "video1"
   }
@@ -181,13 +180,14 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
   test("filterLatticeUsers should exclude users with videos already rewarded") {
     val rewardedVideo = Some(VideoDetails("video1", "channel1", Instant.now(), 1000, 180))
     val rewardInfo = YouTubeRewardInfo(
-      EpochProgress(NonNegLong(1)),
-      EpochProgress(NonNegLong(1)),
-      toTokenAmountFormat(50),
-      testQuery,
-      List(rewardedVideo.get),
-      1
+      dailyEpochProgress = EpochProgress(NonNegLong(1)),
+      epochProgressToReward = EpochProgress(NonNegLong(1)),
+      amountToReward = toTokenAmountFormat(50),
+      searchText = testQuery,
+      dailyPostsNumber = 1,
+      videos = List(rewardedVideo.get)
     )
+
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
 
     val latticeUsers = List(
@@ -207,12 +207,12 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
   test("filterLatticeUsers should include users with videos not yet rewarded and under daily limit") {
     val unrewardedVideo = VideoDetails("video2", "channel1", Instant.now(), 900, 120)
     val rewardInfo = YouTubeRewardInfo(
-      EpochProgress(NonNegLong(0)),
-      EpochProgress(NonNegLong(1)),
-      toTokenAmountFormat(50),
-      testQuery,
-      List.empty,
-      0
+      dailyEpochProgress = EpochProgress(NonNegLong(0)),
+      epochProgressToReward = EpochProgress(NonNegLong(1)),
+      amountToReward = toTokenAmountFormat(50),
+      searchText = testQuery,
+      dailyPostsNumber = 0,
+      videos = List.empty
     )
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
 
@@ -234,12 +234,12 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
   test("filterLatticeUsers should exclude users exceeding daily limit of one reward") {
     val unrewardedVideo = VideoDetails("video2", "channel1", Instant.now(), 900, 120)
     val rewardInfo = YouTubeRewardInfo(
-      EpochProgress(NonNegLong(1)),
-      EpochProgress(NonNegLong(1)),
-      toTokenAmountFormat(50),
-      testQuery,
-      List(unrewardedVideo),
-      1
+      dailyEpochProgress = EpochProgress(NonNegLong(1)),
+      epochProgressToReward = EpochProgress(NonNegLong(1)),
+      amountToReward = toTokenAmountFormat(50),
+      searchText = testQuery,
+      dailyPostsNumber = 1,
+      videos = List(unrewardedVideo)
     )
 
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
@@ -261,12 +261,12 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
   test("filterLatticeUsers should not reward twice the same video") {
     val rewardedVideo = VideoDetails("video2", "channel1", Instant.now(), 900, 120)
     val rewardInfo = YouTubeRewardInfo(
-      EpochProgress(NonNegLong(1)),
-      EpochProgress(NonNegLong(1)),
-      toTokenAmountFormat(50),
-      testQuery,
-      List(rewardedVideo),
-      0
+      dailyEpochProgress = EpochProgress(NonNegLong(1)),
+      epochProgressToReward = EpochProgress(NonNegLong(1)),
+      amountToReward = toTokenAmountFormat(50),
+      searchText = testQuery,
+      dailyPostsNumber = 0,
+      videos = List(rewardedVideo)
     )
 
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
@@ -290,32 +290,32 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       ListMap(
         dagAddress1 -> YouTubeDataSourceAddress(
           ListMap(testQuery -> YouTubeRewardInfo(
-            EpochProgress(NonNegLong(1)),
-            EpochProgress(NonNegLong(1)),
-            toTokenAmountFormat(50),
-            testQuery,
-            List(VideoDetails("video1", "channel1", Instant.now(), 1000, 180)),
-            1 // Daily limit reached
+            dailyEpochProgress = EpochProgress(NonNegLong(1)),
+            epochProgressToReward = EpochProgress(NonNegLong(1)),
+            amountToReward = toTokenAmountFormat(50),
+            searchText = testQuery,
+            dailyPostsNumber = 1,
+            videos = List(VideoDetails("video1", "channel1", Instant.now(), 1000, 180))
           ))
         ),
         dagAddress2 -> YouTubeDataSourceAddress(
           ListMap(testQuery -> YouTubeRewardInfo(
-            EpochProgress(NonNegLong(0)),
-            EpochProgress(NonNegLong(1)),
-            toTokenAmountFormat(50),
-            testQuery,
-            List(VideoDetails("video2", "channel2", Instant.now(), 1000, 180)),
-            0 // No rewards yet
+            dailyEpochProgress = EpochProgress(NonNegLong(1)),
+            epochProgressToReward = EpochProgress(NonNegLong(1)),
+            amountToReward = toTokenAmountFormat(50),
+            searchText = testQuery,
+            dailyPostsNumber = 0,
+            videos = List(VideoDetails("video2", "channel2", Instant.now(), 1000, 180))
           ))
         ),
         dagAddress3 -> YouTubeDataSourceAddress(
           ListMap(testQuery -> YouTubeRewardInfo(
-            EpochProgress(NonNegLong(1)),
-            EpochProgress(NonNegLong(1)),
-            toTokenAmountFormat(50),
-            testQuery,
-            List(VideoDetails("video3", "channel3", Instant.now(), 1000, 180)),
-            1 // Daily limit reached
+            dailyEpochProgress = EpochProgress(NonNegLong(1)),
+            epochProgressToReward = EpochProgress(NonNegLong(1)),
+            amountToReward = toTokenAmountFormat(50),
+            searchText = testQuery,
+            dailyPostsNumber = 1,
+            videos = List(VideoDetails("video3", "channel3", Instant.now(), 1000, 180))
           ))
         )
       )

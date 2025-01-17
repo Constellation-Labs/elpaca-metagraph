@@ -107,12 +107,13 @@ object ApplicationConfig {
   )
 
   case class YouTubeSearchInfo(
-    text                : String,
-    rewardAmount        : Amount,
-    maxPerDay           : Long,
-    minimumDuration     : Long,
-    minimumViews        : Long,
-    publishedWithinHours: Long
+    text                     : String,
+    rewardAmount             : Amount,
+    maxPerDay                : Long,
+    minimumViews             : Long,
+    minimumDuration          : FiniteDuration,
+    publishedWithinHours     : FiniteDuration,
+    daysToMonitorVideoUpdates: FiniteDuration
   ) extends SearchInfo
 
   case class YouTubeDaemonConfig(

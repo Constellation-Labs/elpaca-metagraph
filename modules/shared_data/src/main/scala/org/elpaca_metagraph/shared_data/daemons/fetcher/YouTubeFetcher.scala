@@ -98,16 +98,12 @@ class YouTubeFetcher[F[_]: Async: Network](
 
   def fetchVideoUpdates(
     users             : List[LatticeUser],
-    searchInfo        : YouTubeSearchInfo,
-    globalSearchResult: Map[String, List[String]]
+    videoIds          : List[String],
+    searchInfo        : YouTubeSearchInfo
   ): F[List[YouTubeUpdate]] = {
-    val channelIds = users.flatMap(_.linkedAccounts.youtube.map(_.channelId))
-    val videoIds = filterVideosByChannels(globalSearchResult, channelIds)
-
     fetchVideoDetails(
       videoIds,
-      searchInfo.minimumDuration,
-      searchInfo.minimumViews
+      searchInfo.minimumDuration.toSeconds
     ).flatMap { videos =>
       users.traverse { user =>
         videos.filter(_.channelId == user.linkedAccounts.youtube.get.channelId).map { video =>
@@ -119,13 +115,11 @@ class YouTubeFetcher[F[_]: Async: Network](
 
   def fetchVideoDetails(
     videosIds      : List[String],
-    minimumDuration: Long,
-    minimumViews   : Long
+    minimumDuration: Long
   ): F[List[VideoDetails]] = {
     if (videosIds.isEmpty) {
       logInfo("No videos to fetch").as(Nil)
-    }
-    else {
+    } else {
       val request = Request[F](
         Method.GET,
         Uri
@@ -139,21 +133,14 @@ class YouTubeFetcher[F[_]: Async: Network](
         .expect[VideoListResponse](request)(jsonOf[F, VideoListResponse])
         .flatMap { response =>
           response.items.map { item =>
-            val views: Long = item.statistics.viewCount.getOrElse(0)
-            val duration: Long = Duration.parse(item.contentDetails.duration).getSeconds
-
-            if (views < minimumViews || duration < minimumDuration) {
-              logger.warn(s"Video id ${item.id} with duration $duration and views $views does not meet the criteria")
-            }
-
             VideoDetails(
               id = item.id,
               channelId = item.snippet.channelId,
               publishedAt = item.snippet.publishedAt,
               views = item.statistics.viewCount.getOrElse(0),
-              duration = duration
+              duration = Duration.parse(item.contentDetails.duration).getSeconds
             )
-          }.filter(videoDetails => videoDetails.duration >= minimumDuration && videoDetails.views >= minimumViews).pure
+          }.filter(_.duration >= minimumDuration).pure
         }
         .handleErrorWith { e =>
           logger.error(e)(s"Error fetching video details: ${e.getMessage}").as(List.empty[VideoDetails])
@@ -200,10 +187,21 @@ object YouTubeFetcher {
             globalSearchResult <- youtubeFetcher.searchVideos(
               s"constellation-${searchInfo.text}",
               searchInfo.maxPerDay,
-              Some(LocalDateTime.now().minusHours(searchInfo.publishedWithinHours))
+              Some(LocalDateTime.now().minusHours(searchInfo.publishedWithinHours.toHours))
             )
 
-            dataUpdates <- youtubeFetcher.fetchVideoUpdates(filteredLatticeUsers, searchInfo, globalSearchResult)
+            channelIds = filteredLatticeUsers.flatMap(_.linkedAccounts.youtube.map(_.channelId))
+            videoIdsFromSearch = youtubeFetcher.filterVideosByChannels(globalSearchResult, channelIds)
+            videoIdsFromRewardCandidates = (for {
+              existingWallet <- dataSource.existingWallets.values
+              reward <- existingWallet.addressRewards.get(searchInfo.text.toLowerCase).toList
+              rewardCandidates <- reward.rewardCandidates.toList
+              id <- rewardCandidates.map(_.id)
+            } yield id).toList
+
+            videoIds = videoIdsFromSearch.filterNot(videoIdsFromRewardCandidates.contains) ++ videoIdsFromRewardCandidates
+
+            dataUpdates <- youtubeFetcher.fetchVideoUpdates(filteredLatticeUsers, videoIds, searchInfo)
           } yield dataUpdates
         }.map(_.flatten)
 
