@@ -17,8 +17,9 @@ object YouTube {
     epochProgressToReward: EpochProgress,
     amountToReward       : Amount,
     searchText           : String,
+    dailyPostsNumber     : Long,
     videos               : List[VideoDetails],
-    dailyPostsNumber     : Long
+    rewardCandidates     : Option[List[VideoDetails]] = None
   ) extends RewardInfo
 
   @derive(encoder, decoder)
@@ -44,12 +45,13 @@ object YouTube {
       channelId  : String,
       publishedAt: Instant,
       views      : Long,
-      duration   : Long
+      duration   : Long,
+      checkUntil : Option[EpochProgress] = None
     )
 
     @derive(encoder, decoder)
     case class PageInfo(
-      totalResults  : Int
+      totalResults: Int
     )
 
     @derive(encoder, decoder)

@@ -118,19 +118,19 @@ object XCombiner {
             if (data.epochProgressToReward === currentEpochProgress) {
               data
                 .focus(_.dailyPostsNumber)
-                .modify(current => current + 1)
+                .modify(_ + 1)
                 .focus(_.amountToReward)
                 .modify(current => current.plus(toTokenAmountFormat(searchInformation.rewardAmount)).getOrElse(current))
                 .focus(_.postIds)
-                .modify(current => current :+ xUpdate.postId)
+                .modify(_ :+ xUpdate.postId)
             } else {
               data
                 .focus(_.epochProgressToReward)
                 .replace(currentEpochProgress)
                 .focus(_.dailyPostsNumber)
-                .modify(current => current + 1)
+                .modify(_ + 1)
                 .focus(_.postIds)
-                .modify(current => current :+ xUpdate.postId)
+                .modify(_ :+ xUpdate.postId)
             }
           }
 

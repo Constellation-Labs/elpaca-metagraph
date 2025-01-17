@@ -24,7 +24,7 @@ import scala.collection.immutable.ListMap
 
 class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
 
-  private val DAG = "#$dag"
+  private val DAG = "$dag"
   private val AMERICASBLOCKCHAIN = "#americasblockchain"
   private val searchInfo = List(
     ApplicationConfig.XSearchInfo(DAG, Utils.toTokenAmountFormat(5), maxPerDay = 1),
@@ -46,7 +46,6 @@ class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
   private val users = List(user1, user2, user3, user4)
   private val epochProgress = EpochProgress(NonNegLong(1))
   private val xRewardInfo1 = XRewardInfo(epochProgress, epochProgress, Utils.toTokenAmountFormat(1), DAG, List(post1.id), 1)
-  private val xRewardInfo2 = XRewardInfo(epochProgress, epochProgress, Utils.toTokenAmountFormat(1), DAG, List(post5.id), 1)
   private val xPostsResponse = XApiResponse(
     data = Some(posts),
     meta = XApiResponseMetadata(4)
@@ -88,7 +87,7 @@ class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       -> Response[IO](Status.Ok).withEntity(expectedResponse.asJson))
   }
 
-  test("fetchXPosts should fetch and filter posts with #$dag correctly") {
+  test("fetchXPosts should fetch and filter posts with $dag correctly") {
     val searchText = DAG
     val currentDate = LocalDateTime.now()
 
@@ -121,20 +120,20 @@ class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
   }
 
   test("filterXPosts should filter out posts with same tag regardless if it's in uppercase or lowercase") {
-    val post1 = XDataInfo("post1_id", dagAddress1, "dag", 1)
-    val post2 = XDataInfo("post2_id", dagAddress1, "DAG", 1)
+    val post1 = XDataInfo("post1_id", dagAddress1, "$dag", 1)
+    val post2 = XDataInfo("post2_id", dagAddress1, "$dAG", 1)
 
     val xRewardInfo = XRewardInfo(
       dailyEpochProgress = EpochProgress(NonNegLong(1)),
       epochProgressToReward = EpochProgress(NonNegLong(1)),
       amountToReward = Utils.toTokenAmountFormat(5),
-      searchText = "dag",
+      searchText = "$dag",
       postIds = List("post1_id"),
       dailyPostsNumber = 1
     )
 
     val mockDataSource = XDataSource(Map(
-      dagAddress1 -> XDataSourceAddress(ListMap("dag" -> xRewardInfo1))
+      dagAddress1 -> XDataSourceAddress(ListMap("$dag" -> xRewardInfo))
     ))
 
     val xPosts = List(post1, post2)
@@ -156,30 +155,67 @@ class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     case2 shouldBe true
   }
 
-  test("removeAlreadyRewardedSearches should filter out posts with tags that have already reached daily limit") {
-    val post3 = XDataInfo("post3_id", dagAddress1, "AMERICASBLOCKCHAIN", 1) // different tag, not rewarded
-    val post5 = XDataInfo("post5_id", dagAddress1, "DAG", 1)                // rewarded tag
+  test("removeAlreadyRewardedSearches should filter out all posts when all tags have already reached daily limit") {
+    val post1 = XDataInfo("post1_id", dagAddress1, "$dAG", 1)
+    val post5 = XDataInfo("post5_id", dagAddress1, "#AMERICASBLOCKCHAIN", 1)
 
-    val xRewardInfo = XRewardInfo(
+    val xRewardInfoDag = XRewardInfo(
       dailyEpochProgress = EpochProgress(NonNegLong(1)),
       epochProgressToReward = EpochProgress(NonNegLong(1)),
       amountToReward = Utils.toTokenAmountFormat(50),
-      searchText = "dag",
+      searchText = "$dag",
+      postIds = List("post1_id"),
+      dailyPostsNumber = 1
+    )
+
+    val xRewardInfoAB = XRewardInfo(
+      dailyEpochProgress = EpochProgress(NonNegLong(1)),
+      epochProgressToReward = EpochProgress(NonNegLong(1)),
+      amountToReward = Utils.toTokenAmountFormat(50),
+      searchText = "#americasblockchain",
       postIds = List("post5_id"),
       dailyPostsNumber = 1
     )
 
     val mockDataSource = XDataSource(Map(
       dagAddress1 -> XDataSourceAddress(ListMap(
-        "dag" -> xRewardInfo
+        "$dag" -> xRewardInfoDag,
+        "#americasblockchain" -> xRewardInfoAB
       ))
     ))
 
-    val xPosts = List(post3, post5)
+    val xPosts = List(post1, post5)
 
     val result = XFetcher.removeAlreadyRewardedSearches(xPosts, searchInfo, mockDataSource)
 
-    result should have size 1 // Only post3 should remain
-    result.map(_.postId) should contain theSameElementsAs List("post3_id")
+    result should have size 0
+  }
+
+  test("removeAlreadyRewardedSearches should filter out posts with tags that have already reached daily limit") {
+    val post3 = XDataInfo("post3_id", dagAddress1, "#AMERICASBLOCKCHAIN", 1) // different tag, not rewarded
+    val post5 = XDataInfo("post5_id", dagAddress1, "$dAG", 1)                // rewarded tag
+    val post6 = XDataInfo("post6_id", dagAddress1, "#AMERICASBLOCKCHAIN", 1) // post with both tags, but not rewarded - should be rewarded
+
+    val xRewardInfoDag = XRewardInfo(
+      dailyEpochProgress = EpochProgress(NonNegLong(1)),
+      epochProgressToReward = EpochProgress(NonNegLong(1)),
+      amountToReward = Utils.toTokenAmountFormat(50),
+      searchText = "$dag",
+      postIds = List("post5_id"),
+      dailyPostsNumber = 1
+    )
+
+    val mockDataSource = XDataSource(Map(
+      dagAddress1 -> XDataSourceAddress(ListMap(
+        "$dag" -> xRewardInfoDag
+      ))
+    ))
+
+    val xPosts = List(post3, post5, post6)
+
+    val result = XFetcher.removeAlreadyRewardedSearches(xPosts, searchInfo, mockDataSource)
+
+    result should have size 2 // post3 and post6 should remain
+    result.map(_.postId) should contain theSameElementsAs List("post3_id", "post6_id")
   }
 }

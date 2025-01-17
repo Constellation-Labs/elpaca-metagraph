@@ -88,7 +88,7 @@ object XFetcher {
 
   def validateIfAddressCanProceed(
     xDataSource      : XDataSource,
-    searchInformation: List[ApplicationConfig.XSearchInfo],
+    searchInformation: List[ApplicationConfig.SearchInfo],
     address          : Address,
     maybePostId      : Option[String]
   ): Boolean = xDataSource.existingWallets.get(address).fold(true) { existingWallet =>
@@ -120,9 +120,9 @@ object XFetcher {
   }
 
   def removeAlreadyRewardedSearches(
-  xPosts           : List[XDataInfo],
-  searchInformation: List[ApplicationConfig.XSearchInfo],
-  xDataSource      : XDataSource
+    xPosts           : List[XDataInfo],
+    searchInformation: List[ApplicationConfig.XSearchInfo],
+    xDataSource      : XDataSource
   ): List[XDataInfo] = xPosts.filter { xPost =>
     xDataSource.existingWallets.get(xPost.dagAddress).fold(true) { existingWallet =>
       existingWallet.addressRewards.get(xPost.searchText.toLowerCase).fold(true) { xRewardInfo =>
