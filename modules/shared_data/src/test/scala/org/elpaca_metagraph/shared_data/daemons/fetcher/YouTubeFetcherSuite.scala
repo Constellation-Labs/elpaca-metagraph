@@ -165,8 +165,8 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     val fetcher = new YouTubeFetcher[IO](apiKey, baseUrl)
     val updates = fetcher.fetchVideoUpdates(
       List(
-        LatticeUser("user1", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount("channel1")), None)),
-        LatticeUser("user2", Some(dagAddress2), LinkedAccounts(Some(YouTubeAccount("channel2")), None))
+        LatticeUser("user1", Some(dagAddress1), Some(LinkedAccounts(Some(YouTubeAccount("channel1")), None)), None),
+        LatticeUser("user2", Some(dagAddress2), Some(LinkedAccounts(Some(YouTubeAccount("channel2")), None)), None)
       ),
       List("video1", "video2"),
       searchInfo.copy(minimumDuration = 2.minutes)
@@ -191,7 +191,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
 
     val latticeUsers = List(
-      LatticeUser("user1", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount("channel1")), None))
+      LatticeUser("user1", Some(dagAddress1), Some(LinkedAccounts(Some(YouTubeAccount("channel1")), None)), None)
     )
 
     val result = YouTubeFetcher.filterLatticeUsers(
@@ -217,7 +217,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
 
     val latticeUsers = List(
-      LatticeUser("user1", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount("channel1")), None))
+      LatticeUser("user1", Some(dagAddress1), Some(LinkedAccounts(Some(YouTubeAccount("channel1")), None)), None)
     )
 
     val result = YouTubeFetcher.filterLatticeUsers(
@@ -245,7 +245,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
 
     val latticeUsers = List(
-      LatticeUser("user1", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount("channel1")), None))
+      LatticeUser("user1", Some(dagAddress1), Some(LinkedAccounts(Some(YouTubeAccount("channel1")), None)), None)
     )
 
     val result = YouTubeFetcher.filterLatticeUsers(
@@ -272,7 +272,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
 
     val latticeUsers = List(
-      LatticeUser("user1", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount("channel1")), None))
+      LatticeUser("user1", Some(dagAddress1), Some(LinkedAccounts(Some(YouTubeAccount("channel1")), None)), None)
     )
 
     val result = YouTubeFetcher.filterLatticeUsers(
@@ -322,9 +322,9 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     )
 
     val latticeUsers = List(
-      LatticeUser("user1", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount("channel1")), None)),
-      LatticeUser("user2", Some(dagAddress2), LinkedAccounts(Some(YouTubeAccount("channel2")), None)),
-      LatticeUser("user3", Some(dagAddress3), LinkedAccounts(Some(YouTubeAccount("channel3")), None))
+      LatticeUser("user1", Some(dagAddress1), Some(LinkedAccounts(Some(YouTubeAccount("channel1")), None)), None),
+      LatticeUser("user2", Some(dagAddress2), Some(LinkedAccounts(Some(YouTubeAccount("channel2")), None)), None),
+      LatticeUser("user3", Some(dagAddress3), Some(LinkedAccounts(Some(YouTubeAccount("channel3")), None)), None)
     )
 
     val result = YouTubeFetcher.filterLatticeUsers(

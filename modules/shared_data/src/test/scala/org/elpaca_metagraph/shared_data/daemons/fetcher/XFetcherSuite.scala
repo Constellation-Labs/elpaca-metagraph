@@ -46,10 +46,6 @@ class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
   private val users = List(user1, user2, user3, user4)
   private val epochProgress = EpochProgress(NonNegLong(1))
   private val xRewardInfo1 = XRewardInfo(epochProgress, epochProgress, Utils.toTokenAmountFormat(1), DAG, List(post1.id), 1)
-  private val xPostsResponse = XApiResponse(
-    data = Some(posts),
-    meta = XApiResponseMetadata(4)
-  )
   private val xDagPostsResponse = XApiResponse(
     data = Some(posts.filter(_.text.toLowerCase().contains(DAG))),
     meta = XApiResponseMetadata(4)
@@ -68,13 +64,13 @@ class XFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
   )
 
   private def createUser(i: Int, dagAddress: Address): LatticeUser =
-    LatticeUser(s"user$i", Some(dagAddress), LinkedAccounts(None, Some(XAccount(s"account$i"))))
+    LatticeUser(s"user$i", Some(dagAddress), Some(LinkedAccounts(None, Some(XAccount(s"account$i")))), None)
 
   private def buildUriForUser(
     username: String,
     searchText: String,
     currentDate: LocalDateTime,
-    expectedResponse: XApiResponse = xPostsResponse
+    expectedResponse: XApiResponse
   ): Map[Uri, Response[IO]] = {
     val (startTime, endTime) = timeRangeFromDayStartTillNowFormatted(currentDate)
 
