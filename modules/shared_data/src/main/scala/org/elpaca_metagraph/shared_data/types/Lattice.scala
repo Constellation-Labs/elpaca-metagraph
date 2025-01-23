@@ -35,7 +35,8 @@ object Lattice {
   case class LatticeUser(
     id               : String,
     primaryDagAddress: Option[Address],
-    linkedAccounts   : LinkedAccounts
+    linkedAccounts   : Option[LinkedAccounts],
+    twitter          : Option[XAccount],
   )
 
   @derive(encoder, decoder)

@@ -11,7 +11,7 @@ import org.elpaca_metagraph.shared_data.Utils.{isWithinDailyLimit, timeRangeFrom
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
 import org.elpaca_metagraph.shared_data.types.DataUpdates.XUpdate
-import org.elpaca_metagraph.shared_data.types.Lattice.LatticeUser
+import org.elpaca_metagraph.shared_data.types.Lattice.{LatticeUser, LinkedAccounts}
 import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
 import org.elpaca_metagraph.shared_data.types.States.{DataSourceType, XDataSource}
 import org.elpaca_metagraph.shared_data.types.X._
@@ -84,7 +84,7 @@ object XFetcher {
     users.grouped(groupSize).toList.take(groupsNumber)
   }
 
-  def getCurrentGroupIndex: Int = (Instant.now().atZone(ZoneOffset.UTC).getMinute / xRateLimitMinutes) % groupsNumber
+  private def getCurrentGroupIndex: Int = (Instant.now().atZone(ZoneOffset.UTC).getMinute / xRateLimitMinutes) % groupsNumber
 
   def validateIfAddressCanProceed(
     xDataSource      : XDataSource,
@@ -177,8 +177,14 @@ object XFetcher {
         sourceUsers <- latticeFetcher.fetchLatticeUsersWithXAccount()
         eligibleSourceUsers = sourceUsers.filter { user =>
           user.primaryDagAddress.flatMap { address =>
-            user.linkedAccounts.twitter.map { _ =>
-              validateIfAddressCanProceed(xDataSource, searchInformation, address, none)
+            if (user.twitter.isDefined) {
+              user.twitter.map { _ =>
+                validateIfAddressCanProceed(xDataSource, searchInformation, address, none)
+              }
+            } else {
+              user.linkedAccounts.getOrElse(LinkedAccounts(None, None)).twitter.map { _ =>
+                validateIfAddressCanProceed(xDataSource, searchInformation, address, none)
+              }
             }
           }.getOrElse(false)
         }
@@ -194,7 +200,7 @@ object XFetcher {
 
         searchInfo = searchInformation.map(_.text).mkString("\" OR \"")
         xPosts <- filteredUsers.traverse { userInfo =>
-          val username = userInfo.linkedAccounts.twitter.get.username
+          val username = if (userInfo.twitter.isDefined) userInfo.twitter.get.username else userInfo.linkedAccounts.get.twitter.get.username
           val primaryDAGAddress = userInfo.primaryDagAddress.get
           val xSearchResult = xFetcher.fetchXPosts(
             username,

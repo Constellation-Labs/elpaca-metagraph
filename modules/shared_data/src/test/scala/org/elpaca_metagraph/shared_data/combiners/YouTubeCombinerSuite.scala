@@ -2,7 +2,7 @@ package org.elpaca_metagraph.shared_data.combiners
 
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric.NonNegLong
-import org.elpaca_metagraph.shared_data.Utils.{epochProgressOneDay, toTokenAmountFormat}
+import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates.YouTubeUpdate
 import org.elpaca_metagraph.shared_data.types.States.{DataSourceType, YouTubeDataSource}
@@ -277,8 +277,6 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
     rewards.amountToReward shouldBe toTokenAmountFormat(0)
     // Once the update video doesn't meet criteria this time, it shall be stacked in rewardCandidates
     rewards.rewardCandidates.get.head.id shouldBe "test-id"
-
-    println(rewards)
 
     // Same video sent on retrial
     val newUpdatedState = YouTubeCombiner.updateYouTubeState(

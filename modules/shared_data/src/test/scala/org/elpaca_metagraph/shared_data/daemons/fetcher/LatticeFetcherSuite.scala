@@ -16,15 +16,17 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 
 class LatticeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
+  private val latticeUsers = List(
+    LatticeUser("user1", Some(dagAddress1), Some(LinkedAccounts(Some(YouTubeAccount("channel1")), None)), None),
+    LatticeUser("user2", None, Some(LinkedAccounts(Some(YouTubeAccount("channel2")), None)), None),
+    LatticeUser("user3", Some(dagAddress1), Some(LinkedAccounts(None, Some(XAccount("account1")))), None),
+    LatticeUser("user4", None, Some(LinkedAccounts(None, Some(XAccount("account2")))), None),
+    LatticeUser("user5", Some(dagAddress2), Some(LinkedAccounts(None, None)), None),
+    LatticeUser("user6", Some(dagAddress2), Some(LinkedAccounts(None, None)), Some(XAccount("account6")))
+  )
   private val latticeUsersResponse = LatticeUsersApiResponse(
-    data = List(
-      LatticeUser("user1", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount("channel1")), None)),
-      LatticeUser("user2", None, LinkedAccounts(Some(YouTubeAccount("channel2")), None)),
-      LatticeUser("user3", Some(dagAddress1), LinkedAccounts(None, Some(XAccount("account1")))),
-      LatticeUser("user4", None, LinkedAccounts(None, Some(XAccount("account2")))),
-      LatticeUser("user5", Some(dagAddress2), LinkedAccounts(None, None))
-    ),
-    meta = Some(LatticeUserMeta(total = 5, limit = 100, offset = 0))
+    data = latticeUsers,
+    meta = Some(LatticeUserMeta(total = 6, limit = 100, offset = 0))
   )
 
   test("fetchLatticeUsersWithYouTubeAccount should return only valid users with YouTube accounts") {
@@ -37,7 +39,7 @@ class LatticeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
 
     users should have size 1
     users.head.primaryDagAddress shouldBe Some(dagAddress1)
-    users.head.linkedAccounts.youtube.map(_.channelId) shouldBe Some("channel1")
+    users.head.linkedAccounts.get.youtube.map(_.channelId) shouldBe Some("channel1")
   }
 
   test("fetchLatticeUsersWithXAccount should return only valid users with X accounts") {
@@ -48,9 +50,11 @@ class LatticeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
     val fetcher = new LatticeFetcher[IO](baseUrl)
     val users = fetcher.fetchLatticeUsersWithXAccount().unsafeRunSync()
 
-    users should have size 1
+    users should have size 2
     users.head.primaryDagAddress shouldBe Some(dagAddress1)
-    users.head.linkedAccounts.twitter.map(_.username) shouldBe Some("account1")
+    users.head.linkedAccounts.get.twitter.map(_.username) shouldBe Some("account1")
+    // Should now also support previous response format from Lattice
+    users.last.twitter.map(_.username) shouldBe Some("account6")
   }
 
   test("fetchLatticeUsers should handle API errors gracefully") {
@@ -79,7 +83,9 @@ class LatticeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       val offset = page * pageSize
       val response = LatticeUsersApiResponse(
         data = List
-          .fill(pageSize)(LatticeUser(s"user$offset", Some(dagAddress1), LinkedAccounts(Some(YouTubeAccount(s"channel$offset")), None))),
+          .fill(pageSize)(
+            LatticeUser(s"user$offset", Some(dagAddress1), Some(LinkedAccounts(Some(YouTubeAccount(s"channel$offset")), None)), None)
+          ),
         meta = Some(LatticeUserMeta(total = totalUsers.toLong, limit = pageSize.toLong, offset = offset.toLong))
       )
 

@@ -106,7 +106,7 @@ class YouTubeFetcher[F[_]: Async: Network](
       searchInfo.minimumDuration.toSeconds
     ).flatMap { videos =>
       users.traverse { user =>
-        videos.filter(_.channelId == user.linkedAccounts.youtube.get.channelId).map { video =>
+        videos.filter(_.channelId == user.linkedAccounts.get.youtube.get.channelId).map { video =>
           YouTubeUpdate(user.primaryDagAddress.get, searchInfo.text.toLowerCase, video)
         }.pure
       }
@@ -190,7 +190,7 @@ object YouTubeFetcher {
               Some(LocalDateTime.now().minusHours(searchInfo.publishedWithinHours.toHours))
             )
 
-            channelIds = filteredLatticeUsers.flatMap(_.linkedAccounts.youtube.map(_.channelId))
+            channelIds = filteredLatticeUsers.flatMap(_.linkedAccounts.get.youtube.map(_.channelId))
             videoIdsFromSearch = youtubeFetcher.filterVideosByChannels(globalSearchResult, channelIds)
             videoIdsFromRewardCandidates = (for {
               existingWallet <- dataSource.existingWallets.values
@@ -224,7 +224,7 @@ object YouTubeFetcher {
     maybeVideo       : Option[VideoDetails]
   ): List[LatticeUser] = latticeUsers.filter { user =>
     user.primaryDagAddress.flatMap { address =>
-      user.linkedAccounts.youtube.map { _ =>
+      user.linkedAccounts.get.youtube.map { _ =>
         validateIfAddressCanProceed(dataSource, searchInformation, address, maybeVideo)
       }
     }.getOrElse(false)
