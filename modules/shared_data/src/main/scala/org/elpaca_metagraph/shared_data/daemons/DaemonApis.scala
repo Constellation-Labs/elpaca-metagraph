@@ -74,7 +74,7 @@ object DaemonApis {
             spawnInflowTransactionsDaemon(config, signer, calculatedStateService) >>
             spawnOutflowTransactionsDaemon(config, signer, calculatedStateService) >>
             spawnIntegrationnetNodesOperatorsDaemon(config, signer, calculatedStateService) >>
-            spawnXDaemon(config, signer, calculatedStateService) >>
+//            spawnXDaemon(config, signer, calculatedStateService) >>
             spawnYouTubeDaemon(config, signer, calculatedStateService)
         }
       }
