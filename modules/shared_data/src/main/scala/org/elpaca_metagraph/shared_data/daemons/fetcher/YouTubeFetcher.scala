@@ -26,11 +26,11 @@ import java.nio.charset.StandardCharsets
 import java.time.format.DateTimeFormatter
 import java.time.{Duration, LocalDateTime, ZoneOffset}
 
-class YouTubeFetcher[F[_]: Async: Network](
+class YouTubeFetcher[F[_] : Async : Network](
   apiKey : String,
   baseUrl: ApiUrl
 )(implicit client: Client[F],
-  logger: SelfAwareStructuredLogger[F]) {
+  logger         : SelfAwareStructuredLogger[F]) {
 
   def searchVideos(
     searchString  : String,
@@ -81,7 +81,7 @@ class YouTubeFetcher[F[_]: Async: Network](
         case None =>
           val (totalChannels, totalResults) = (updatedMap.size, updatedMap.values.flatten.size)
           logInfo(s"Found $totalResults video${if (totalResults > 1) "s" else ""} for " +
-          s"$totalChannels channel${if (totalChannels > 1) "s" else ""} with search term {$searchString}").as(updatedMap)
+            s"$totalChannels channel${if (totalChannels > 1) "s" else ""} with search term {$searchString}").as(updatedMap)
       }
     } yield finalResult
   }
@@ -97,16 +97,18 @@ class YouTubeFetcher[F[_]: Async: Network](
       .toList
 
   def fetchVideoUpdates(
-    users             : List[LatticeUser],
-    videoIds          : List[String],
-    searchInfo        : YouTubeSearchInfo
+    users     : List[LatticeUser],
+    videoIds  : List[String],
+    searchInfo: YouTubeSearchInfo
   ): F[List[YouTubeUpdate]] = {
     fetchVideoDetails(
       videoIds,
       searchInfo.minimumDuration.toSeconds
     ).flatMap { videos =>
+      val filteredVideos = videos
+        .filter(_.duration >= searchInfo.minimumDuration.toSeconds)
       users.traverse { user =>
-        videos.filter(_.channelId == user.linkedAccounts.get.youtube.get.channelId).map { video =>
+        filteredVideos.filter(_.channelId == user.linkedAccounts.get.youtube.get.channelId).map { video =>
           YouTubeUpdate(user.primaryDagAddress.get, searchInfo.text.toLowerCase, video)
         }.pure
       }
@@ -150,7 +152,7 @@ class YouTubeFetcher[F[_]: Async: Network](
 }
 
 object YouTubeFetcher {
-  def make[F[_]: Async: Network](
+  def make[F[_] : Async : Network](
     applicationConfig     : ApplicationConfig,
     calculatedStateService: CalculatedStateService[F]
   ): Fetcher[F] = (_: LocalDateTime) =>
@@ -177,8 +179,8 @@ object YouTubeFetcher {
 
         _ <- logInfo(
           s"YouTube Lattice fetcher started. " +
-          s"\n\tTotal Lattice users: ${latticeUsers.length}, " +
-          s"\n\tFiltered: ${filteredLatticeUsers.length}"
+            s"\n\tTotal Lattice users: ${latticeUsers.length}, " +
+            s"\n\tFiltered: ${filteredLatticeUsers.length}"
         )
 
         updates <- searchInformation.traverse { searchInfo =>
@@ -192,16 +194,12 @@ object YouTubeFetcher {
 
             channelIds = filteredLatticeUsers.flatMap(_.linkedAccounts.get.youtube.map(_.channelId))
             videoIdsFromSearch = youtubeFetcher.filterVideosByChannels(globalSearchResult, channelIds)
-            videoIdsFromRewardCandidates = (for {
-              existingWallet <- dataSource.existingWallets.values
-              reward <- existingWallet.addressRewards.get(searchInfo.text.toLowerCase).toList
-              rewardCandidates <- reward.rewardCandidates.toList
-              id <- rewardCandidates.map(_.id)
-            } yield id).toList
 
-            videoIds = videoIdsFromSearch.filterNot(videoIdsFromRewardCandidates.contains) ++ videoIdsFromRewardCandidates
+            _ <- logger.info("Getting pending videos to check")
+            pendingVideos = getAllPendingVideosIds(dataSource, searchInfo)
+            allVideosToGetUpdates = videoIdsFromSearch.filterNot(pendingVideos.contains) ++ pendingVideos
 
-            dataUpdates <- youtubeFetcher.fetchVideoUpdates(filteredLatticeUsers, videoIds, searchInfo)
+            dataUpdates <- youtubeFetcher.fetchVideoUpdates(filteredLatticeUsers, allVideosToGetUpdates, searchInfo)
           } yield dataUpdates
         }.map(_.flatten)
 
@@ -211,7 +209,23 @@ object YouTubeFetcher {
       } yield filteredUpdates
     }
 
-  def logInfo[F[_]: Async: Network](
+  def getAllPendingVideosIds(
+    dataSource: YouTubeDataSource,
+    searchInfo: YouTubeSearchInfo
+  ) = {
+    dataSource.existingWallets.values.flatMap { ytDataSourceAddress =>
+      ytDataSourceAddress.addressRewards
+        .get(searchInfo.text)
+        .fold(List.empty[String]) { rewardDetails =>
+          rewardDetails
+            .rewardCandidates
+            .map(_.map(_.id))
+            .getOrElse(List.empty[String])
+        }
+    }.toList
+  }
+
+  def logInfo[F[_] : Async : Network](
     message: String
   )(implicit logger: SelfAwareStructuredLogger[F]
   ): F[Unit] =
@@ -237,14 +251,14 @@ object YouTubeFetcher {
     maybeVideo       : Option[VideoDetails]
   ): Boolean =
     dataSource.existingWallets.get(address).fold(true) { wallet =>
-    val videoNotRewarded = maybeVideo.fold(true) { video =>
-      !searchInformation.exists { searchInfo =>
-        wallet.addressRewards
-          .get(searchInfo.text.toLowerCase)
-          .exists(_.videos.contains(video))
+      val videoNotRewarded = maybeVideo.fold(true) { video =>
+        !searchInformation.exists { searchInfo =>
+          wallet.addressRewards
+            .get(searchInfo.text.toLowerCase)
+            .exists(_.rewardedVideos.contains(video))
+        }
       }
-    }
 
-    videoNotRewarded && isWithinDailyLimit(searchInformation, wallet)
-  }
+      videoNotRewarded && isWithinDailyLimit(searchInformation, wallet)
+    }
 }

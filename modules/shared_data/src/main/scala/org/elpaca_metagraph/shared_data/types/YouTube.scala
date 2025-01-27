@@ -2,6 +2,7 @@ package org.elpaca_metagraph.shared_data.types
 
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
+import eu.timepit.refined.types.numeric.NonNegLong
 import org.elpaca_metagraph.shared_data.types.Lattice._
 import org.elpaca_metagraph.shared_data.types.YouTube.YouTubeDataAPI.VideoDetails
 import org.tessellation.schema.balance.Amount
@@ -18,14 +19,34 @@ object YouTube {
     amountToReward       : Amount,
     searchText           : String,
     dailyPostsNumber     : Long,
-    videos               : List[VideoDetails],
+    rewardedVideos       : List[VideoDetails],
     rewardCandidates     : Option[List[VideoDetails]] = None
   ) extends RewardInfo
+
+  object YouTubeRewardInfo {
+    def empty(
+      searchText: String
+    ): YouTubeRewardInfo = {
+      YouTubeRewardInfo(
+        dailyEpochProgress = EpochProgress.MinValue,
+        epochProgressToReward = EpochProgress.MinValue,
+        amountToReward = Amount(NonNegLong.MinValue),
+        searchText = searchText,
+        dailyPostsNumber = 0,
+        rewardedVideos = List.empty,
+        rewardCandidates = None
+      )
+    }
+  }
 
   @derive(encoder, decoder)
   case class YouTubeDataSourceAddress(
     addressRewards: ListMap[String, YouTubeRewardInfo] = ListMap.empty
   ) extends SocialDataSourceAddress
+
+  object YouTubeDataSourceAddress {
+    def empty: YouTubeDataSourceAddress = YouTubeDataSourceAddress(ListMap.empty)
+  }
 
   object YouTubeDataAPI {
     @derive(encoder, decoder)
