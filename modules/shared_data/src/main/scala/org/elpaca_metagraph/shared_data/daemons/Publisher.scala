@@ -3,6 +3,7 @@ package org.elpaca_metagraph.shared_data.daemons
 import cats.Applicative
 import cats.effect.Async
 import cats.syntax.all._
+
 import org.elpaca_metagraph.shared_data.types.DataUpdates.ElpacaUpdate
 import org.http4s.Method.POST
 import org.http4s.Status
