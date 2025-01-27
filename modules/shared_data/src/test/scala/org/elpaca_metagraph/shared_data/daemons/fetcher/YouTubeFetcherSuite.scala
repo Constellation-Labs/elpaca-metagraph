@@ -188,7 +188,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       amountToReward = toTokenAmountFormat(50),
       searchText = testQuery,
       dailyPostsNumber = 1,
-      rewardedVideos = List(rewardedVideo.get)
+      videos = List(rewardedVideo.get)
     )
 
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
@@ -215,7 +215,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       amountToReward = toTokenAmountFormat(50),
       searchText = testQuery,
       dailyPostsNumber = 0,
-      rewardedVideos = List.empty
+      videos = List.empty
     )
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
 
@@ -242,7 +242,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       amountToReward = toTokenAmountFormat(50),
       searchText = testQuery,
       dailyPostsNumber = 1,
-      rewardedVideos = List(unrewardedVideo)
+      videos = List(unrewardedVideo)
     )
 
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
@@ -269,7 +269,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       amountToReward = toTokenAmountFormat(50),
       searchText = testQuery,
       dailyPostsNumber = 0,
-      rewardedVideos = List(rewardedVideo)
+      videos = List(rewardedVideo)
     )
 
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
@@ -298,7 +298,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
             amountToReward = toTokenAmountFormat(50),
             searchText = testQuery,
             dailyPostsNumber = 1,
-            rewardedVideos = List(VideoDetails("video1", "channel1", Instant.now(), 1000, 180))
+            videos = List(VideoDetails("video1", "channel1", Instant.now(), 1000, 180))
           ))
         ),
         dagAddress2 -> YouTubeDataSourceAddress(
@@ -308,7 +308,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
             amountToReward = toTokenAmountFormat(50),
             searchText = testQuery,
             dailyPostsNumber = 0,
-            rewardedVideos = List(VideoDetails("video2", "channel2", Instant.now(), 1000, 180))
+            videos = List(VideoDetails("video2", "channel2", Instant.now(), 1000, 180))
           ))
         ),
         dagAddress3 -> YouTubeDataSourceAddress(
@@ -318,7 +318,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
             amountToReward = toTokenAmountFormat(50),
             searchText = testQuery,
             dailyPostsNumber = 1,
-            rewardedVideos = List(VideoDetails("video3", "channel3", Instant.now(), 1000, 180))
+            videos = List(VideoDetails("video3", "channel3", Instant.now(), 1000, 180))
           ))
         )
       )
@@ -351,7 +351,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
             amountToReward = toTokenAmountFormat(50),
             searchText = testQuery,
             dailyPostsNumber = 1,
-            rewardedVideos = List.empty,
+            videos = List.empty,
             rewardCandidates = List(VideoDetails("video1", "channel1", Instant.now(), 1000, 180)).some
           ))
         ),
@@ -362,7 +362,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
             amountToReward = toTokenAmountFormat(50),
             searchText = testQuery,
             dailyPostsNumber = 0,
-            rewardedVideos = List.empty,
+            videos = List.empty,
             rewardCandidates = List(VideoDetails("video2", "channel2", Instant.now(), 1000, 180)).some
           ))
         )

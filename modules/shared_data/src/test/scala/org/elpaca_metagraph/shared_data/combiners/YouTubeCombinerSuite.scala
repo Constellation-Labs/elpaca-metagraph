@@ -142,7 +142,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 epochProgressToReward = EpochProgress.MinValue,
                 amountToReward = Amount.empty,
                 searchText = "dag",
-                rewardedVideos = List(),
+                videos = List(),
                 dailyPostsNumber = 0,
                 rewardCandidates = None
               )
@@ -188,7 +188,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 epochProgressToReward = EpochProgress.MinValue,
                 amountToReward = Amount.empty,
                 searchText = "dag",
-                rewardedVideos = List(),
+                videos = List(),
                 dailyPostsNumber = 0,
                 rewardCandidates = List(VideoDetails(
                   "TOpRlODvi44",
@@ -228,7 +228,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
     rewards.epochProgressToReward shouldBe currentEpoch
     rewards.amountToReward shouldBe toTokenAmountFormat(50)
     rewards.rewardCandidates.get.length shouldBe 0
-    rewards.rewardedVideos.length shouldBe 1
+    rewards.videos.length shouldBe 1
   }
 
   test("should clean rewarded videos after 30 days") {
@@ -242,7 +242,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 epochProgressToReward = EpochProgress.MinValue,
                 amountToReward = Amount.empty,
                 searchText = "dag",
-                rewardedVideos = List(VideoDetails(
+                videos = List(VideoDetails(
                   "TOpRlODvi44",
                   "UCI1DMmfinDIQdfSlVwvI1Uw",
                   Instant.now().minus(40, ChronoUnit.DAYS),
@@ -267,7 +267,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       .addressRewards("dag")
 
     rewards.rewardCandidates.get.length shouldBe 0
-    rewards.rewardedVideos.length shouldBe 0
+    rewards.videos.length shouldBe 0
   }
 
   test("should clean expired candidates") {
@@ -281,7 +281,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 epochProgressToReward = EpochProgress.MinValue,
                 amountToReward = Amount.empty,
                 searchText = "dag",
-                rewardedVideos = List.empty,
+                videos = List.empty,
                 dailyPostsNumber = 0,
                 rewardCandidates = Some(List(VideoDetails(
                   "TOpRlODvi44",
@@ -306,7 +306,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       .addressRewards("dag")
 
     rewards.rewardCandidates.get.length shouldBe 0
-    rewards.rewardedVideos.length shouldBe 0
+    rewards.videos.length shouldBe 0
   }
 
   test("should not reward twice the same video") {
@@ -320,7 +320,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 epochProgressToReward = EpochProgress.MinValue,
                 amountToReward = Amount.empty,
                 searchText = "dag",
-                rewardedVideos = List(VideoDetails(
+                videos = List(VideoDetails(
                   "TOpRlODvi44",
                   "UCI1DMmfinDIQdfSlVwvI1Uw",
                   Instant.now(),
@@ -360,7 +360,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
     rewards.epochProgressToReward shouldBe EpochProgress.MinValue
     rewards.amountToReward shouldBe Amount.empty
     rewards.rewardCandidates.get.length shouldBe 0
-    rewards.rewardedVideos.length shouldBe 1
+    rewards.videos.length shouldBe 1
   }
 
   test("updateYoutubeRewardsOlderThanOneDay should reset daily posts on a new day") {
@@ -374,7 +374,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 epochProgressToReward = previousEpoch,
                 amountToReward = toTokenAmountFormat(50),
                 searchText = "dag",
-                rewardedVideos = List(),
+                videos = List(),
                 dailyPostsNumber = 0
               )
             )
@@ -405,7 +405,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 epochProgressToReward = currentEpoch,
                 amountToReward = toTokenAmountFormat(20),
                 searchText = "dag",
-                rewardedVideos = List(),
+                videos = List(),
                 dailyPostsNumber = 2
               )
             )
@@ -468,7 +468,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 epochProgressToReward = currentEpoch,
                 amountToReward = toTokenAmountFormat(50),
                 searchText = "dag",
-                rewardedVideos = List(),
+                videos = List(),
                 dailyPostsNumber = 1
               )
             )
@@ -513,7 +513,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 epochProgressToReward = currentEpoch,
                 amountToReward = toTokenAmountFormat(30),
                 searchText = "dag",
-                rewardedVideos = List(),
+                videos = List(),
                 dailyPostsNumber = 3
               )
             )
@@ -559,7 +559,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
                 amountToReward = toTokenAmountFormat(0),
                 searchText = "dag",
                 dailyPostsNumber = 0,
-                rewardedVideos = List()
+                videos = List()
               )
             )
           )

@@ -42,7 +42,7 @@ object YouTubeCombiner {
                   }.some
                   case current@None => current
                 }
-                .focus(_.rewardedVideos).modify { rewardedVideos =>
+                .focus(_.videos).modify { rewardedVideos =>
                   rewardedVideos.filter { rewardedVideo =>
                     Instant.now().isBefore(rewardedVideo.publishedAt.plus(30, ChronoUnit.DAYS))
                   }
@@ -77,7 +77,7 @@ object YouTubeCombiner {
       case Some(youTubeDataSourceAddress) =>
         youTubeDataSourceAddress
           .addressRewards.values
-          .flatMap(_.rewardedVideos.map(_.id))
+          .flatMap(_.videos.map(_.id))
           .toList
       case None => List.empty[String]
     }
@@ -115,13 +115,13 @@ object YouTubeCombiner {
               .focus(_.epochProgressToReward).replace(currentEpochProgress)
               .focus(_.amountToReward).replace(toTokenAmountFormat(searchTerm.rewardAmount))
               .focus(_.dailyPostsNumber).replace(firstVideoOfTheDay)
-              .focus(_.rewardedVideos).modify(_ :+ youTubeUpdate.video)
+              .focus(_.videos).modify(_ :+ youTubeUpdate.video)
               .focus(_.rewardCandidates).modify(_.getOrElse(List.empty).filter(_.id != youTubeUpdate.video.id).some)
           } else if (isNotExceedingDailyLimit && !videoAlreadyExists) {
             data
               .focus(_.dailyPostsNumber).modify(_ + 1)
               .focus(_.amountToReward).modify(current => current.plus(toTokenAmountFormat(searchTerm.rewardAmount)).getOrElse(current))
-              .focus(_.rewardedVideos).modify(_ :+ youTubeUpdate.video)
+              .focus(_.videos).modify(_ :+ youTubeUpdate.video)
               .focus(_.rewardCandidates).modify(_.getOrElse(List.empty).filter(_.id != youTubeUpdate.video.id).some)
           } else {
             data
@@ -177,7 +177,7 @@ object YouTubeCombiner {
         amountToReward = toTokenAmountFormat(searchInformation.rewardAmount),
         searchText = searchInformation.text.toLowerCase,
         dailyPostsNumber = 1,
-        rewardedVideos = List(youTubeUpdate.video),
+        videos = List(youTubeUpdate.video),
         rewardCandidates = Some(List.empty)
       )
     } else {

@@ -255,7 +255,7 @@ object YouTubeFetcher {
         !searchInformation.exists { searchInfo =>
           wallet.addressRewards
             .get(searchInfo.text.toLowerCase)
-            .exists(_.rewardedVideos.contains(video))
+            .exists(_.videos.contains(video))
         }
       }
 
