@@ -2,9 +2,11 @@ package org.elpaca_metagraph.shared_data.daemons.fetcher
 
 import cats.effect._
 import cats.effect.unsafe.implicits.global
+import cats.syntax.all._
 import eu.timepit.refined.types.numeric.NonNegLong
 import io.circe.syntax._
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
+import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig.YouTubeSearchInfo
 import org.elpaca_metagraph.shared_data.types.Lattice._
 import org.elpaca_metagraph.shared_data.types.States.YouTubeDataSource
@@ -16,6 +18,7 @@ import org.http4s.client.Client
 import org.http4s.implicits._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
 
 import java.net.URLEncoder
@@ -185,7 +188,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       amountToReward = toTokenAmountFormat(50),
       searchText = testQuery,
       dailyPostsNumber = 1,
-      videos = List(rewardedVideo.get)
+      rewardedVideos = List(rewardedVideo.get)
     )
 
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
@@ -212,7 +215,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       amountToReward = toTokenAmountFormat(50),
       searchText = testQuery,
       dailyPostsNumber = 0,
-      videos = List.empty
+      rewardedVideos = List.empty
     )
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
 
@@ -239,7 +242,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       amountToReward = toTokenAmountFormat(50),
       searchText = testQuery,
       dailyPostsNumber = 1,
-      videos = List(unrewardedVideo)
+      rewardedVideos = List(unrewardedVideo)
     )
 
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
@@ -266,7 +269,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
       amountToReward = toTokenAmountFormat(50),
       searchText = testQuery,
       dailyPostsNumber = 0,
-      videos = List(rewardedVideo)
+      rewardedVideos = List(rewardedVideo)
     )
 
     val dataSource = YouTubeDataSource(ListMap(dagAddress1 -> YouTubeDataSourceAddress(ListMap(testQuery -> rewardInfo))))
@@ -295,7 +298,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
             amountToReward = toTokenAmountFormat(50),
             searchText = testQuery,
             dailyPostsNumber = 1,
-            videos = List(VideoDetails("video1", "channel1", Instant.now(), 1000, 180))
+            rewardedVideos = List(VideoDetails("video1", "channel1", Instant.now(), 1000, 180))
           ))
         ),
         dagAddress2 -> YouTubeDataSourceAddress(
@@ -305,7 +308,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
             amountToReward = toTokenAmountFormat(50),
             searchText = testQuery,
             dailyPostsNumber = 0,
-            videos = List(VideoDetails("video2", "channel2", Instant.now(), 1000, 180))
+            rewardedVideos = List(VideoDetails("video2", "channel2", Instant.now(), 1000, 180))
           ))
         ),
         dagAddress3 -> YouTubeDataSourceAddress(
@@ -315,7 +318,7 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
             amountToReward = toTokenAmountFormat(50),
             searchText = testQuery,
             dailyPostsNumber = 1,
-            videos = List(VideoDetails("video3", "channel3", Instant.now(), 1000, 180))
+            rewardedVideos = List(VideoDetails("video3", "channel3", Instant.now(), 1000, 180))
           ))
         )
       )
@@ -336,6 +339,52 @@ class YouTubeFetcherSuite extends AnyFunSuite with Matchers with FetcherSuite {
 
     result should have size 1
     result.head.primaryDagAddress shouldBe Some(dagAddress2)
+  }
+
+  test("should get all pending videos to search") {
+    val dataSource = YouTubeDataSource(
+      ListMap(
+        dagAddress1 -> YouTubeDataSourceAddress(
+          ListMap(testQuery -> YouTubeRewardInfo(
+            dailyEpochProgress = EpochProgress(NonNegLong(1)),
+            epochProgressToReward = EpochProgress(NonNegLong(1)),
+            amountToReward = toTokenAmountFormat(50),
+            searchText = testQuery,
+            dailyPostsNumber = 1,
+            rewardedVideos = List.empty,
+            rewardCandidates = List(VideoDetails("video1", "channel1", Instant.now(), 1000, 180)).some
+          ))
+        ),
+        dagAddress2 -> YouTubeDataSourceAddress(
+          ListMap(testQuery -> YouTubeRewardInfo(
+            dailyEpochProgress = EpochProgress(NonNegLong(1)),
+            epochProgressToReward = EpochProgress(NonNegLong(1)),
+            amountToReward = toTokenAmountFormat(50),
+            searchText = testQuery,
+            dailyPostsNumber = 0,
+            rewardedVideos = List.empty,
+            rewardCandidates = List(VideoDetails("video2", "channel2", Instant.now(), 1000, 180)).some
+          ))
+        )
+      )
+    )
+
+    val mockSearchInfo = ApplicationConfig.YouTubeSearchInfo(
+      text = testQuery,
+      rewardAmount = Amount(NonNegLong(50L)),
+      minimumDuration = 60.seconds,
+      minimumViews = 50,
+      maxPerDay = 1,
+      publishedWithinHours = 3.hours,
+      daysToMonitorVideoUpdates = 30.days
+    )
+
+    val result = YouTubeFetcher.getAllPendingVideosIds(
+      dataSource,
+      mockSearchInfo
+    )
+
+    result shouldBe List("video1", "video2")
   }
 
 }

@@ -11,7 +11,7 @@ import org.elpaca_metagraph.shared_data.combiners.InflowTransactionsCombiner.cle
 import org.elpaca_metagraph.shared_data.combiners.OutflowTransactionsCombiner.cleanOutflowTransactionsRewarded
 import org.elpaca_metagraph.shared_data.combiners.WalletCreationHoldingDAGCombiner.cleanWalletCreationHoldingDAGAlreadyRewardedWallets
 import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateRewardsOlderThanOneDay
-import org.elpaca_metagraph.shared_data.combiners.YouTubeCombiner.updateYoutubeRewardsOlderThanOneDay
+import org.elpaca_metagraph.shared_data.combiners.YouTubeCombiner.cleanYoutubeDataSource
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, IntegrationnetNodeOperatorUpdate}
 import org.elpaca_metagraph.shared_data.types.States.{ElpacaCalculatedState, ElpacaOnChainState}
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
@@ -73,7 +73,7 @@ object LifecycleSharedFunctions {
       cleanedInflow = cleanInflowTransactionsRewarded(cleanedFreshWallets, epochProgress)
       cleanedOutflow = cleanOutflowTransactionsRewarded(cleanedInflow, epochProgress)
       xRewards = updateRewardsOlderThanOneDay(cleanedOutflow, epochProgress)
-      finalRewards = updateYoutubeRewardsOlderThanOneDay(xRewards, epochProgress)
+      finalRewards = cleanYoutubeDataSource(xRewards, epochProgress)
 
       updatedCalculatedState = ElpacaCalculatedState(finalRewards)
     } yield DataState(

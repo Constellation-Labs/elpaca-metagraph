@@ -1,5 +1,6 @@
 package org.elpaca_metagraph.shared_data.combiners
 
+import cats.syntax.all._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric.NonNegLong
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
@@ -15,13 +16,24 @@ import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.collection.immutable.ListMap
 import scala.concurrent.duration._
 
 class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
 
   private val mockSearchInfo = ApplicationConfig.YouTubeSearchInfo(
-    text = "test-search",
+    text = "dag",
+    rewardAmount = Amount(NonNegLong(50L)),
+    minimumDuration = 60.seconds,
+    minimumViews = 50,
+    maxPerDay = 1,
+    publishedWithinHours = 3.hours,
+    daysToMonitorVideoUpdates = 30.days
+  )
+
+  private val mockSearchInfo2 = ApplicationConfig.YouTubeSearchInfo(
+    text = "americasblockchain",
     rewardAmount = Amount(NonNegLong(50L)),
     minimumDuration = 60.seconds,
     minimumViews = 50,
@@ -47,7 +59,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       usersSourceApiUrl = None,
       youtubeApiUrl = None,
       youtubeApiKey = None,
-      searchInformation = List(mockSearchInfo)
+      searchInformation = List(mockSearchInfo, mockSearchInfo2)
     )
   )
 
@@ -55,18 +67,314 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
   private val currentEpoch = EpochProgress(NonNegLong(5L))
   private val previousEpoch = EpochProgress(NonNegLong(4L))
 
+  test("first video from a search term should be moved to candidate - not enough views") {
+    val initialState: Map[DataSourceType, YouTubeDataSource] = Map(
+      DataSourceType.YouTube -> YouTubeDataSource(
+        existingWallets = Map.empty
+      )
+    )
+
+    val mockedUpdate = YouTubeUpdate(
+      address,
+      "dag",
+      VideoDetails(
+        "TOpRlODvi44",
+        "UCI1DMmfinDIQdfSlVwvI1Uw",
+        Instant.now(),
+        35,
+        254,
+        None
+      ))
+
+    val updatedState = YouTubeCombiner.updateYouTubeState(initialState, currentEpoch, mockedUpdate, mockConfig)
+
+    val rewards = updatedState
+      .existingWallets(address)
+      .addressRewards("dag")
+
+    rewards.dailyPostsNumber shouldBe 0
+    rewards.dailyEpochProgress shouldBe EpochProgress.MinValue
+    rewards.epochProgressToReward shouldBe EpochProgress.MinValue
+    rewards.amountToReward shouldBe Amount(NonNegLong.MinValue)
+    rewards.rewardCandidates.get.length shouldBe 1
+  }
+
+  test("too short videos should be discarded - first video") {
+    val initialState: Map[DataSourceType, YouTubeDataSource] = Map(
+      DataSourceType.YouTube -> YouTubeDataSource(
+        existingWallets = Map.empty
+      )
+    )
+
+    val mockedUpdate = YouTubeUpdate(
+      address,
+      "dag",
+      VideoDetails(
+        "TOpRlODvi44",
+        "UCI1DMmfinDIQdfSlVwvI1Uw",
+        Instant.now(),
+        100,
+        10,
+        None
+      ))
+
+    val updatedState = YouTubeCombiner.updateYouTubeState(initialState, currentEpoch, mockedUpdate, mockConfig)
+
+    val rewards = updatedState
+      .existingWallets(address)
+      .addressRewards("dag")
+
+    rewards.dailyPostsNumber shouldBe 0
+    rewards.dailyEpochProgress shouldBe EpochProgress.MinValue
+    rewards.epochProgressToReward shouldBe EpochProgress.MinValue
+    rewards.amountToReward shouldBe Amount(NonNegLong.MinValue)
+    rewards.rewardCandidates shouldBe None
+  }
+
+  test("too short videos should be discarded - next videos") {
+    val initialState: Map[DataSourceType, YouTubeDataSource] = Map(
+      DataSourceType.YouTube -> YouTubeDataSource(
+        existingWallets = Map(
+          address -> YouTubeDataSourceAddress(
+            addressRewards = ListMap(
+              "dag" -> YouTubeRewardInfo(
+                dailyEpochProgress = EpochProgress.MinValue,
+                epochProgressToReward = EpochProgress.MinValue,
+                amountToReward = Amount.empty,
+                searchText = "dag",
+                rewardedVideos = List(),
+                dailyPostsNumber = 0,
+                rewardCandidates = None
+              )
+            )
+          )
+        )
+      )
+    )
+
+    val mockedUpdate = YouTubeUpdate(
+      address,
+      "dag",
+      VideoDetails(
+        "TOpRlODvi44",
+        "UCI1DMmfinDIQdfSlVwvI1Uw",
+        Instant.now(),
+        100,
+        10,
+        None
+      ))
+
+    val updatedState = YouTubeCombiner.updateYouTubeState(initialState, currentEpoch, mockedUpdate, mockConfig)
+
+    val rewards = updatedState
+      .existingWallets(address)
+      .addressRewards("dag")
+
+    rewards.dailyPostsNumber shouldBe 0
+    rewards.dailyEpochProgress shouldBe EpochProgress.MinValue
+    rewards.epochProgressToReward shouldBe EpochProgress.MinValue
+    rewards.amountToReward shouldBe Amount(NonNegLong.MinValue)
+    rewards.rewardCandidates shouldBe None
+  }
+
+  test("candidate should be moved to rewarded once video have the requirements") {
+    val initialState: Map[DataSourceType, YouTubeDataSource] = Map(
+      DataSourceType.YouTube -> YouTubeDataSource(
+        existingWallets = Map(
+          address -> YouTubeDataSourceAddress(
+            addressRewards = ListMap(
+              "dag" -> YouTubeRewardInfo(
+                dailyEpochProgress = EpochProgress.MinValue,
+                epochProgressToReward = EpochProgress.MinValue,
+                amountToReward = Amount.empty,
+                searchText = "dag",
+                rewardedVideos = List(),
+                dailyPostsNumber = 0,
+                rewardCandidates = List(VideoDetails(
+                  "TOpRlODvi44",
+                  "UCI1DMmfinDIQdfSlVwvI1Uw",
+                  Instant.now(),
+                  10,
+                  10,
+                  None
+                )).some
+              )
+            )
+          )
+        )
+      )
+    )
+
+    val mockedUpdate = YouTubeUpdate(
+      address,
+      "dag",
+      VideoDetails(
+        "TOpRlODvi44",
+        "UCI1DMmfinDIQdfSlVwvI1Uw",
+        Instant.now(),
+        1000,
+        1000,
+        None
+      ))
+
+    val updatedState = YouTubeCombiner.updateYouTubeState(initialState, currentEpoch, mockedUpdate, mockConfig)
+
+    val rewards = updatedState
+      .existingWallets(address)
+      .addressRewards("dag")
+
+    rewards.dailyPostsNumber shouldBe 1
+    rewards.dailyEpochProgress shouldBe currentEpoch
+    rewards.epochProgressToReward shouldBe currentEpoch
+    rewards.amountToReward shouldBe toTokenAmountFormat(50)
+    rewards.rewardCandidates.get.length shouldBe 0
+    rewards.rewardedVideos.length shouldBe 1
+  }
+
+  test("should clean rewarded videos after 30 days") {
+    val initialState: Map[DataSourceType, YouTubeDataSource] = Map(
+      DataSourceType.YouTube -> YouTubeDataSource(
+        existingWallets = Map(
+          address -> YouTubeDataSourceAddress(
+            addressRewards = ListMap(
+              "dag" -> YouTubeRewardInfo(
+                dailyEpochProgress = EpochProgress.MinValue,
+                epochProgressToReward = EpochProgress.MinValue,
+                amountToReward = Amount.empty,
+                searchText = "dag",
+                rewardedVideos = List(VideoDetails(
+                  "TOpRlODvi44",
+                  "UCI1DMmfinDIQdfSlVwvI1Uw",
+                  Instant.now().minus(40, ChronoUnit.DAYS),
+                  10,
+                  10,
+                  None
+                )),
+                dailyPostsNumber = 0,
+                rewardCandidates = Some(List.empty)
+              )
+            )
+          )
+        )
+      )
+    )
+
+    val updatedState = YouTubeCombiner.cleanYoutubeDataSource(initialState, currentEpoch)
+
+    val rewards = updatedState(DataSourceType.YouTube)
+      .asInstanceOf[YouTubeDataSource]
+      .existingWallets(address)
+      .addressRewards("dag")
+
+    rewards.rewardCandidates.get.length shouldBe 0
+    rewards.rewardedVideos.length shouldBe 0
+  }
+
+  test("should clean expired candidates") {
+    val initialState: Map[DataSourceType, YouTubeDataSource] = Map(
+      DataSourceType.YouTube -> YouTubeDataSource(
+        existingWallets = Map(
+          address -> YouTubeDataSourceAddress(
+            addressRewards = ListMap(
+              "dag" -> YouTubeRewardInfo(
+                dailyEpochProgress = EpochProgress.MinValue,
+                epochProgressToReward = EpochProgress.MinValue,
+                amountToReward = Amount.empty,
+                searchText = "dag",
+                rewardedVideos = List.empty,
+                dailyPostsNumber = 0,
+                rewardCandidates = Some(List(VideoDetails(
+                  "TOpRlODvi44",
+                  "UCI1DMmfinDIQdfSlVwvI1Uw",
+                  Instant.now().minus(40, ChronoUnit.DAYS),
+                  10,
+                  10,
+                  EpochProgress.MinValue.some
+                )))
+              )
+            )
+          )
+        )
+      )
+    )
+
+    val updatedState = YouTubeCombiner.cleanYoutubeDataSource(initialState, currentEpoch)
+
+    val rewards = updatedState(DataSourceType.YouTube)
+      .asInstanceOf[YouTubeDataSource]
+      .existingWallets(address)
+      .addressRewards("dag")
+
+    rewards.rewardCandidates.get.length shouldBe 0
+    rewards.rewardedVideos.length shouldBe 0
+  }
+
+  test("should not reward twice the same video") {
+    val initialState: Map[DataSourceType, YouTubeDataSource] = Map(
+      DataSourceType.YouTube -> YouTubeDataSource(
+        existingWallets = Map(
+          address -> YouTubeDataSourceAddress(
+            addressRewards = ListMap(
+              "dag" -> YouTubeRewardInfo(
+                dailyEpochProgress = EpochProgress.MinValue,
+                epochProgressToReward = EpochProgress.MinValue,
+                amountToReward = Amount.empty,
+                searchText = "dag",
+                rewardedVideos = List(VideoDetails(
+                  "TOpRlODvi44",
+                  "UCI1DMmfinDIQdfSlVwvI1Uw",
+                  Instant.now(),
+                  1000,
+                  1000,
+                  None
+                )),
+                dailyPostsNumber = 0,
+                rewardCandidates = Some(List.empty)
+              )
+            )
+          )
+        )
+      )
+    )
+
+    val mockedUpdate = YouTubeUpdate(
+      address,
+      "dag",
+      VideoDetails(
+        "TOpRlODvi44",
+        "UCI1DMmfinDIQdfSlVwvI1Uw",
+        Instant.now(),
+        1000,
+        1000,
+        None
+      ))
+
+    val updatedState = YouTubeCombiner.updateYouTubeState(initialState, currentEpoch, mockedUpdate, mockConfig)
+
+    val rewards = updatedState
+      .existingWallets(address)
+      .addressRewards("dag")
+
+    rewards.dailyPostsNumber shouldBe 0
+    rewards.dailyEpochProgress shouldBe EpochProgress.MinValue
+    rewards.epochProgressToReward shouldBe EpochProgress.MinValue
+    rewards.amountToReward shouldBe Amount.empty
+    rewards.rewardCandidates.get.length shouldBe 0
+    rewards.rewardedVideos.length shouldBe 1
+  }
+
   test("updateYoutubeRewardsOlderThanOneDay should reset daily posts on a new day") {
     val initialState: Map[DataSourceType, YouTubeDataSource] = Map(
       DataSourceType.YouTube -> YouTubeDataSource(
         existingWallets = Map(
           address -> YouTubeDataSourceAddress(
             addressRewards = ListMap(
-              "test-search" -> YouTubeRewardInfo(
+              "dag" -> YouTubeRewardInfo(
                 dailyEpochProgress = previousEpoch,
                 epochProgressToReward = previousEpoch,
                 amountToReward = toTokenAmountFormat(50),
-                searchText = "test-search",
-                videos = List(),
+                searchText = "dag",
+                rewardedVideos = List(),
                 dailyPostsNumber = 0
               )
             )
@@ -75,12 +383,12 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       )
     )
 
-    val updatedState = YouTubeCombiner.updateYoutubeRewardsOlderThanOneDay(initialState, currentEpoch)
+    val updatedState = YouTubeCombiner.cleanYoutubeDataSource(initialState, currentEpoch)
 
     val rewards = updatedState(DataSourceType.YouTube)
       .asInstanceOf[YouTubeDataSource]
       .existingWallets(address)
-      .addressRewards("test-search")
+      .addressRewards("dag")
 
     rewards.dailyPostsNumber shouldBe 0
     rewards.dailyEpochProgress shouldBe previousEpoch
@@ -92,12 +400,12 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
         existingWallets = Map(
           address -> YouTubeDataSourceAddress(
             addressRewards = ListMap(
-              "test-search" -> YouTubeRewardInfo(
+              "dag" -> YouTubeRewardInfo(
                 dailyEpochProgress = currentEpoch,
                 epochProgressToReward = currentEpoch,
                 amountToReward = toTokenAmountFormat(20),
-                searchText = "test-search",
-                videos = List(),
+                searchText = "dag",
+                rewardedVideos = List(),
                 dailyPostsNumber = 2
               )
             )
@@ -106,12 +414,12 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       )
     )
 
-    val updatedState = YouTubeCombiner.updateYoutubeRewardsOlderThanOneDay(initialState, currentEpoch)
+    val updatedState = YouTubeCombiner.cleanYoutubeDataSource(initialState, currentEpoch)
 
     val rewards = updatedState(DataSourceType.YouTube)
       .asInstanceOf[YouTubeDataSource]
       .existingWallets(address)
-      .addressRewards("test-search")
+      .addressRewards("dag")
 
     rewards.dailyPostsNumber shouldBe 2
     rewards.dailyEpochProgress shouldBe currentEpoch
@@ -124,8 +432,15 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
 
     val update = YouTubeUpdate(
       address = address,
-      searchText = "test-search",
-      video = null
+      searchText = "dag",
+      video = VideoDetails(
+        "TOpRlODvi44",
+        "UCI1DMmfinDIQdfSlVwvI1Uw",
+        Instant.now(),
+        1000,
+        1000,
+        None
+      )
     )
 
     val updatedState = YouTubeCombiner.updateYouTubeState(
@@ -135,7 +450,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       mockConfig
     )
 
-    val rewards = updatedState.existingWallets(address).addressRewards("test-search")
+    val rewards = updatedState.existingWallets(address).addressRewards("dag")
 
     rewards.dailyPostsNumber shouldBe 1
     rewards.epochProgressToReward shouldBe currentEpoch
@@ -148,12 +463,12 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
         existingWallets = Map(
           address -> YouTubeDataSourceAddress(
             addressRewards = ListMap(
-              "test-search" -> YouTubeRewardInfo(
+              "dag" -> YouTubeRewardInfo(
                 dailyEpochProgress = currentEpoch,
                 epochProgressToReward = currentEpoch,
                 amountToReward = toTokenAmountFormat(50),
-                searchText = "test-search",
-                videos = List(),
+                searchText = "dag",
+                rewardedVideos = List(),
                 dailyPostsNumber = 1
               )
             )
@@ -164,7 +479,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
 
     val update = YouTubeUpdate(
       address = address,
-      searchText = "test-search",
+      searchText = "dag",
       video = VideoDetails(
         id = "test-id",
         channelId = "channel-1",
@@ -181,7 +496,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       mockConfig
     )
 
-    val rewards = updatedState.existingWallets(address).addressRewards("test-search")
+    val rewards = updatedState.existingWallets(address).addressRewards("dag")
 
     rewards.dailyPostsNumber shouldBe 1
     rewards.amountToReward shouldBe toTokenAmountFormat(50)
@@ -193,12 +508,12 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
         existingWallets = Map(
           address -> YouTubeDataSourceAddress(
             addressRewards = ListMap(
-              "test-search" -> YouTubeRewardInfo(
+              "dag" -> YouTubeRewardInfo(
                 dailyEpochProgress = currentEpoch,
                 epochProgressToReward = currentEpoch,
                 amountToReward = toTokenAmountFormat(30),
-                searchText = "test-search",
-                videos = List(),
+                searchText = "dag",
+                rewardedVideos = List(),
                 dailyPostsNumber = 3
               )
             )
@@ -209,7 +524,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
 
     val update = YouTubeUpdate(
       address = address,
-      searchText = "test-search",
+      searchText = "dag",
       video = VideoDetails(
         id = "test-id",
         channelId = "channel-1",
@@ -226,7 +541,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       mockConfig
     )
 
-    val rewards = updatedState.existingWallets(address).addressRewards("test-search")
+    val rewards = updatedState.existingWallets(address).addressRewards("dag")
 
     rewards.dailyPostsNumber shouldBe 3
     rewards.amountToReward shouldBe toTokenAmountFormat(30)
@@ -238,13 +553,13 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
         existingWallets = Map(
           address -> YouTubeDataSourceAddress(
             addressRewards = ListMap(
-              "test-search" -> YouTubeRewardInfo(
+              "dag" -> YouTubeRewardInfo(
                 dailyEpochProgress = currentEpoch,
                 epochProgressToReward = currentEpoch,
                 amountToReward = toTokenAmountFormat(0),
-                searchText = "test-search",
+                searchText = "dag",
                 dailyPostsNumber = 0,
-                videos = List()
+                rewardedVideos = List()
               )
             )
           )
@@ -254,7 +569,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
 
     val update = YouTubeUpdate(
       address = address,
-      searchText = "test-search",
+      searchText = "dag",
       video = VideoDetails(
         id = "test-id",
         channelId = "channel-1",
@@ -271,7 +586,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       mockConfig
     )
 
-    val rewards = updatedState.existingWallets(address).addressRewards("test-search")
+    val rewards = updatedState.existingWallets(address).addressRewards("dag")
 
     rewards.dailyPostsNumber shouldBe 0
     rewards.amountToReward shouldBe toTokenAmountFormat(0)
@@ -286,7 +601,7 @@ class YouTubeCombinerSuite extends AnyFunSuite with Matchers {
       mockConfig
     )
 
-    val updatedRewards = newUpdatedState.existingWallets(address).addressRewards("test-search")
+    val updatedRewards = newUpdatedState.existingWallets(address).addressRewards("dag")
 
     updatedRewards.dailyPostsNumber shouldBe 1
     updatedRewards.amountToReward shouldBe toTokenAmountFormat(50)
