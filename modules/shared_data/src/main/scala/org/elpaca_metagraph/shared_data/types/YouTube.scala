@@ -19,7 +19,7 @@ object YouTube {
     amountToReward       : Amount,
     searchText           : String,
     dailyPostsNumber     : Long,
-    rewardedVideos       : List[VideoDetails],
+    videos               : List[VideoDetails],
     rewardCandidates     : Option[List[VideoDetails]] = None
   ) extends RewardInfo
 
@@ -33,7 +33,7 @@ object YouTube {
         amountToReward = Amount(NonNegLong.MinValue),
         searchText = searchText,
         dailyPostsNumber = 0,
-        rewardedVideos = List.empty,
+        videos = List.empty,
         rewardCandidates = None
       )
     }
