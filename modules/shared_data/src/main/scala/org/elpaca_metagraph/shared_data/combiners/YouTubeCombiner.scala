@@ -108,7 +108,7 @@ object YouTubeCombiner {
           } else if (!videoWithAllRequirements(youTubeUpdate, searchTerm)) {
             data
               .focus(_.rewardCandidates)
-              .modify(rc => Some(rc.getOrElse(List.empty) :+ youTubeUpdate.video))
+              .modify(rc => Some(rc.getOrElse(List.empty) :+ youTubeUpdate.video.copy(checkUntil = Some(getExpirationEpoch(searchTerm, currentEpochProgress)))))
           } else if (isNewDay(data.epochProgressToReward, currentEpochProgress)) {
             data
               .focus(_.dailyEpochProgress).replace(currentEpochProgress)
