@@ -199,7 +199,9 @@ object YouTubeFetcher {
             pendingVideos = getAllPendingVideosIds(dataSource, searchInfo)
             allVideosToGetUpdates = videoIdsFromSearch.filterNot(pendingVideos.contains) ++ pendingVideos
 
+            _ <- logger.info(s"All videos to get updates: ${allVideosToGetUpdates}")
             dataUpdates <- youtubeFetcher.fetchVideoUpdates(filteredLatticeUsers, allVideosToGetUpdates, searchInfo)
+            _ <- logger.info(s"Data updates: ${dataUpdates}")
           } yield dataUpdates
         }.map(_.flatten)
 

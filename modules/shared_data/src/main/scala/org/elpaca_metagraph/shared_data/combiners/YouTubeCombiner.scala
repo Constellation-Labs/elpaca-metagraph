@@ -18,44 +18,37 @@ object YouTubeCombiner {
 
   def cleanYoutubeDataSource(
     currentCalculatedState: Map[DataSourceType, DataSource],
-    currentEpochProgress  : EpochProgress
+    currentEpochProgress: EpochProgress
   ): Map[DataSourceType, DataSource] = {
     val youtubeDatasource = getYouTubeDatasource(currentCalculatedState)
-    val updatedDataSourceAddress = youtubeDatasource.existingWallets
-      .foldLeft(youtubeDatasource.existingWallets) { (acc, current) =>
-        val (address, youtubeDataSourceAddress) = current
-        val updatedRewards = youtubeDataSourceAddress
-          .addressRewards
-          .foldLeft(youtubeDataSourceAddress.addressRewards) { (innerAcc, innerCurrent) =>
-            val (searchText, rewardInfo) = innerCurrent
-            val calculatedStateUpdatedByExpiring = if (isNewDay(rewardInfo.dailyEpochProgress, currentEpochProgress)) {
-              innerAcc.updated(searchText, rewardInfo.focus(_.dailyPostsNumber).replace(0))
-            } else {
-              innerAcc
-            }
 
-            calculatedStateUpdatedByExpiring.updated(searchText,
-              rewardInfo
-                .focus(_.rewardCandidates).modify {
-                  case Some(videoDetails) => videoDetails.filter { videoDetail =>
-                    videoDetail.checkUntil.exists(_.value.value > currentEpochProgress.value.value)
-                  }.some
-                  case current@None => current
-                }
-                .focus(_.videos).modify { rewardedVideos =>
-                  rewardedVideos.filter { rewardedVideo =>
-                    Instant.now().isBefore(rewardedVideo.publishedAt.plus(30, ChronoUnit.DAYS))
-                  }
-                }
-            )
-          }
+    val updatedWallets = youtubeDatasource.existingWallets.map { case (address, youtubeAddress) =>
+      val updatedRewards = youtubeAddress.addressRewards.map { case (searchText, rewardInfo) =>
+        val resetDailyPosts =
+          if (isNewDay(rewardInfo.dailyEpochProgress, currentEpochProgress))
+            rewardInfo.focus(_.dailyPostsNumber).replace(0)
+          else
+            rewardInfo
 
-        acc.updated(address, youtubeDataSourceAddress.focus(_.addressRewards).replace(updatedRewards))
+        val updatedCandidates = resetDailyPosts.focus(_.rewardCandidates).modify {
+          case Some(candidates) =>
+            candidates.filter(_.checkUntil.exists(_.value.value > currentEpochProgress.value.value)).some
+          case None => None
+        }
+
+        val cleanedVideos = updatedCandidates.focus(_.videos).modify { videos =>
+          videos.filter(video => Instant.now().isBefore(video.publishedAt.plus(30, ChronoUnit.DAYS)))
+        }
+
+        searchText -> cleanedVideos
       }
+
+      address -> youtubeAddress.focus(_.addressRewards).replace(updatedRewards)
+    }
 
     currentCalculatedState.updated(
       DataSourceType.YouTube,
-      youtubeDatasource.focus(_.existingWallets).replace(updatedDataSourceAddress)
+      youtubeDatasource.focus(_.existingWallets).replace(updatedWallets)
     )
   }
 
@@ -108,7 +101,7 @@ object YouTubeCombiner {
           } else if (!videoWithAllRequirements(youTubeUpdate, searchTerm)) {
             data
               .focus(_.rewardCandidates)
-              .modify(rc => Some(rc.getOrElse(List.empty) :+ youTubeUpdate.video))
+              .modify(rc => Some(rc.getOrElse(List.empty) :+ youTubeUpdate.video.copy(checkUntil = Some(getExpirationEpoch(searchTerm, currentEpochProgress)))))
           } else if (isNewDay(data.epochProgressToReward, currentEpochProgress)) {
             data
               .focus(_.dailyEpochProgress).replace(currentEpochProgress)
