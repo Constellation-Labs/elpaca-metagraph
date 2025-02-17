@@ -74,8 +74,13 @@ object LifecycleSharedFunctions {
       cleanedOutflow = cleanOutflowTransactionsRewarded(cleanedInflow, epochProgress)
       xRewards = updateRewardsOlderThanOneDay(cleanedOutflow, epochProgress)
       finalRewards = cleanYoutubeDataSource(xRewards, epochProgress)
+      oneTimeFixes <- if(epochProgress.value.value == 451055) {
+        StreakHotfix.updateToCorrectState(finalRewards)
+      } else {
+        finalRewards.pure
+      }
 
-      updatedCalculatedState = ElpacaCalculatedState(finalRewards)
+      updatedCalculatedState = ElpacaCalculatedState(oneTimeFixes)
     } yield DataState(
       combinedState.onChain,
       updatedCalculatedState
