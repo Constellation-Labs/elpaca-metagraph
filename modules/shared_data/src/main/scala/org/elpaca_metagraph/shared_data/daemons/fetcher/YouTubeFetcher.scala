@@ -197,7 +197,7 @@ object YouTubeFetcher {
 
             _ <- logger.info("Getting pending videos to check")
             pendingVideos = getAllPendingVideosIds(dataSource, searchInfo)
-            allVideosToGetUpdates = videoIdsFromSearch.filterNot(pendingVideos.contains) ++ pendingVideos
+            allVideosToGetUpdates = (videoIdsFromSearch.filterNot(pendingVideos.contains) ++ pendingVideos).distinct
 
             _ <- logger.info(s"All videos to get updates: ${allVideosToGetUpdates}")
             dataUpdates <- youtubeFetcher.fetchVideoUpdates(filteredLatticeUsers, allVideosToGetUpdates, searchInfo)
