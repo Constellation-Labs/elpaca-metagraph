@@ -2,7 +2,7 @@ package org.elpaca_metagraph.shared_data.validations
 
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
-import org.elpaca_metagraph.shared_data.types.DataUpdates.{IntegrationnetNodeOperatorUpdate, StreakUpdate}
+import org.elpaca_metagraph.shared_data.types.DataUpdates.{FreshWalletUpdate, IntegrationnetNodeOperatorUpdate, StreakUpdate}
 import org.elpaca_metagraph.shared_data.types.States.StreakDataSource
 import org.elpaca_metagraph.shared_data.validations.TypeValidators._
 import org.tessellation.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
@@ -25,5 +25,12 @@ object Validations {
       .productR(validateIfAddressAlreadyRewardedInCurrentDay(streakUpdate.value, streakDataSource, currentEpochProgress))
       .productR(validateIfTokenIsValid(streakUpdate.value, streakDataSource))
 
+  }
+
+  def freshWalletValidationsL0(
+    freshWalletUpdate: Signed[FreshWalletUpdate],
+    appConfig        : ApplicationConfig,
+  ): DataApplicationValidationErrorOr[Unit] = {
+    validateIfUpdateWasSignedByStargazer(freshWalletUpdate.proofs, appConfig)
   }
 }

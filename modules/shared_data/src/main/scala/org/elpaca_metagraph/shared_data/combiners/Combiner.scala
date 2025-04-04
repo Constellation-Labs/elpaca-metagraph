@@ -70,14 +70,16 @@ object Combiner {
 
         (DataSourceType.WalletCreationHoldingDAG, updatedWalletCreationHoldingDAGDataSource.pure)
 
-      case update: FreshWalletUpdate =>
+      case freshWalletUpdate: FreshWalletUpdate =>
+        implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromName[F]("FreshWalletCombiner")
         val freshWalletDataSourceUpdate = updateStateFreshWallet(
+          applicationConfig,
           oldState.calculated.dataSources,
           currentEpochProgress,
-          update
-        ).asInstanceOf[DataSource]
+          Signed(freshWalletUpdate, update.proofs),
+        ).map(_.asInstanceOf[DataSource])
 
-        (DataSourceType.WalletCreationHoldingDAG, freshWalletDataSourceUpdate.pure)
+        (DataSourceType.FreshWallet, freshWalletDataSourceUpdate)
 
       case update: InflowTransactionsUpdate =>
         val updatedInflowTransactionsDataSource = updateStateInflowTransactions(
