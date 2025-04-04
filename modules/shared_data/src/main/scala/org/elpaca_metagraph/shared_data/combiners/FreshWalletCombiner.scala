@@ -1,14 +1,22 @@
 package org.elpaca_metagraph.shared_data.combiners
 
+import cats.data.Validated
+import cats.effect.Async
 import cats.syntax.all._
+import eu.timepit.refined.types.numeric.NonNegLong
 import monocle.Monocle.toAppliedFocusOps
 import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
+import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.FreshWallet.FreshWalletDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.States._
+import org.elpaca_metagraph.shared_data.validations.Validations.freshWalletValidationsL0
 import org.tessellation.schema.address.Address
+import org.tessellation.schema.balance.Amount
 import org.tessellation.schema.epoch.EpochProgress
+import org.tessellation.security.signature.Signed
+import org.typelevel.log4cats.Logger
 
 object FreshWalletCombiner {
   private val freshWalletRewardAmount: Long = 1L
@@ -96,20 +104,26 @@ object FreshWalletCombiner {
       .updated(DataSourceType.ExistingWallets, existingWalletsDataSourceUpdated)
   }
 
-  def updateStateFreshWallet(
-    currentCalculatedState: Map[DataSourceType, DataSource],
-    currentEpochProgress  : EpochProgress,
-    freshWalletUpdate     : FreshWalletUpdate
-  ): FreshWalletDataSource = {
+  def updateStateFreshWallet[F[_] : Async : Logger](
+    applicationConfig      : ApplicationConfig,
+    currentCalculatedState : Map[DataSourceType, DataSource],
+    currentEpochProgress   : EpochProgress,
+    signedFreshWalletUpdate: Signed[FreshWalletUpdate]
+  ): F[FreshWalletDataSource] = {
     val freshWalletDataSourceAddress = createFreshWalletDataSourceAddress(currentEpochProgress)
     val freshWalletDataSource = getCurrentFreshWalletDataSource(currentCalculatedState)
+    freshWalletValidationsL0(signedFreshWalletUpdate, applicationConfig) match {
+      case Validated.Invalid(errors) =>
+        Logger[F].warn(s"Could not update streak, reasons: $errors. SignedUpdate: ${signedFreshWalletUpdate}").as(freshWalletDataSource)
+      case Validated.Valid(_) =>
+        val freshWalletUpdate = signedFreshWalletUpdate.value
+        val freshWalletDataSourceAddressesUpdated = freshWalletDataSource.addressesToReward
+          .get(freshWalletUpdate.address) match {
+          case Some(_) => freshWalletDataSource.addressesToReward
+          case None => freshWalletDataSource.addressesToReward.updated(freshWalletUpdate.address, freshWalletDataSourceAddress)
+        }
 
-    val freshWalletDataSourceAddressesUpdated = freshWalletDataSource.addressesToReward
-      .get(freshWalletUpdate.address) match {
-      case Some(_) => freshWalletDataSource.addressesToReward
-      case None => freshWalletDataSource.addressesToReward.updated(freshWalletUpdate.address, freshWalletDataSourceAddress)
+        Async[F].delay(freshWalletDataSource.focus(_.addressesToReward).replace(freshWalletDataSourceAddressesUpdated))
     }
-
-    freshWalletDataSource.focus(_.addressesToReward).replace(freshWalletDataSourceAddressesUpdated)
   }
 }
