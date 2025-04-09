@@ -7,8 +7,8 @@ import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.X.{XDataSourceAddress, XRewardInfo}
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 object XCombiner {
   private val firstPostOfTheDay: Long = 1L

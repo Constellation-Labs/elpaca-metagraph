@@ -6,9 +6,9 @@ import cats.syntax.all._
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import io.circe.generic.auto._
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 object Simplex {
   case class Payment(

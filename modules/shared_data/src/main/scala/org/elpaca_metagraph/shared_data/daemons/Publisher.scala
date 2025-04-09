@@ -9,10 +9,10 @@ import org.http4s.Method.POST
 import org.http4s.Status
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
 import org.http4s.client.Client
-import org.tessellation.node.shared.http.p2p.PeerResponse
-import org.tessellation.node.shared.http.p2p.PeerResponse.PeerResponse
-import org.tessellation.schema.peer.P2PContext
-import org.tessellation.security.signature.Signed
+import io.constellationnetwork.node.shared.http.p2p.PeerResponse
+import io.constellationnetwork.node.shared.http.p2p.PeerResponse.PeerResponse
+import io.constellationnetwork.schema.peer.P2PContext
+import io.constellationnetwork.security.signature.Signed
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

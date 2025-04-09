@@ -19,17 +19,16 @@ import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDat
 import org.elpaca_metagraph.shared_data.types.FreshWallet.FreshWalletDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.codecs.DataUpdateCodec._
-import org.elpaca_metagraph.shared_data.validations.Errors.valid
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.{EntityDecoder, HttpRoutes}
-import org.tessellation.currency.dataApplication._
-import org.tessellation.currency.dataApplication.dataApplication.{DataApplicationBlock, DataApplicationValidationErrorOr}
-import org.tessellation.json.JsonSerializer
-import org.tessellation.schema.SnapshotOrdinal
-import org.tessellation.schema.address.{Address, DAGAddressRefined}
-import org.tessellation.schema.epoch.EpochProgress
-import org.tessellation.security.hash.Hash
-import org.tessellation.security.signature.Signed
+import io.constellationnetwork.currency.dataApplication._
+import io.constellationnetwork.currency.dataApplication.dataApplication.{DataApplicationBlock, DataApplicationValidationErrorOr}
+import io.constellationnetwork.json.JsonSerializer
+import io.constellationnetwork.schema.SnapshotOrdinal
+import io.constellationnetwork.schema.address.{Address, DAGAddressRefined}
+import io.constellationnetwork.schema.epoch.EpochProgress
+import io.constellationnetwork.security.hash.Hash
+import io.constellationnetwork.security.signature.Signed
 
 import scala.io.Source
 
@@ -96,11 +95,6 @@ object MetagraphL0Service {
             ))
           )
         }
-
-        override def validateUpdate(
-          update: ElpacaUpdate
-        )(implicit context: L0NodeContext[F]): F[DataApplicationValidationErrorOr[Unit]] =
-          valid.pure
 
         override def validateData(
           state  : DataState[ElpacaOnChainState, ElpacaCalculatedState],

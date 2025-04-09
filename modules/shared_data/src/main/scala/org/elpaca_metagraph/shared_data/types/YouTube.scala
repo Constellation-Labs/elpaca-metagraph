@@ -5,8 +5,8 @@ import derevo.derive
 import eu.timepit.refined.types.numeric.NonNegLong
 import org.elpaca_metagraph.shared_data.types.Lattice._
 import org.elpaca_metagraph.shared_data.types.YouTube.YouTubeDataAPI.VideoDetails
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 import java.time.Instant
 import scala.collection.immutable.ListMap

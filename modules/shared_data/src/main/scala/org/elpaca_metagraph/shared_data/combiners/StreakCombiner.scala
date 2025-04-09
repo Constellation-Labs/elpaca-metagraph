@@ -11,9 +11,9 @@ import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.Streak.StreakDataSourceAddress
 import org.elpaca_metagraph.shared_data.validations.Validations.streakValidationsL0
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
-import org.tessellation.security.signature.Signed
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
+import io.constellationnetwork.security.signature.Signed
 import org.typelevel.log4cats.Logger
 
 object StreakCombiner {

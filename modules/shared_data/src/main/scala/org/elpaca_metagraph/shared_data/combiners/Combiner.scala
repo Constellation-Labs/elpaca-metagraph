@@ -15,9 +15,9 @@ import org.elpaca_metagraph.shared_data.combiners.XCombiner.updateStateX
 import org.elpaca_metagraph.shared_data.combiners.YouTubeCombiner.updateYouTubeState
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.States._
-import org.tessellation.currency.dataApplication.DataState
-import org.tessellation.schema.epoch.EpochProgress
-import org.tessellation.security.signature.Signed
+import io.constellationnetwork.currency.dataApplication.DataState
+import io.constellationnetwork.schema.epoch.EpochProgress
+import io.constellationnetwork.security.signature.Signed
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

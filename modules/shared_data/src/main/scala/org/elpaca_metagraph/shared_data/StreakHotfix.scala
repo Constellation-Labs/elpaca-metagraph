@@ -8,7 +8,7 @@ import monocle.Monocle.toAppliedFocusOps
 import org.elpaca_metagraph.shared_data.types.States.DataSourceType.Streak
 import org.elpaca_metagraph.shared_data.types.States.{DataSource, DataSourceType, StreakDataSource}
 import org.elpaca_metagraph.shared_data.types.Streak.StreakDataSourceAddress
-import org.tessellation.schema.address.Address
+import io.constellationnetwork.schema.address.Address
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

@@ -16,8 +16,8 @@ import org.http4s.circe._
 import org.http4s.client.Client
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 import java.time.LocalDateTime
 import scala.collection.immutable.ListMap

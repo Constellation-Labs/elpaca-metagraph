@@ -5,8 +5,8 @@ import org.elpaca_metagraph.shared_data.Utils.isWithinDailyLimit
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig.SearchInfo
 import org.elpaca_metagraph.shared_data.types.Lattice.{RewardInfo, SocialDataSourceAddress}
 import org.scalatest.funsuite.AnyFunSuite
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 import scala.collection.immutable.ListMap
 

@@ -15,12 +15,12 @@ import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.middleware.CORS
 import org.http4s.{HttpRoutes, Response}
-import org.tessellation.currency.dataApplication.L0NodeContext
-import org.tessellation.ext.http4s.AddressVar
-import org.tessellation.routes.internal.{InternalUrlPrefix, PublicRoutes}
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.currency.dataApplication.L0NodeContext
+import io.constellationnetwork.ext.http4s.AddressVar
+import io.constellationnetwork.routes.internal.{InternalUrlPrefix, PublicRoutes}
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 case class CustomRoutes[F[_] : Async](
   calculatedStateService: CalculatedStateService[F]

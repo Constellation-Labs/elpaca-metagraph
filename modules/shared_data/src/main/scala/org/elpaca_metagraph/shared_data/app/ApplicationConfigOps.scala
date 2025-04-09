@@ -7,11 +7,11 @@ import eu.timepit.refined.refineV
 import eu.timepit.refined.types.numeric.NonNegLong
 import fs2.io.file.Path
 import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
-import org.tessellation.node.shared.config.types.HttpClientConfig
-import org.tessellation.schema.ID.Id
-import org.tessellation.schema.address.{Address, DAGAddressRefined}
-import org.tessellation.schema.balance.Amount
-import org.tessellation.security.hex.Hex
+import io.constellationnetwork.node.shared.config.types.HttpClientConfig
+import io.constellationnetwork.schema.ID.Id
+import io.constellationnetwork.schema.address.{Address, DAGAddressRefined}
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.security.hex.Hex
 import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.generic.semiauto.deriveReader

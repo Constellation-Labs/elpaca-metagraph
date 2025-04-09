@@ -1,8 +1,8 @@
 package org.elpaca_metagraph.shared_data.validations
 
 import cats.syntax.all._
-import org.tessellation.currency.dataApplication.DataApplicationValidationError
-import org.tessellation.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
+import io.constellationnetwork.currency.dataApplication.DataApplicationValidationError
+import io.constellationnetwork.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
 
 object Errors {
   private type DataApplicationValidationType = DataApplicationValidationErrorOr[Unit]

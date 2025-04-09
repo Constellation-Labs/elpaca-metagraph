@@ -12,10 +12,10 @@ import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDat
 import org.elpaca_metagraph.shared_data.types.FreshWallet.FreshWalletDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.validations.Validations.freshWalletValidationsL0
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
-import org.tessellation.security.signature.Signed
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
+import io.constellationnetwork.security.signature.Signed
 import org.typelevel.log4cats.Logger
 
 object FreshWalletCombiner {

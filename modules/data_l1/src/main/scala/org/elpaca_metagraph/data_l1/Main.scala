@@ -7,13 +7,13 @@ import org.elpaca_metagraph.shared_data.Utils.loadKeyPair
 import org.elpaca_metagraph.shared_data.app.ApplicationConfigOps
 import org.elpaca_metagraph.shared_data.daemons.DaemonApis
 import org.elpaca_metagraph.shared_data.types.codecs.JsonBinaryCodec
-import org.tessellation.currency.dataApplication._
-import org.tessellation.currency.l1.CurrencyL1App
-import org.tessellation.ext.cats.effect.ResourceIO
-import org.tessellation.json.JsonSerializer
-import org.tessellation.schema.cluster.ClusterId
-import org.tessellation.schema.semver.{MetagraphVersion, TessellationVersion}
-import org.tessellation.security.SecurityProvider
+import io.constellationnetwork.currency.dataApplication._
+import io.constellationnetwork.currency.l1.CurrencyL1App
+import io.constellationnetwork.ext.cats.effect.ResourceIO
+import io.constellationnetwork.json.JsonSerializer
+import io.constellationnetwork.schema.cluster.ClusterId
+import io.constellationnetwork.schema.semver.{MetagraphVersion, TessellationVersion}
+import io.constellationnetwork.security.SecurityProvider
 
 import java.util.UUID
 
@@ -21,7 +21,7 @@ object Main extends CurrencyL1App(
   "currency-data_l1",
   "currency data L1 node",
   ClusterId(UUID.fromString("517c3a05-9219-471b-a54c-21b7d72f4ae5")),
-  tessellationVersion = TessellationVersion.unsafeFrom(org.tessellation.BuildInfo.version),
+  tessellationVersion = TessellationVersion.unsafeFrom(io.constellationnetwork.BuildInfo.version),
   metagraphVersion = MetagraphVersion.unsafeFrom(org.elpaca_metagraph.data_l1.BuildInfo.version)
 ) {
 
@@ -33,6 +33,6 @@ object Main extends CurrencyL1App(
     config <- ApplicationConfigOps.readDefault[IO].asResource
     keyPair <- loadKeyPair[IO](config).asResource
     _ <- DaemonApis.make[IO](config, keyPair).spawnL1Daemons.asResource
-    l1Service <- DataL1Service.make[IO]().asResource
+    l1Service = DataL1Service.make[IO]()
   } yield l1Service).some
 }

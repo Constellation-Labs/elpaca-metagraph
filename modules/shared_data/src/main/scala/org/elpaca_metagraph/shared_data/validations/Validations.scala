@@ -5,9 +5,9 @@ import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates.{FreshWalletUpdate, IntegrationnetNodeOperatorUpdate, StreakUpdate}
 import org.elpaca_metagraph.shared_data.types.States.StreakDataSource
 import org.elpaca_metagraph.shared_data.validations.TypeValidators._
-import org.tessellation.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
-import org.tessellation.schema.epoch.EpochProgress
-import org.tessellation.security.signature.Signed
+import io.constellationnetwork.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
+import io.constellationnetwork.schema.epoch.EpochProgress
+import io.constellationnetwork.security.signature.Signed
 
 object Validations {
   def integrationnetNodeOperatorsValidationsL1(

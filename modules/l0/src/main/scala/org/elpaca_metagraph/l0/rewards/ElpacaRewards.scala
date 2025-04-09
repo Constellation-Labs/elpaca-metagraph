@@ -6,17 +6,17 @@ import eu.timepit.refined.types.numeric.PosLong
 import org.elpaca_metagraph.shared_data.Utils.PosLongOps
 import org.elpaca_metagraph.shared_data.types.States.DataSourceType._
 import org.elpaca_metagraph.shared_data.types.States._
-import org.tessellation.currency.dataApplication.DataCalculatedState
-import org.tessellation.currency.schema.currency.{CurrencyIncrementalSnapshot, CurrencySnapshotStateProof}
-import org.tessellation.ext.cats.syntax.next.catsSyntaxNext
-import org.tessellation.node.shared.domain.rewards.Rewards
-import org.tessellation.node.shared.infrastructure.consensus.trigger.{ConsensusTrigger, EventTrigger, TimeTrigger}
-import org.tessellation.node.shared.snapshot.currency.CurrencySnapshotEvent
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.balance.{Amount, Balance}
-import org.tessellation.schema.epoch.EpochProgress
-import org.tessellation.schema.transaction.{RewardTransaction, Transaction, TransactionAmount}
-import org.tessellation.security.signature.Signed
+import io.constellationnetwork.currency.dataApplication.DataCalculatedState
+import io.constellationnetwork.currency.schema.currency.{CurrencyIncrementalSnapshot, CurrencySnapshotStateProof}
+import io.constellationnetwork.ext.cats.syntax.next.catsSyntaxNext
+import io.constellationnetwork.node.shared.domain.rewards.Rewards
+import io.constellationnetwork.node.shared.infrastructure.consensus.trigger.{ConsensusTrigger, EventTrigger, TimeTrigger}
+import io.constellationnetwork.node.shared.snapshot.currency.CurrencySnapshotEvent
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.balance.{Amount, Balance}
+import io.constellationnetwork.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.transaction.{RewardTransaction, Transaction, TransactionAmount}
+import io.constellationnetwork.security.signature.Signed
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.collection.immutable.{Map, SortedMap, SortedSet}

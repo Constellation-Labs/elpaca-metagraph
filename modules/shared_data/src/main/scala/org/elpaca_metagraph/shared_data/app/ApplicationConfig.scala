@@ -3,10 +3,10 @@ package org.elpaca_metagraph.shared_data.app
 import ciris.Secret
 import fs2.io.file.Path
 import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
-import org.tessellation.node.shared.config.types.HttpClientConfig
-import org.tessellation.schema.ID.Id
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.balance.Amount
+import io.constellationnetwork.node.shared.config.types.HttpClientConfig
+import io.constellationnetwork.schema.ID.Id
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.balance.Amount
 
 import java.time.LocalDate
 import scala.concurrent.duration._

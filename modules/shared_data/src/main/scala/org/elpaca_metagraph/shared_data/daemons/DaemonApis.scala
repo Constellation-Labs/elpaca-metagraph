@@ -9,12 +9,12 @@ import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.calculated_state.CalculatedStateService
 import org.elpaca_metagraph.shared_data.daemons.fetcher._
 import org.http4s.client.Client
-import org.tessellation.json.JsonSerializer
-import org.tessellation.node.shared.domain.Daemon
-import org.tessellation.node.shared.resources.MkHttpClient
-import org.tessellation.schema.peer.P2PContext
-import org.tessellation.security.SecurityProvider
-import org.tessellation.security.key.ops.PublicKeyOps
+import io.constellationnetwork.json.JsonSerializer
+import io.constellationnetwork.node.shared.domain.Daemon
+import io.constellationnetwork.node.shared.resources.MkHttpClient
+import io.constellationnetwork.schema.peer.P2PContext
+import io.constellationnetwork.security.SecurityProvider
+import io.constellationnetwork.security.key.ops.PublicKeyOps
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

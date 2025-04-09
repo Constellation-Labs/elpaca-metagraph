@@ -9,18 +9,18 @@ import eu.timepit.refined.types.numeric.NonNegLong
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.app.ApplicationConfig.SearchInfo
 import org.elpaca_metagraph.shared_data.types.Lattice.SocialDataSourceAddress
-import org.tessellation.currency.dataApplication.L0NodeContext
-import org.tessellation.env.env.{KeyAlias, Password, StorePath}
-import org.tessellation.ext.cats.syntax.next.catsSyntaxNext
-import org.tessellation.keytool.KeyStoreUtils
-import org.tessellation.schema.ID.Id
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
-import org.tessellation.schema.transaction.{RewardTransaction, TransactionAmount}
-import org.tessellation.security.SecurityProvider
-import org.tessellation.security.hash.Hash
-import org.tessellation.security.signature.signature.SignatureProof
+import io.constellationnetwork.currency.dataApplication.L0NodeContext
+import io.constellationnetwork.env.env.{KeyAlias, Password, StorePath}
+import io.constellationnetwork.ext.cats.syntax.next.catsSyntaxNext
+import io.constellationnetwork.keytool.KeyStoreUtils
+import io.constellationnetwork.schema.ID.Id
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.transaction.{RewardTransaction, TransactionAmount}
+import io.constellationnetwork.security.SecurityProvider
+import io.constellationnetwork.security.hash.Hash
+import io.constellationnetwork.security.signature.signature.SignatureProof
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
