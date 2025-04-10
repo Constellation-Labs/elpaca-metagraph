@@ -31,7 +31,7 @@ import java.time.format.DateTimeFormatter
 
 object Utils {
   private val oneHourInSeconds = 60 * 60
-  private val oneEpochProgressInSeconds = 43
+  private val oneEpochProgressInSeconds = 65
   private val epochProgressesInOneHour = oneHourInSeconds / oneEpochProgressInSeconds
   private val oneDayInHours = 24
 
