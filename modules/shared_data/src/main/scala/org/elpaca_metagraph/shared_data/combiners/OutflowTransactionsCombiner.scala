@@ -5,7 +5,7 @@ import monocle.Monocle.toAppliedFocusOps
 import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.OutflowTransactions.{OutflowAddressToRewardInfo, OutflowTransactionsDataSourceAddress}
 import org.elpaca_metagraph.shared_data.types.States._
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 object OutflowTransactionsCombiner {
   private def createOutflowAddressToRewardInfo(

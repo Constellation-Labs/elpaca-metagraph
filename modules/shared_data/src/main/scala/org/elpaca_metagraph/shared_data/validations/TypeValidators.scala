@@ -7,9 +7,9 @@ import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.States.StreakDataSource
 import org.elpaca_metagraph.shared_data.types.Streak.StreakDataSourceAddress
 import org.elpaca_metagraph.shared_data.validations.Errors._
-import org.tessellation.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
-import org.tessellation.schema.epoch.EpochProgress
-import org.tessellation.security.signature.signature.SignatureProof
+import io.constellationnetwork.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
+import io.constellationnetwork.schema.epoch.EpochProgress
+import io.constellationnetwork.security.signature.signature.SignatureProof
 
 object TypeValidators {
   def validateIfIntegrationnetOperatorHave250KDAG(

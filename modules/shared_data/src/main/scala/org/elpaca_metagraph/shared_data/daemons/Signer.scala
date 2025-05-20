@@ -5,11 +5,11 @@ import cats.effect.Async
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.types.DataUpdates.ElpacaUpdate
 import org.elpaca_metagraph.shared_data.types.codecs.JsonBinaryCodec
-import org.tessellation.json.JsonSerializer
-import org.tessellation.security.SecurityProvider
-import org.tessellation.security.hash.Hash
-import org.tessellation.security.signature.Signed
-import org.tessellation.security.signature.signature.SignatureProof
+import io.constellationnetwork.json.JsonSerializer
+import io.constellationnetwork.security.SecurityProvider
+import io.constellationnetwork.security.hash.Hash
+import io.constellationnetwork.security.signature.Signed
+import io.constellationnetwork.security.signature.signature.SignatureProof
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

@@ -7,8 +7,8 @@ import org.elpaca_metagraph.shared_data.types.DataUpdates._
 import org.elpaca_metagraph.shared_data.types.ExistingWallets.ExistingWalletsDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.States._
 import org.elpaca_metagraph.shared_data.types.WalletCreationHoldingDAG.WalletCreationHoldingDAGDataSourceAddress
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 object WalletCreationHoldingDAGCombiner {
   private val walletCreationRewardAmount: Long = 10L

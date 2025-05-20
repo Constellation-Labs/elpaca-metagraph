@@ -8,7 +8,7 @@ import org.elpaca_metagraph.shared_data.app.ApplicationConfig
 import org.elpaca_metagraph.shared_data.types.DataUpdates.YouTubeUpdate
 import org.elpaca_metagraph.shared_data.types.States.{DataSource, DataSourceType, YouTubeDataSource}
 import org.elpaca_metagraph.shared_data.types.YouTube.{YouTubeDataSourceAddress, YouTubeRewardInfo}
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit

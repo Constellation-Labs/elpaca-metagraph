@@ -5,8 +5,8 @@ import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import eu.timepit.refined.types.numeric.NonNegLong
 import org.elpaca_metagraph.shared_data.types.codecs.NonNegLongCodec._
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 object Streak {
   @derive(encoder, decoder)

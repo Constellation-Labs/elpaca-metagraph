@@ -17,8 +17,8 @@ import org.elpaca_metagraph.shared_data.types.Streak.StreakDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.WalletCreationHoldingDAG.WalletCreationHoldingDAGDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.X.XDataSourceAddress
 import org.elpaca_metagraph.shared_data.types.YouTube.YouTubeDataSourceAddress
-import org.tessellation.currency.dataApplication.{DataCalculatedState, DataOnChainState}
-import org.tessellation.schema.address.Address
+import io.constellationnetwork.currency.dataApplication.{DataCalculatedState, DataOnChainState}
+import io.constellationnetwork.schema.address.Address
 
 object States {
   implicit val config: Configuration = Configuration.default.withDefaults

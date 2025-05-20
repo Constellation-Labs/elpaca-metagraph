@@ -11,8 +11,8 @@ import org.elpaca_metagraph.shared_data.types.Exolix.{ExolixApiResponse, ExolixT
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.client.Client
-import org.tessellation.node.shared.resources.MkHttpClient
-import org.tessellation.schema.address.{Address, DAGAddress}
+import io.constellationnetwork.node.shared.resources.MkHttpClient
+import io.constellationnetwork.schema.address.{Address, DAGAddress}
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger

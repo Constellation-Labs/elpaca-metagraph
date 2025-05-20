@@ -14,7 +14,7 @@ import org.elpaca_metagraph.shared_data.types.States.{DataSource, DataSourceType
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.client.Client
-import org.tessellation.node.shared.resources.MkHttpClient
+import io.constellationnetwork.node.shared.resources.MkHttpClient
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

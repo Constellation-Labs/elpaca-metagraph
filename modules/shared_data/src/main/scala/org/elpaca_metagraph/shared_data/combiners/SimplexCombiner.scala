@@ -6,8 +6,8 @@ import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.types.DataUpdates.SimplexUpdate
 import org.elpaca_metagraph.shared_data.types.Simplex._
 import org.elpaca_metagraph.shared_data.types.States._
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.epoch.EpochProgress
 import org.typelevel.log4cats.Logger
 
 object SimplexCombiner {

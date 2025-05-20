@@ -26,4 +26,4 @@ runs:
         git checkout $TESSELLATION_VERSION
         
         sbt clean 
-        sbt kernel/publishM2 dagL1/publishM2 keytool/publishM2 shared/publishM2 nodeShared/publishM2 currencyL0/publishM2 currencyL1/publishM2
+        sbt sdk/publishM2

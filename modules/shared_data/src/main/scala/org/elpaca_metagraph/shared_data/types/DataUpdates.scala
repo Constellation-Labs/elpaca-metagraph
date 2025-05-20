@@ -7,9 +7,9 @@ import org.elpaca_metagraph.shared_data.types.Exolix.ExolixTransaction
 import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators.OperatorInQueue
 import org.elpaca_metagraph.shared_data.types.Simplex.SimplexEvent
 import org.elpaca_metagraph.shared_data.types.YouTube.YouTubeDataAPI.VideoDetails
-import org.tessellation.currency.dataApplication.DataUpdate
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.balance.Amount
+import io.constellationnetwork.currency.dataApplication.DataUpdate
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.balance.Amount
 
 object DataUpdates {
   @derive(encoder, decoder)

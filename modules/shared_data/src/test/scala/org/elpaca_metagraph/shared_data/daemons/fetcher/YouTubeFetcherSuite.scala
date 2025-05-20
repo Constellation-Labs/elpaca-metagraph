@@ -18,8 +18,8 @@ import org.http4s.client.Client
 import org.http4s.implicits._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets

@@ -6,9 +6,9 @@ import cats.syntax.all._
 import io.circe.Json
 import io.circe.syntax.EncoderOps
 import org.elpaca_metagraph.shared_data.types.States.ElpacaCalculatedState
-import org.tessellation.json.JsonSerializer
-import org.tessellation.schema.SnapshotOrdinal
-import org.tessellation.security.hash.Hash
+import io.constellationnetwork.json.JsonSerializer
+import io.constellationnetwork.schema.SnapshotOrdinal
+import io.constellationnetwork.security.hash.Hash
 
 trait CalculatedStateService[F[_]] {
   def get: F[CalculatedState]

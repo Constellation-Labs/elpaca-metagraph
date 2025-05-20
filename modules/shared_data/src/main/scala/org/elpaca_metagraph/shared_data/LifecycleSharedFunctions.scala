@@ -16,9 +16,9 @@ import org.elpaca_metagraph.shared_data.types.DataUpdates.{ElpacaUpdate, Integra
 import org.elpaca_metagraph.shared_data.types.States.{ElpacaCalculatedState, ElpacaOnChainState}
 import org.elpaca_metagraph.shared_data.validations.Errors.valid
 import org.elpaca_metagraph.shared_data.validations.Validations.integrationnetNodeOperatorsValidationsL1
-import org.tessellation.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
-import org.tessellation.currency.dataApplication.{DataState, L0NodeContext}
-import org.tessellation.security.signature.Signed
+import io.constellationnetwork.currency.dataApplication.dataApplication.DataApplicationValidationErrorOr
+import io.constellationnetwork.currency.dataApplication.{DataState, L0NodeContext}
+import io.constellationnetwork.security.signature.Signed
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

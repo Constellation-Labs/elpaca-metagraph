@@ -3,9 +3,9 @@ package org.elpaca_metagraph.shared_data.types
 import derevo.circe.magnolia.{decoder, encoder}
 import derevo.derive
 import org.elpaca_metagraph.shared_data.types.Lattice._
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.balance.Amount
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.balance.Amount
+import io.constellationnetwork.schema.epoch.EpochProgress
 
 import scala.collection.immutable.ListMap
 

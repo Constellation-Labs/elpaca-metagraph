@@ -6,8 +6,8 @@ import org.elpaca_metagraph.shared_data.Utils.toTokenAmountFormat
 import org.elpaca_metagraph.shared_data.types.DataUpdates.IntegrationnetNodeOperatorUpdate
 import org.elpaca_metagraph.shared_data.types.IntegrationnetOperators._
 import org.elpaca_metagraph.shared_data.types.States._
-import org.tessellation.schema.address.Address
-import org.tessellation.schema.epoch.EpochProgress
+import io.constellationnetwork.schema.address.Address
+import io.constellationnetwork.schema.epoch.EpochProgress
 import org.typelevel.log4cats.Logger
 
 object IntegrationnetOperatorsCombiner {

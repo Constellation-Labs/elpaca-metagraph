@@ -3,7 +3,7 @@ package org.elpaca_metagraph.shared_data.daemons.fetcher
 import cats.effect.IO
 import cats.syntax.all._
 import org.elpaca_metagraph.shared_data.types.Refined.ApiUrl
-import org.tessellation.schema.address.Address
+import io.constellationnetwork.schema.address.Address
 import eu.timepit.refined.auto._
 import org.http4s.client.Client
 import org.http4s.{HttpRoutes, Response, Uri}
